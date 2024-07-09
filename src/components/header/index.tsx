@@ -1,12 +1,12 @@
 import React from "react";
-import "./style.css";
+import styles from "./style.module.css";
 
 interface HeaderProps {}
 
 export const Header: React.FC<HeaderProps> = (props) => {
   return (
-    <header id="header">
-      <h2 id="header-title">Routing Visualizer</h2>
+    <header id={styles["header"]}>
+      <h2 id={styles["header-title"]}>Routing Visualizer</h2>
       <nav>
         <ul>
           {/* Open a modal showing a step by step tutorial */}
