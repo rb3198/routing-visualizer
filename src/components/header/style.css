@@ -1,0 +1,36 @@
+#header {
+    height: 7.5vh;
+    background-color: #324ca8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 1.5vw;
+}
+
+#header-title {
+    color: white;
+}
+
+nav {
+    height: 100%;
+}
+nav ul {
+    display: flex;
+    list-style: none;
+    height: 100%;
+}
+
+nav ul li {
+    font-weight: bold;
+    height: 100%;
+    padding: 0 1.5vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: #eee;
+}
+
+nav ul li:hover {
+    background-color: #4562C8;
+    color: white;
+}
