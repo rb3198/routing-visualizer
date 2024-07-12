@@ -1,0 +1,10 @@
+#svg_container {
+    display: flex;
+    height: 81vh;
+    justify-content: center;
+    align-items: center;
+}
+#container {
+    height: 80vh;
+    width: 100%;
+}
