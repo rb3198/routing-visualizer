@@ -8,7 +8,7 @@ function App() {
     <div className="App">
       <Header />
       <ComponentPicker />
-      <Grid />
+      <Grid gridSize={50} />
     </div>
   );
 }
