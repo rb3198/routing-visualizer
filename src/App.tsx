@@ -6,7 +6,7 @@ function App() {
   return (
     <div className="App">
       <Header />
-      <Grid gridSize={50} />
+      <Grid gridSize={40} />
     </div>
   );
 }
