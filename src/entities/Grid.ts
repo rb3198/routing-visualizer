@@ -175,6 +175,28 @@ export class Grid {
     }
   };
 
+  placeRouter = () => {
+    if (!this.activeLocation || this.activeLocation.length !== 2) {
+      console.error(
+        "Unexpected placeRouter call! Active Location must be populated before calling this method"
+      );
+      return;
+    }
+    const [row, col] = this.activeLocation;
+    const routerKey = this.getLocationKey(row, col);
+    if (!this.canvasRef.current || this.routerLocations.has(routerKey)) {
+      return;
+    }
+    const context = this.canvasRef.current.getContext("2d");
+    if (!context) {
+      return;
+    }
+    const rect = this.gridRect[row][col];
+    rect.drawRouter(context);
+    this.routerLocations.add(routerKey);
+    this.activeLocation = undefined;
+  };
+
   /**
    * Draws(or re-draws) the grid from scratch keeping in mind all the state variables.
    *
@@ -193,7 +215,6 @@ export class Grid {
     }
     context.clearRect(0, 0, containerWidth, containerHeight);
     context.fillStyle = "transparent";
-    context.strokeStyle = strokeColor || "#ddd";
     let y = 0;
     for (let row = 0; row < this.gridSize; row++) {
       let x = 0;

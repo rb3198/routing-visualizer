@@ -1,13 +1,26 @@
 import { Colors } from "../constants/theme";
+import {
+  drawRouterAntennas,
+  drawRouterBox,
+  drawRouterButtons,
+} from "../utils/grid_cell";
 
 export class Rect {
   x: number;
   y: number;
   height: number;
   width: number;
-  constructor(x: number, y: number, height: number, width: number) {
+  cellStrokeColor: string;
+  constructor(
+    x: number,
+    y: number,
+    height: number,
+    width: number,
+    cellStrokeColor: string = "#ddd"
+  ) {
     this.x = x;
     this.y = y;
+    this.cellStrokeColor = cellStrokeColor;
     this.height = height;
     this.width = width;
   }
@@ -50,7 +63,28 @@ export class Rect {
     context.closePath();
   };
 
+  drawRouter = (context: CanvasRenderingContext2D) => {
+    const { x, y, width, height } = this;
+    context.beginPath();
+    context.fillStyle = Colors.complementary;
+    context.rect(x, y, width, height);
+    context.fill();
+    context.closePath();
+    context.beginPath();
+    drawRouterBox.call(this, context);
+    drawRouterAntennas.call(this, context);
+    drawRouterButtons.call(this, context);
+    context.moveTo(x + 0.55 * width, y + 0.7 * height);
+    context.lineTo(x + 0.825 * width, y + 0.7 * height);
+    context.strokeStyle = "white";
+    context.lineWidth = 1.25;
+    context.stroke();
+    context.closePath();
+    context.strokeStyle = "";
+  };
+
   draw = (context: CanvasRenderingContext2D) => {
+    context.strokeStyle = this.cellStrokeColor;
     context.beginPath();
     context.rect(this.x, this.y, this.width, this.height);
     context.fill();

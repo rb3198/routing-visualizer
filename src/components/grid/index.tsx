@@ -32,7 +32,9 @@ export const Grid: React.FC<GridProps> = (props) => {
       {
         label: "Router",
         Icon: CiRouter,
-        onClick: () => {},
+        onClick: () => {
+          gridRef.current?.placeRouter();
+        },
       },
       {
         label: "AS Boundary",
