@@ -5,12 +5,18 @@ import {
   drawRouterButtons,
 } from "../utils/grid_cell";
 
-export class Rect {
+/**
+ * Class representing a single cell in the grid.
+ * - May contain a router OR
+ * - May be part of a path connecting two routers
+ */
+export class GridCell {
   x: number;
   y: number;
   height: number;
   width: number;
   cellStrokeColor: string;
+  private type: "router" | "path" | "none" = "none";
   constructor(
     x: number,
     y: number,
@@ -25,11 +31,31 @@ export class Rect {
     this.width = width;
   }
 
+  private beforeDraw = (context: CanvasRenderingContext2D) => {
+    context.clearRect(this.x, this.y, this.width, this.height);
+    context.beginPath();
+    context.rect(this.x, this.y, this.width, this.height);
+    context.strokeStyle = this.cellStrokeColor;
+    context.stroke();
+    context.closePath();
+  };
+
+  /**
+   * Draws an Add icon on hover over the cell.
+   * @param context
+   * @param fillColor
+   * @param plusColor
+   */
   drawAddIcon = (
     context: CanvasRenderingContext2D,
     fillColor: string = Colors.accent,
     plusColor: string = "white"
   ) => {
+    if (this.type !== "none") {
+      console.error("Cannot draw on a cell that contains a router or a path.");
+      return;
+    }
+    this.beforeDraw(context);
     context.beginPath();
     context.arc(
       this.x + this.width / 2,
@@ -81,14 +107,11 @@ export class Rect {
     context.stroke();
     context.closePath();
     context.strokeStyle = "";
+    this.type = "router";
   };
 
-  draw = (context: CanvasRenderingContext2D) => {
-    context.strokeStyle = this.cellStrokeColor;
-    context.beginPath();
-    context.rect(this.x, this.y, this.width, this.height);
-    context.fill();
-    context.stroke();
-    context.closePath();
+  drawEmpty = (context: CanvasRenderingContext2D) => {
+    this.beforeDraw(context);
+    this.type = "none";
   };
 }

@@ -1,5 +1,5 @@
 import { RefObject } from "react";
-import { Rect } from "./Rect";
+import { GridCell } from "./GridCell";
 
 export class Grid {
   /**
@@ -15,7 +15,7 @@ export class Grid {
   /**
    * The grid mapped to rect objects
    */
-  gridRect: Rect[][];
+  gridRect: GridCell[][];
 
   /**
    * A set of all locations of the router, stored as `<x coordinate>_<y_coordinate>`
@@ -113,7 +113,7 @@ export class Grid {
         this.isCellEmpty(prevRow, prevCol) &&
         (prevRow !== row || prevCol !== column);
       if (shouldResetPrevLocation) {
-        this.gridRect[prevRow][prevCol].draw(context);
+        this.gridRect[prevRow][prevCol].drawEmpty(context);
       }
     }
     cell.drawAddIcon(context);
@@ -124,7 +124,7 @@ export class Grid {
   private calcPickerPosition = (
     row: number,
     column: number,
-    cell: Rect,
+    cell: GridCell,
     tooltipElement: HTMLDivElement
   ) => {
     if (!this.canvasRef.current) {
@@ -235,12 +235,16 @@ export class Grid {
     for (let row = 0; row < this.gridSize; row++) {
       let x = 0;
       for (let col = 0; col < this.gridSize; col++) {
-        const cell = new Rect(x, y, cellSize, cellSize);
+        const cell = new GridCell(x, y, cellSize, cellSize);
         this.gridRect[row][col] = cell;
-        cell.draw(context);
+        cell.drawEmpty(context);
         x += cellSize;
       }
       y += cellSize;
     }
+    this.routerLocations.forEach((loc) => {
+      const [row, col] = loc.split("_").map((l) => parseInt(l));
+      this.gridRect[row][col] && this.gridRect[row][col].drawRouter(context);
+    });
   };
 }

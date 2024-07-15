@@ -1,7 +1,7 @@
-import { Rect } from "../entities/Rect";
+import { GridCell } from "../entities/GridCell";
 
 export const drawRouterBox = function (
-  this: Rect,
+  this: GridCell,
   context: CanvasRenderingContext2D
 ) {
   const { x, y, width, height } = this;
@@ -28,7 +28,7 @@ export const drawRouterBox = function (
 };
 
 export const drawRouterAntennas = function (
-  this: Rect,
+  this: GridCell,
   context: CanvasRenderingContext2D
 ) {
   const { x, y, width, height } = this;
@@ -39,7 +39,7 @@ export const drawRouterAntennas = function (
 };
 
 export const drawRouterButtons = function (
-  this: Rect,
+  this: GridCell,
   context: CanvasRenderingContext2D
 ) {
   const { x, y, width, height } = this;
