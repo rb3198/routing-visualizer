@@ -55,6 +55,12 @@ export class Grid {
     return containerWidth / this.gridSize;
   };
 
+  private isCellEmpty = (row: number, column: number) => {
+    const locKey = this.getLocationKey(row, column);
+    // TODO: Add path conditions
+    return !this.routerLocations.has(locKey);
+  };
+
   private mapCoordsToGridCell = (x: number, y: number) => {
     const cellSize = this.getCellSize();
     const column = Math.floor(x / cellSize);
@@ -93,18 +99,26 @@ export class Grid {
       rect: cell,
     } = this.mapCoordsToGridCell(offsetX, offsetY);
     const context = this.canvasRef.current.getContext("2d");
-    if (context) {
-      context.fillStyle = "white";
-      if (this.previousHoverLocation) {
-        const [prevRow, prevCol] = this.previousHoverLocation;
-        if (prevRow !== row || prevCol !== column) {
-          this.gridRect[prevRow][prevCol].draw(context);
-        }
-      }
-      cell.drawAddIcon(context);
-      context.fillStyle = "transparent";
-      this.previousHoverLocation = [row, column];
+    if (!context) {
+      return;
     }
+    if (this.routerLocations.has(this.getLocationKey(row, column))) {
+      // TODO: Make it draggable
+      return;
+    }
+    context.fillStyle = "white";
+    if (this.previousHoverLocation) {
+      const [prevRow, prevCol] = this.previousHoverLocation;
+      const shouldResetPrevLocation =
+        this.isCellEmpty(prevRow, prevCol) &&
+        (prevRow !== row || prevCol !== column);
+      if (shouldResetPrevLocation) {
+        this.gridRect[prevRow][prevCol].draw(context);
+      }
+    }
+    cell.drawAddIcon(context);
+    context.fillStyle = "transparent";
+    this.previousHoverLocation = [row, column];
   };
 
   private calcPickerPosition = (
@@ -146,7 +160,7 @@ export class Grid {
     tooltipOpen: boolean,
     tooltipElement: HTMLDivElement,
     openTooltip: (left: number, top: number) => void,
-    closeTooltip: (e?: MouseEvent) => void
+    closeTooltip: (e: MouseEvent) => void
   ) => {
     const { clientX, clientY } = e;
     if (!this.canvasRef.current) {
@@ -175,7 +189,7 @@ export class Grid {
     }
   };
 
-  placeRouter = () => {
+  placeRouter = (e: MouseEvent, onPlaced?: (e: MouseEvent) => unknown) => {
     if (!this.activeLocation || this.activeLocation.length !== 2) {
       console.error(
         "Unexpected placeRouter call! Active Location must be populated before calling this method"
@@ -195,6 +209,8 @@ export class Grid {
     rect.drawRouter(context);
     this.routerLocations.add(routerKey);
     this.activeLocation = undefined;
+    this.previousHoverLocation = undefined;
+    onPlaced && onPlaced(e);
   };
 
   /**

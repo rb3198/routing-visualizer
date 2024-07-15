@@ -19,21 +19,43 @@ interface GridProps {
 export const Grid: React.FC<GridProps> = (props) => {
   const { gridSize } = props;
   const containerRef = useRef<HTMLCanvasElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<GridEntity>();
-  const [tooltip, setTooltip] = useState({
+  const [picker, setPicker] = useState({
     visible: false,
     top: -200,
     left: -200,
   });
+
+  const openPicker = useCallback((left: number, top: number) => {
+    setPicker({ visible: true, left, top });
+    if (containerRef.current && gridRef.current) {
+      containerRef.current.removeEventListener(
+        "mousemove",
+        gridRef.current.onMouseOverGrid
+      );
+    }
+  }, []);
+
+  const closePicker = useCallback((e: MouseEvent) => {
+    setPicker({ visible: false, left: -200, top: -200 });
+    if (containerRef.current && gridRef.current) {
+      containerRef.current.addEventListener(
+        "mousemove",
+        gridRef.current.onMouseOverGrid
+      );
+      gridRef.current.onMouseOverGrid(e);
+    }
+  }, []);
 
   const pickerOptions: PickerOption[] = useMemo(
     () => [
       {
         label: "Router",
         Icon: CiRouter,
-        onClick: () => {
-          gridRef.current?.placeRouter();
+        onClick: (e) => {
+          const { nativeEvent } = e;
+          gridRef.current?.placeRouter(nativeEvent, closePicker);
         },
       },
       {
@@ -42,7 +64,7 @@ export const Grid: React.FC<GridProps> = (props) => {
         onClick: () => {},
       },
     ],
-    []
+    [closePicker]
   );
   useLayoutEffect(() => {
     const onResize = debounce(() => {
@@ -76,44 +98,22 @@ export const Grid: React.FC<GridProps> = (props) => {
     };
   }, [gridSize]);
 
-  const { visible, top, left } = tooltip;
-
-  const openTooltip = useCallback((left: number, top: number) => {
-    setTooltip({ visible: true, left, top });
-    if (containerRef.current && gridRef.current) {
-      containerRef.current.removeEventListener(
-        "mousemove",
-        gridRef.current.onMouseOverGrid
-      );
-    }
-  }, []);
-
-  const closeTooltip = useCallback((e: MouseEvent) => {
-    setTooltip({ visible: false, left: -200, top: -200 });
-    if (containerRef.current && gridRef.current) {
-      containerRef.current.addEventListener(
-        "mousemove",
-        gridRef.current.onMouseOverGrid
-      );
-      gridRef.current.onMouseOverGrid(e);
-    }
-  }, []);
+  const { visible, top, left } = picker;
 
   const onCanvasMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (e) => {
-      if (!containerRef.current || !gridRef.current) {
+      if (!containerRef.current || !gridRef.current || !pickerRef.current) {
         return;
       }
       gridRef.current.onMouseDown(
-        // @ts-ignore Reason: e incompatible but compatible
-        e,
+        e.nativeEvent,
         visible,
-        tooltipRef.current,
-        openTooltip,
-        closeTooltip
+        pickerRef.current,
+        openPicker,
+        closePicker
       );
     },
-    [visible, openTooltip, closeTooltip]
+    [visible, openPicker, closePicker]
   );
   if (!document) {
     return null;
@@ -127,7 +127,7 @@ export const Grid: React.FC<GridProps> = (props) => {
         onMouseDown={onCanvasMouseDown}
       ></canvas>
       <ComponentPicker
-        pickerRef={tooltipRef}
+        pickerRef={pickerRef}
         options={pickerOptions}
         position={{
           top,
