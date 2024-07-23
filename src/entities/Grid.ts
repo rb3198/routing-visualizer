@@ -1,11 +1,21 @@
 import { RefObject } from "react";
 import { GridCell } from "./GridCell";
+import { AutonomousSystem } from "./AutonomousSystem";
+import { Point } from "../types/geometry";
+import { Colors } from "../constants/theme";
 
 export class Grid {
   /**
    * Grid constructed will be of size `gridSize x gridSize` cells
    */
   gridSize: number;
+
+  /**
+   * New AS placed on the grid will be of size `defaultAsSize x defaultAsSize` by default before any resizing by the user.
+   *
+   * In number of grid cells wide / tall.
+   */
+  defaultAsSize: number;
 
   /**
    * The grid will be drawn inside this canvas
@@ -36,6 +46,7 @@ export class Grid {
     this.canvasRef = canvasRef;
     this.gridSize = gridSize;
     this.gridRect = this.getEmptyGridRect(gridSize);
+    this.defaultAsSize = Math.floor(gridSize / 8);
   }
 
   private getLocationKey = (row: number, column: number) => `${row}_${column}`;
@@ -102,6 +113,16 @@ export class Grid {
     if (!context) {
       return;
     }
+    // If inside AS and no router present - open picker with only router option shown
+    /* If outside AS and no router present
+      - Check if the location is at least one grid cell away from any AS:
+        - If yes, show Add Icon, with the only option being to add an AS area
+        - Else, Change cursor to normal, do not show Add icon.
+      If inside AS:
+        - Check the AS for router locations if it has any.
+          - If location is present inside the router locations set, make the router draggable within the AS.
+          - Else show Add icon, opening picker on click, with the only option being to add a router
+    */
     if (this.routerLocations.has(this.getLocationKey(row, column))) {
       // TODO: Make it draggable
       return;
@@ -121,7 +142,7 @@ export class Grid {
     this.previousHoverLocation = [row, column];
   };
 
-  private calcPickerPosition = (
+  private getPickerPosition = (
     row: number,
     column: number,
     cell: GridCell,
@@ -152,15 +173,44 @@ export class Grid {
     return { left: x - width, top: y - height + canvasY };
   };
 
+  private getASPosition = (
+    row: number,
+    column: number
+  ): { low: Point; high: Point } | null => {
+    let horizontal: "left" | "right" = "right",
+      vertical: "bottom" | "top" = "bottom";
+    if (!this.canvasRef.current) {
+      return null;
+    }
+    const cellSize = this.getCellSize();
+    if (column + this.defaultAsSize > this.gridSize) {
+      horizontal = "left";
+    }
+    if (row + this.defaultAsSize > this.gridSize) {
+      vertical = "top";
+    }
+    const lowX =
+      (horizontal === "right" ? column : column - this.defaultAsSize + 1) *
+      cellSize;
+    const lowY =
+      (vertical === "bottom" ? row : row - this.defaultAsSize) * cellSize;
+    const highX =
+      (horizontal === "right" ? column + this.defaultAsSize : column + 1) *
+      cellSize;
+    const highY =
+      (vertical === "bottom" ? row + this.defaultAsSize : row) * cellSize;
+    return { low: [lowX, lowY], high: [highX, highY] };
+  };
+
   /**
    * Handle mouse clicks on the grid
    */
   onMouseDown = (
     e: MouseEvent,
-    tooltipOpen: boolean,
-    tooltipElement: HTMLDivElement,
-    openTooltip: (left: number, top: number) => void,
-    closeTooltip: (e: MouseEvent) => void
+    pickerOpen: boolean,
+    pickerElement: HTMLDivElement,
+    openPicker: (left: number, top: number) => void,
+    closePicker: (e: MouseEvent) => void
   ) => {
     const { clientX, clientY } = e;
     if (!this.canvasRef.current) {
@@ -171,24 +221,25 @@ export class Grid {
     const offsetX = clientX - canvasX,
       offsetY = clientY - canvasY;
     const { row, column, rect } = this.mapCoordsToGridCell(offsetX, offsetY);
-    if (tooltipOpen) {
-      closeTooltip(e);
+    if (pickerOpen) {
+      closePicker(e);
       return;
     }
     const locationKey = this.getLocationKey(row, column);
     if (!this.routerLocations.has(locationKey)) {
       // TODO: Add AND !(Paths.contains location key)
-      const { left, top } = this.calcPickerPosition(
+      const { left, top } = this.getPickerPosition(
         row,
         column,
         rect,
-        tooltipElement
+        pickerElement
       );
-      openTooltip(left, top);
+      openPicker(left, top);
       this.activeLocation = [row, column];
     }
   };
 
+  // TODO: Shift to Autonomous System
   placeRouter = (e: MouseEvent, onPlaced?: (e: MouseEvent) => unknown) => {
     if (!this.activeLocation || this.activeLocation.length !== 2) {
       console.error(
@@ -210,6 +261,42 @@ export class Grid {
     this.routerLocations.add(routerKey);
     this.activeLocation = undefined;
     this.previousHoverLocation = undefined;
+    onPlaced && onPlaced(e);
+  };
+
+  placeAS = (e: MouseEvent, onPlaced?: (e: MouseEvent) => unknown) => {
+    if (!this.activeLocation || this.activeLocation.length !== 2) {
+      console.error(
+        "Unexpected placeAS call! Active Location must be populated before calling this method"
+      );
+      return;
+    }
+    const [row, col] = this.activeLocation;
+    const context = this.canvasRef.current?.getContext("2d");
+    if (!context) {
+      return;
+    }
+    const asBounds = this.getASPosition(row, col);
+    if (!asBounds) {
+      return;
+    }
+    const { low, high } = asBounds;
+    const as = new AutonomousSystem(low, high);
+    const { boundingBox } = as;
+    const { p1, p2, p3, p4 } = boundingBox;
+    context.beginPath();
+    context.strokeStyle = Colors.accent;
+    context.fillStyle = Colors.accent + "55";
+    context.setLineDash([3, 3]);
+    context.moveTo(...p1);
+    context.lineTo(...p2);
+    context.lineTo(...p3);
+    context.lineTo(...p4);
+    context.lineTo(...p1);
+    context.stroke();
+    context.fill();
+    context.closePath();
+    context.setLineDash([]);
     onPlaced && onPlaced(e);
   };
 

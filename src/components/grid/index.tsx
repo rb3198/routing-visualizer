@@ -61,7 +61,10 @@ export const Grid: React.FC<GridProps> = (props) => {
       {
         label: "AS Boundary",
         Icon: PiRectangleDashed,
-        onClick: () => {},
+        onClick: (e) => {
+          const { nativeEvent } = e;
+          gridRef.current?.placeAS(nativeEvent, closePicker);
+        },
       },
     ],
     [closePicker]

@@ -1,3 +1,4 @@
+// @ts-ignore
 import { IconType } from "react-icons";
 import styles from "./styles.module.css";
 import { MouseEventHandler } from "react";
