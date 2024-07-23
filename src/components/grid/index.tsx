@@ -18,6 +18,9 @@ interface GridProps {
 
 export const Grid: React.FC<GridProps> = (props) => {
   const { gridSize } = props;
+  const [componentOptions, setComponentOptions] = useState<
+    "as" | "router" | "none"
+  >("as");
   const containerRef = useRef<HTMLCanvasElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<GridEntity>();
@@ -29,46 +32,41 @@ export const Grid: React.FC<GridProps> = (props) => {
 
   const openPicker = useCallback((left: number, top: number) => {
     setPicker({ visible: true, left, top });
-    if (containerRef.current && gridRef.current) {
-      containerRef.current.removeEventListener(
-        "mousemove",
-        gridRef.current.onMouseOverGrid
-      );
-    }
   }, []);
 
   const closePicker = useCallback((e: MouseEvent) => {
     setPicker({ visible: false, left: -200, top: -200 });
-    if (containerRef.current && gridRef.current) {
-      containerRef.current.addEventListener(
-        "mousemove",
-        gridRef.current.onMouseOverGrid
-      );
-      gridRef.current.onMouseOverGrid(e);
-    }
   }, []);
 
-  const pickerOptions: PickerOption[] = useMemo(
-    () => [
-      {
-        label: "Router",
-        Icon: CiRouter,
-        onClick: (e) => {
-          const { nativeEvent } = e;
-          gridRef.current?.placeRouter(nativeEvent, closePicker);
-        },
-      },
-      {
-        label: "AS Boundary",
-        Icon: PiRectangleDashed,
-        onClick: (e) => {
-          const { nativeEvent } = e;
-          gridRef.current?.placeAS(nativeEvent, closePicker);
-        },
-      },
-    ],
-    [closePicker]
-  );
+  const pickerOptions: PickerOption[] = useMemo(() => {
+    switch (componentOptions) {
+      case "router":
+        return [
+          {
+            label: "Router",
+            Icon: CiRouter,
+            onClick: (e) => {
+              const { nativeEvent } = e;
+              gridRef.current?.placeRouter(nativeEvent, closePicker);
+            },
+          },
+        ];
+      case "as":
+        return [
+          {
+            label: "AS Boundary",
+            Icon: PiRectangleDashed,
+            onClick: (e) => {
+              const { nativeEvent } = e;
+              gridRef.current?.placeAS(nativeEvent, closePicker);
+            },
+          },
+        ];
+      case "none":
+      default:
+        return [];
+    }
+  }, [closePicker, componentOptions]);
   useLayoutEffect(() => {
     const onResize = debounce(() => {
       const { documentElement } = document;
@@ -80,10 +78,6 @@ export const Grid: React.FC<GridProps> = (props) => {
           gridRef.current = new GridEntity(gridSize, containerRef);
         }
         gridRef.current.drawGrid();
-        containerRef.current.addEventListener(
-          "mousemove",
-          gridRef.current.onMouseOverGrid
-        );
       }
     }, 100);
     if (containerRef.current) {
@@ -92,31 +86,41 @@ export const Grid: React.FC<GridProps> = (props) => {
     }
     return () => {
       window && window.removeEventListener("resize", onResize);
-      if (containerRef.current) {
-        containerRef.current.removeEventListener(
-          "mousemove",
-          gridRef.current?.onMouseOverGrid!
-        );
-      }
     };
   }, [gridSize]);
 
-  const { visible, top, left } = picker;
+  const { visible: pickerVisible, top, left } = picker;
+
+  const onCanvasMouseMove: MouseEventHandler<HTMLCanvasElement> = useCallback(
+    (e) => {
+      const { nativeEvent } = e;
+      if (!gridRef.current || pickerVisible) {
+        return;
+      }
+      gridRef.current.onMouseOverGrid(nativeEvent, setComponentOptions);
+    },
+    [pickerVisible]
+  );
 
   const onCanvasMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (e) => {
-      if (!containerRef.current || !gridRef.current || !pickerRef.current) {
+      if (
+        !containerRef.current ||
+        !gridRef.current ||
+        !pickerRef.current ||
+        componentOptions === "none"
+      ) {
         return;
       }
       gridRef.current.onMouseDown(
         e.nativeEvent,
-        visible,
+        pickerVisible,
         pickerRef.current,
         openPicker,
         closePicker
       );
     },
-    [visible, openPicker, closePicker]
+    [pickerVisible, componentOptions, openPicker, closePicker]
   );
   if (!document) {
     return null;
@@ -127,7 +131,9 @@ export const Grid: React.FC<GridProps> = (props) => {
       <canvas
         id={styles.container}
         ref={containerRef}
+        className={(componentOptions !== "none" && styles.can_interact) || ""}
         onMouseDown={onCanvasMouseDown}
+        onMouseMove={onCanvasMouseMove}
       ></canvas>
       <ComponentPicker
         pickerRef={pickerRef}
@@ -136,7 +142,7 @@ export const Grid: React.FC<GridProps> = (props) => {
           top,
           left,
         }}
-        visible={visible}
+        visible={pickerVisible}
       />
     </>
   );

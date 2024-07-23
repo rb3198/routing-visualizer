@@ -55,7 +55,6 @@ export class GridCell {
       console.error("Cannot draw on a cell that contains a router or a path.");
       return;
     }
-    this.beforeDraw(context);
     context.beginPath();
     context.arc(
       this.x + this.width / 2,

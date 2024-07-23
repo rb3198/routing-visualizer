@@ -23,28 +23,30 @@ export const ComponentPicker: React.FC<PickerProps> = (props) => {
   const { visible, position, pickerRef, options } = props;
   const { top, left } = position;
   return (
-    <div
-      ref={pickerRef}
-      id={styles.container}
-      style={{
-        zIndex: visible ? 2 : -1,
-        opacity: visible ? 1 : 0,
-        position: "absolute",
-        top,
-        left,
-      }}
-    >
-      <p className={styles.description}>Insert...</p>
-      <ul>
-        {options.map(({ label, Icon, onClick }) => (
-          <li key={label} onClick={onClick}>
-            <div className={styles.iconContainer}>
-              <Icon className={styles.icon} />
-            </div>
-            {label}
-          </li>
-        ))}
-      </ul>
-    </div>
+    (options && options.length > 0 && (
+      <div
+        ref={pickerRef}
+        id={styles.container}
+        style={{
+          zIndex: visible ? 2 : -1,
+          opacity: visible ? 1 : 0,
+          position: "absolute",
+          top,
+          left,
+        }}
+      >
+        <p className={styles.description}>Insert...</p>
+        <ul>
+          {options.map(({ label, Icon, onClick }) => (
+            <li key={label} onClick={onClick}>
+              <div className={styles.iconContainer}>
+                <Icon className={styles.icon} />
+              </div>
+              {label}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )) || <></>
   );
 };

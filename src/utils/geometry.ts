@@ -1,8 +1,42 @@
-import { Point, Rect } from "../types/geometry";
+import { Point2D } from "../types/geometry";
 
-export const getRectCentroid = (boundingBox: Rect): Point => {
-  const { p1, p3 } = boundingBox;
-  const [x1, y1] = p1;
-  const [x2, y2] = p3;
-  return [(x1 + x2) / 2, (y1 + y2) / 2];
+/**
+ * Gets all 4 points of a rect from its `low` and `high` points.
+ *
+ * Based on inverted axis, as per JS Norms.
+ * @param low
+ * @param high
+ */
+export const getAllRectPoints = (
+  low: Point2D,
+  high: Point2D
+): {
+  /**
+   * Lowest (Top left) point of the rect
+   *
+   */
+  p1: Point2D;
+  /**
+   * Top right point of the rect
+   *
+   */
+  p2: Point2D;
+  /**
+   * Highest (Bottom right) point of the rect
+   *
+   */
+  p3: Point2D;
+  /**
+   * Bottom left point of the rect
+   *
+   */
+  p4: Point2D;
+} => {
+  const [lowX, lowY] = low;
+  const [highX, highY] = high;
+  const p1: Point2D = low;
+  const p2: Point2D = [highX, lowY];
+  const p3: Point2D = high;
+  const p4: Point2D = [lowX, highY];
+  return { p1, p2, p3, p4 };
 };

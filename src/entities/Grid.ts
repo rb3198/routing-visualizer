@@ -1,8 +1,10 @@
 import { RefObject } from "react";
 import { GridCell } from "./GridCell";
 import { AutonomousSystem } from "./AutonomousSystem";
-import { Point } from "../types/geometry";
+import { Point2D } from "../types/geometry";
 import { Colors } from "../constants/theme";
+import { AutonomousSystemTree } from "./AutonomousSystemTree";
+import { Rect2D } from "./geometry/Rect2D";
 
 export class Grid {
   /**
@@ -28,11 +30,6 @@ export class Grid {
   gridRect: GridCell[][];
 
   /**
-   * A set of all locations of the router, stored as `<x coordinate>_<y_coordinate>`
-   */
-  routerLocations: Set<string> = new Set();
-
-  /**
    * Keeps track of the previous grid location hovered. Helps in clearing the said location when mouse moves over to a different cell.
    */
   previousHoverLocation?: [number, number];
@@ -42,11 +39,14 @@ export class Grid {
    */
   activeLocation?: [number, number];
 
+  asTree: AutonomousSystemTree;
+
   constructor(gridSize: number, canvasRef: RefObject<HTMLCanvasElement>) {
     this.canvasRef = canvasRef;
     this.gridSize = gridSize;
     this.gridRect = this.getEmptyGridRect(gridSize);
-    this.defaultAsSize = Math.floor(gridSize / 8);
+    this.defaultAsSize = Math.ceil(gridSize / 6);
+    this.asTree = new AutonomousSystemTree();
   }
 
   private getLocationKey = (row: number, column: number) => `${row}_${column}`;
@@ -66,10 +66,22 @@ export class Grid {
     return containerWidth / this.gridSize;
   };
 
-  private isCellEmpty = (row: number, column: number) => {
-    const locKey = this.getLocationKey(row, column);
-    // TODO: Add path conditions
-    return !this.routerLocations.has(locKey);
+  private updatePreviousHoverLocation = (
+    context: CanvasRenderingContext2D,
+    row: number,
+    column: number
+  ) => {
+    this.gridRect[row][column].drawEmpty(context);
+    if (this.asTree.root) {
+      const [, nearestAs] = this.asTree.searchClosest([column, row]);
+      nearestAs.draw(
+        context,
+        Colors.accent,
+        Colors.accent + "55",
+        this.getCellSize(),
+        this.gridRect
+      );
+    }
   };
 
   private mapCoordsToGridCell = (x: number, y: number) => {
@@ -83,7 +95,12 @@ export class Grid {
    * Function to handle mouse hovering over the grid.
    * @param e The Mouse event
    */
-  onMouseOverGrid = (e: MouseEvent) => {
+  onMouseOverGrid = (
+    e: MouseEvent,
+    setComponentOptions: React.Dispatch<
+      React.SetStateAction<"as" | "none" | "router">
+    >
+  ) => {
     if (!this.canvasRef.current) {
       return;
     }
@@ -113,6 +130,52 @@ export class Grid {
     if (!context) {
       return;
     }
+    if (this.previousHoverLocation) {
+      const [prevRow, prevCol] = this.previousHoverLocation;
+      if (prevRow === row && prevCol === column) {
+        return;
+      }
+      this.updatePreviousHoverLocation(context, prevRow, prevCol);
+    }
+    if (this.asTree.root) {
+      const [, nearestAs] = this.asTree.searchClosest([column, row]);
+      const { boundingBox, getRouterLocationKey } = nearestAs;
+      const possibleRouterLocation = getRouterLocationKey(row, column);
+      if (boundingBox.isWithinBounds([column, row])) {
+        if (nearestAs.routerLocations.has(possibleRouterLocation)) {
+          setComponentOptions("none");
+        } else {
+          setComponentOptions("router");
+          nearestAs.draw(
+            context,
+            Colors.accent,
+            Colors.accent + "55",
+            this.getCellSize(),
+            this.gridRect
+          );
+          cell.drawAddIcon(context);
+        }
+        this.previousHoverLocation = [row, column];
+        return;
+      }
+    }
+    const potentialAsPosition = this.getASPosition(row, column);
+    if (potentialAsPosition) {
+      const potentialAsRect = new Rect2D(
+        potentialAsPosition.low,
+        potentialAsPosition.high
+      );
+      if (this.asTree.canPlaceAsOnCell(potentialAsRect)) {
+        setComponentOptions("as");
+        const prevFill = context.fillStyle;
+        context.fillStyle = "white";
+        cell.drawAddIcon(context);
+        context.fillStyle = prevFill;
+      } else {
+        setComponentOptions("none");
+      }
+      this.previousHoverLocation = [row, column];
+    }
     // If inside AS and no router present - open picker with only router option shown
     /* If outside AS and no router present
       - Check if the location is at least one grid cell away from any AS:
@@ -123,23 +186,7 @@ export class Grid {
           - If location is present inside the router locations set, make the router draggable within the AS.
           - Else show Add icon, opening picker on click, with the only option being to add a router
     */
-    if (this.routerLocations.has(this.getLocationKey(row, column))) {
-      // TODO: Make it draggable
-      return;
-    }
-    context.fillStyle = "white";
-    if (this.previousHoverLocation) {
-      const [prevRow, prevCol] = this.previousHoverLocation;
-      const shouldResetPrevLocation =
-        this.isCellEmpty(prevRow, prevCol) &&
-        (prevRow !== row || prevCol !== column);
-      if (shouldResetPrevLocation) {
-        this.gridRect[prevRow][prevCol].drawEmpty(context);
-      }
-    }
-    cell.drawAddIcon(context);
-    context.fillStyle = "transparent";
-    this.previousHoverLocation = [row, column];
+    // // TODO: Make it draggable, search router inside AS.
   };
 
   private getPickerPosition = (
@@ -176,13 +223,12 @@ export class Grid {
   private getASPosition = (
     row: number,
     column: number
-  ): { low: Point; high: Point } | null => {
+  ): { low: Point2D; high: Point2D } | null => {
     let horizontal: "left" | "right" = "right",
       vertical: "bottom" | "top" = "bottom";
     if (!this.canvasRef.current) {
       return null;
     }
-    const cellSize = this.getCellSize();
     if (column + this.defaultAsSize > this.gridSize) {
       horizontal = "left";
     }
@@ -190,15 +236,11 @@ export class Grid {
       vertical = "top";
     }
     const lowX =
-      (horizontal === "right" ? column : column - this.defaultAsSize + 1) *
-      cellSize;
-    const lowY =
-      (vertical === "bottom" ? row : row - this.defaultAsSize) * cellSize;
+      horizontal === "right" ? column : column - this.defaultAsSize + 1;
+    const lowY = vertical === "bottom" ? row : row - this.defaultAsSize;
     const highX =
-      (horizontal === "right" ? column + this.defaultAsSize : column + 1) *
-      cellSize;
-    const highY =
-      (vertical === "bottom" ? row + this.defaultAsSize : row) * cellSize;
+      horizontal === "right" ? column + this.defaultAsSize : column + 1;
+    const highY = vertical === "bottom" ? row + this.defaultAsSize : row;
     return { low: [lowX, lowY], high: [highX, highY] };
   };
 
@@ -225,21 +267,17 @@ export class Grid {
       closePicker(e);
       return;
     }
-    const locationKey = this.getLocationKey(row, column);
-    if (!this.routerLocations.has(locationKey)) {
-      // TODO: Add AND !(Paths.contains location key)
-      const { left, top } = this.getPickerPosition(
-        row,
-        column,
-        rect,
-        pickerElement
-      );
-      openPicker(left, top);
-      this.activeLocation = [row, column];
-    }
+    // TODO: Add AND !(Paths.contains location key)
+    const { left, top } = this.getPickerPosition(
+      row,
+      column,
+      rect,
+      pickerElement
+    );
+    openPicker(left, top);
+    this.activeLocation = [row, column];
   };
 
-  // TODO: Shift to Autonomous System
   placeRouter = (e: MouseEvent, onPlaced?: (e: MouseEvent) => unknown) => {
     if (!this.activeLocation || this.activeLocation.length !== 2) {
       console.error(
@@ -249,7 +287,8 @@ export class Grid {
     }
     const [row, col] = this.activeLocation;
     const routerKey = this.getLocationKey(row, col);
-    if (!this.canvasRef.current || this.routerLocations.has(routerKey)) {
+    const [, nearestAs] = this.asTree.searchClosest([col, row]);
+    if (!this.canvasRef.current || nearestAs.routerLocations.has(routerKey)) {
       return;
     }
     const context = this.canvasRef.current.getContext("2d");
@@ -258,7 +297,7 @@ export class Grid {
     }
     const rect = this.gridRect[row][col];
     rect.drawRouter(context);
-    this.routerLocations.add(routerKey);
+    nearestAs.routerLocations.add(routerKey);
     this.activeLocation = undefined;
     this.previousHoverLocation = undefined;
     onPlaced && onPlaced(e);
@@ -280,23 +319,29 @@ export class Grid {
     if (!asBounds) {
       return;
     }
+    if (this.previousHoverLocation) {
+      const cellSize = this.getCellSize();
+      context.clearRect(
+        this.previousHoverLocation[1] * cellSize,
+        this.previousHoverLocation[0] * cellSize,
+        cellSize,
+        cellSize
+      );
+    }
     const { low, high } = asBounds;
     const as = new AutonomousSystem(low, high);
     const { boundingBox } = as;
-    const { p1, p2, p3, p4 } = boundingBox;
-    context.beginPath();
-    context.strokeStyle = Colors.accent;
-    context.fillStyle = Colors.accent + "55";
-    context.setLineDash([3, 3]);
-    context.moveTo(...p1);
-    context.lineTo(...p2);
-    context.lineTo(...p3);
-    context.lineTo(...p4);
-    context.lineTo(...p1);
-    context.stroke();
-    context.fill();
-    context.closePath();
-    context.setLineDash([]);
+    const { centroid: asCentroid } = boundingBox;
+    const asFillColor = Colors.accent + "55";
+    as.draw(
+      context,
+      Colors.accent,
+      asFillColor,
+      this.getCellSize(),
+      this.gridRect
+    );
+    this.asTree.insert(asCentroid, as);
+    this.previousHoverLocation = undefined;
     onPlaced && onPlaced(e);
   };
 
@@ -328,10 +373,20 @@ export class Grid {
         x += cellSize;
       }
       y += cellSize;
+      if (this.asTree.root) {
+        this.asTree
+          .inOrderTraversal(this.asTree.root)
+          .map(([, as]) => as)
+          .forEach((as) => {
+            as.draw(
+              context,
+              Colors.accent,
+              Colors.accent + "55",
+              this.getCellSize(),
+              this.gridRect
+            );
+          });
+      }
     }
-    this.routerLocations.forEach((loc) => {
-      const [row, col] = loc.split("_").map((l) => parseInt(l));
-      this.gridRect[row][col] && this.gridRect[row][col].drawRouter(context);
-    });
   };
 }
