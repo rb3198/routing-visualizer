@@ -5,6 +5,7 @@ import { Point2D } from "../types/geometry";
 import { Colors } from "../constants/theme";
 import { AutonomousSystemTree } from "./AutonomousSystemTree";
 import { Rect2D } from "./geometry/Rect2D";
+import { IPv4Address } from "../types/routing";
 
 export class Grid {
   /**
@@ -41,12 +42,15 @@ export class Grid {
 
   asTree: AutonomousSystemTree;
 
+  rootIp: IPv4Address;
+
   constructor(gridSize: number, canvasRef: RefObject<HTMLCanvasElement>) {
     this.canvasRef = canvasRef;
     this.gridSize = gridSize;
     this.gridRect = this.getEmptyGridRect(gridSize);
     this.defaultAsSize = Math.ceil(gridSize / 6);
     this.asTree = new AutonomousSystemTree();
+    this.rootIp = new IPv4Address(192, 0, 0, 0, 8);
   }
 
   private getLocationKey = (row: number, column: number) => `${row}_${column}`;
@@ -300,8 +304,8 @@ export class Grid {
       return;
     }
     const rect = this.gridRect[row][col];
-    rect.drawRouter(context);
-    nearestAs.placeRouter(row, col);
+    const router = nearestAs.placeRouter(row, col);
+    rect.drawRouter(context, router.ip.ip);
     this.activeLocation = undefined;
     this.previousHoverLocation = undefined;
     onPlaced && onPlaced(e);
@@ -333,8 +337,14 @@ export class Grid {
       );
     }
     const { low, high } = asBounds;
+    const [byte1] = this.rootIp.bytes;
     const nAs = this.asTree.inOrderTraversal(this.asTree.root).length;
-    const as = new AutonomousSystem(low, high, `AS ${nAs + 1}`);
+    const as = new AutonomousSystem(
+      low,
+      high,
+      `AS ${nAs + 1}`,
+      new IPv4Address(byte1, nAs + 1, 0, 0)
+    );
     const { boundingBox } = as;
     const { centroid: asCentroid } = boundingBox;
     const asFillColor = Colors.accent + "55";
@@ -378,20 +388,20 @@ export class Grid {
         x += cellSize;
       }
       y += cellSize;
-      if (this.asTree.root) {
-        this.asTree
-          .inOrderTraversal(this.asTree.root)
-          .map(([, as]) => as)
-          .forEach((as) => {
-            as.draw(
-              context,
-              Colors.accent,
-              Colors.accent + "55",
-              this.getCellSize(),
-              this.gridRect
-            );
-          });
-      }
+    }
+    if (this.asTree.root) {
+      this.asTree
+        .inOrderTraversal(this.asTree.root)
+        .map(([, as]) => as)
+        .forEach((as) => {
+          as.draw(
+            context,
+            Colors.accent,
+            Colors.accent + "55",
+            this.getCellSize(),
+            this.gridRect
+          );
+        });
     }
   };
 }

@@ -88,7 +88,7 @@ export class GridCell {
     context.closePath();
   };
 
-  drawRouter = (context: CanvasRenderingContext2D) => {
+  drawRouter = (context: CanvasRenderingContext2D, routerIp: string) => {
     const { x, y, width, height } = this;
     context.beginPath();
     context.fillStyle = Colors.complementary;
@@ -105,6 +105,12 @@ export class GridCell {
     context.lineWidth = 1.25;
     context.stroke();
     context.closePath();
+    context.fillStyle = "white";
+    context.font = `${height / 5.5}px sans-serif`;
+    const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
+      context.measureText(routerIp);
+    const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
+    context.fillText(routerIp, x, y + fontHeight);
     context.strokeStyle = "";
     this.type = "router";
   };
