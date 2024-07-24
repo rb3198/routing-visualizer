@@ -139,10 +139,14 @@ export class Grid {
     }
     if (this.asTree.root) {
       const [, nearestAs] = this.asTree.searchClosest([column, row]);
-      const { boundingBox, getRouterLocationKey } = nearestAs;
+      const { boundingBox, labelCell, getRouterLocationKey } = nearestAs;
       const possibleRouterLocation = getRouterLocationKey(row, column);
       if (boundingBox.isWithinBounds([column, row])) {
-        if (nearestAs.routerLocations.has(possibleRouterLocation)) {
+        const isLabelCell = labelCell[0] === column && labelCell[1] === row;
+        if (
+          nearestAs.routerLocations.has(possibleRouterLocation) ||
+          isLabelCell
+        ) {
           setComponentOptions("none");
         } else {
           setComponentOptions("router");
@@ -297,7 +301,7 @@ export class Grid {
     }
     const rect = this.gridRect[row][col];
     rect.drawRouter(context);
-    nearestAs.routerLocations.add(routerKey);
+    nearestAs.placeRouter(row, col);
     this.activeLocation = undefined;
     this.previousHoverLocation = undefined;
     onPlaced && onPlaced(e);
@@ -329,7 +333,8 @@ export class Grid {
       );
     }
     const { low, high } = asBounds;
-    const as = new AutonomousSystem(low, high);
+    const nAs = this.asTree.inOrderTraversal(this.asTree.root).length;
+    const as = new AutonomousSystem(low, high, `AS ${nAs + 1}`);
     const { boundingBox } = as;
     const { centroid: asCentroid } = boundingBox;
     const asFillColor = Colors.accent + "55";

@@ -2,6 +2,7 @@ import { Point2D } from "../types/geometry";
 import { getAllRectPoints } from "../utils/geometry";
 import { Rect2D } from "./geometry/Rect2D";
 import { GridCell } from "./GridCell";
+import { Router } from "./Router";
 
 export class AutonomousSystem {
   /**
@@ -13,24 +14,57 @@ export class AutonomousSystem {
   /**
    * A set of all locations of the router, stored as `<x coordinate>_<y_coordinate>`
    */
-  routerLocations: Set<string>;
+  routerLocations: Map<string, Router>;
+
+  /**
+   * ID to identify the AS.
+   */
+  id: string;
+
+  /**
+   * Cell containing the label of the AS. Should be non-interactive.
+   */
+  labelCell: Point2D;
 
   /**
    *
    * @param low Top left point of the AS's bounding box
    * @param high Bottom right point of the AS's bounding box
+   * @param id ID to assign to this AS. Will be labelled on the canvas.
    * @param routerLocations Point2D Locations of routers, if any, in the AS.
    */
-  constructor(low: Point2D, high: Point2D, routerLocations?: Point2D[]) {
+  constructor(
+    low: Point2D,
+    high: Point2D,
+    id: string,
+    routerLocations?: Point2D[]
+  ) {
+    this.labelCell = low;
     this.boundingBox = new Rect2D(low, high);
+    this.id = id;
     this.routerLocations = routerLocations
-      ? new Set(
-          routerLocations.map(([x, y]) => this.getRouterLocationKey(x, y))
+      ? new Map(
+          routerLocations.map(([x, y]) => [
+            this.getRouterLocationKey(x, y),
+            new Router([x, y]),
+          ])
         )
-      : new Set();
+      : new Map();
   }
 
   getRouterLocationKey = (row: number, col: number) => `${row}_${col}`;
+
+  placeRouter = (row: number, col: number) => {
+    const key = this.getRouterLocationKey(row, col);
+    this.routerLocations.set(key, new Router([col, row]));
+    if (this.routerLocations.size > 1) {
+      this.buildPaths();
+    }
+  };
+
+  buildPaths = () => {};
+
+  exchangeOSPFPackets = () => {};
 
   /**
    * Draws the AS from scratch on the grid.
@@ -48,6 +82,12 @@ export class AutonomousSystem {
     gridRect: GridCell[][]
   ) => {
     const { low, high } = this.boundingBox;
+    context.clearRect(
+      low[0] * cellSize,
+      low[1] * cellSize,
+      (high[0] - low[0]) * cellSize,
+      (high[1] - low[1]) * cellSize
+    );
     const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
     for (let i = p1[0]; i < p3[0]; i++) {
       for (let j = p1[1]; j < p3[1]; j++) {
@@ -67,9 +107,20 @@ export class AutonomousSystem {
     context.fill();
     context.closePath();
     context.setLineDash([]);
-    this.routerLocations.forEach((loc) => {
+    context.font = `${cellSize / 2}px sans-serif`;
+    const { actualBoundingBoxAscent, actualBoundingBoxDescent } =
+      context.measureText(this.id);
+    const textHeight = actualBoundingBoxAscent + actualBoundingBoxDescent;
+    context.fillStyle = strokeStyle;
+    context.fillText(
+      this.id,
+      low[0] * cellSize + textHeight / 4,
+      low[1] * cellSize + (5 * textHeight) / 4,
+      20
+    );
+    for (let [loc] of this.routerLocations.entries()) {
       const [row, col] = loc.split("_").map((l) => parseInt(l));
       gridRect[row][col] && gridRect[row][col].drawRouter(context);
-    });
+    }
   };
 }

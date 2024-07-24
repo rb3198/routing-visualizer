@@ -12,6 +12,7 @@
       }
     ],
     "allowJs": true,
+    "downlevelIteration": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
