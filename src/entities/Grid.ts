@@ -103,7 +103,8 @@ export class Grid {
     e: MouseEvent,
     setComponentOptions: React.Dispatch<
       React.SetStateAction<"as" | "none" | "router">
-    >
+    >,
+    setAsList: React.Dispatch<React.SetStateAction<AutonomousSystem[]>>
   ) => {
     if (!this.canvasRef.current) {
       return;
@@ -147,13 +148,17 @@ export class Grid {
       const possibleRouterLocation = getRouterLocationKey(row, column);
       if (boundingBox.isWithinBounds([column, row])) {
         const isLabelCell = labelCell[0] === column && labelCell[1] === row;
-        if (
-          nearestAs.routerLocations.has(possibleRouterLocation) ||
-          isLabelCell
-        ) {
+        if (nearestAs.routerLocations.has(possibleRouterLocation)) {
           setComponentOptions("none");
+          setAsList(
+            this.asTree.inOrderTraversal(this.asTree.root).map(([, as]) => as)
+          );
+        } else if (isLabelCell) {
+          setComponentOptions("none");
+          setAsList([]);
         } else {
           setComponentOptions("router");
+          setAsList([]);
           nearestAs.draw(
             context,
             Colors.accent,
@@ -258,9 +263,17 @@ export class Grid {
   onMouseDown = (
     e: MouseEvent,
     pickerOpen: boolean,
-    pickerElement: HTMLDivElement,
     openPicker: (left: number, top: number) => void,
-    closePicker: (e: MouseEvent) => void
+    closePicker: (e: MouseEvent) => void,
+    connectionPickerOpen: boolean,
+    openConnectionPicker: (
+      routerKey: string,
+      left: number,
+      top: number
+    ) => void,
+    closeConnectionPicker: (e: MouseEvent) => void,
+    pickerElement?: HTMLDivElement | null,
+    connectionPickerElement?: HTMLDivElement | null
   ) => {
     const { clientX, clientY } = e;
     if (!this.canvasRef.current) {
@@ -275,14 +288,46 @@ export class Grid {
       closePicker(e);
       return;
     }
-    // TODO: Add AND !(Paths.contains location key)
-    const { left, top } = this.getPickerPosition(
-      row,
-      column,
-      rect,
-      pickerElement
-    );
-    openPicker(left, top);
+    const [, nearestAs] =
+      (this.asTree.root && this.asTree.searchClosest([column, row])) || [];
+    if (
+      connectionPickerElement &&
+      nearestAs &&
+      nearestAs.routerLocations.has(nearestAs.getRouterLocationKey(row, column))
+    ) {
+      // Clicked on a router.
+      const { left, top } = this.getPickerPosition(
+        row,
+        column,
+        rect,
+        connectionPickerElement
+      );
+      if (connectionPickerOpen) {
+        closeConnectionPicker(e);
+        return;
+      } else {
+        openConnectionPicker(
+          nearestAs.getRouterLocationKey(row, column),
+          left,
+          top
+        );
+      }
+      return;
+    }
+    if (connectionPickerOpen) {
+      closeConnectionPicker(e);
+      return;
+    }
+    if (pickerElement) {
+      const { left, top } = this.getPickerPosition(
+        row,
+        column,
+        rect,
+        pickerElement
+      );
+      // TODO: Add AND !(Paths.contains location key)
+      openPicker(left, top);
+    }
     this.activeLocation = [row, column];
   };
 

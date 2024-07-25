@@ -12,6 +12,8 @@ import { Grid as GridEntity } from "../../entities/Grid";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
 import { ComponentPicker, PickerOption } from "../picker";
+import { AutonomousSystem } from "../../entities/AutonomousSystem";
+import { ConnectionPicker } from "../connection_picker";
 interface GridProps {
   gridSize: number;
 }
@@ -21,21 +23,49 @@ export const Grid: React.FC<GridProps> = (props) => {
   const [componentOptions, setComponentOptions] = useState<
     "as" | "router" | "none"
   >("as");
+  const [asList, setAsList] = useState<AutonomousSystem[]>([]);
   const containerRef = useRef<HTMLCanvasElement>(null);
+  const connectionPickerRef = useRef<HTMLDivElement>(null);
+  const [selectedRouterKey, setSelectedRouterKey] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<GridEntity>();
-  const [picker, setPicker] = useState({
+  const [componentPicker, setComponentPicker] = useState({
     visible: false,
-    top: -200,
-    left: -200,
+    position: {
+      top: -200,
+      left: -200,
+    },
+  });
+  const [connectionPicker, setConnectionPicker] = useState({
+    visible: false,
+    position: {
+      top: -200,
+      left: -200,
+    },
   });
 
-  const openPicker = useCallback((left: number, top: number) => {
-    setPicker({ visible: true, left, top });
+  const openConnectionPicker = useCallback(
+    (routerKey: string, left: number, top: number) => {
+      setSelectedRouterKey(routerKey);
+      setConnectionPicker({ visible: true, position: { top, left } });
+    },
+    []
+  );
+
+  const closeConnectionPicker = useCallback((e: MouseEvent) => {
+    setSelectedRouterKey("");
+    setConnectionPicker({
+      visible: false,
+      position: { left: -200, top: -200 },
+    });
   }, []);
 
-  const closePicker = useCallback((e: MouseEvent) => {
-    setPicker({ visible: false, left: -200, top: -200 });
+  const openComponentPicker = useCallback((left: number, top: number) => {
+    setComponentPicker({ visible: true, position: { left, top } });
+  }, []);
+
+  const closeComponentPicker = useCallback((e: MouseEvent) => {
+    setComponentPicker({ visible: false, position: { left: -200, top: -200 } });
   }, []);
 
   const pickerOptions: PickerOption[] = useMemo(() => {
@@ -47,7 +77,7 @@ export const Grid: React.FC<GridProps> = (props) => {
             Icon: CiRouter,
             onClick: (e) => {
               const { nativeEvent } = e;
-              gridRef.current?.placeRouter(nativeEvent, closePicker);
+              gridRef.current?.placeRouter(nativeEvent, closeComponentPicker);
             },
           },
         ];
@@ -58,7 +88,7 @@ export const Grid: React.FC<GridProps> = (props) => {
             Icon: PiRectangleDashed,
             onClick: (e) => {
               const { nativeEvent } = e;
-              gridRef.current?.placeAS(nativeEvent, closePicker);
+              gridRef.current?.placeAS(nativeEvent, closeComponentPicker);
             },
           },
         ];
@@ -66,7 +96,7 @@ export const Grid: React.FC<GridProps> = (props) => {
       default:
         return [];
     }
-  }, [closePicker, componentOptions]);
+  }, [closeComponentPicker, componentOptions]);
   useLayoutEffect(() => {
     const onResize = debounce(() => {
       const { documentElement } = document;
@@ -89,17 +119,30 @@ export const Grid: React.FC<GridProps> = (props) => {
     };
   }, [gridSize]);
 
-  const { visible: pickerVisible, top, left } = picker;
+  const { visible: componentPickerVisible, position: componentPickerPosition } =
+    componentPicker;
+  const {
+    visible: connectionPickerVisible,
+    position: connectionPickerPosition,
+  } = connectionPicker;
 
   const onCanvasMouseMove: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (e) => {
       const { nativeEvent } = e;
-      if (!gridRef.current || pickerVisible) {
+      if (
+        !gridRef.current ||
+        componentPickerVisible ||
+        connectionPickerVisible
+      ) {
         return;
       }
-      gridRef.current.onMouseOverGrid(nativeEvent, setComponentOptions);
+      gridRef.current.onMouseOverGrid(
+        nativeEvent,
+        setComponentOptions,
+        setAsList
+      );
     },
-    [pickerVisible]
+    [componentPickerVisible, connectionPickerVisible]
   );
 
   const onCanvasMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
@@ -107,20 +150,32 @@ export const Grid: React.FC<GridProps> = (props) => {
       if (
         !containerRef.current ||
         !gridRef.current ||
-        !pickerRef.current ||
-        componentOptions === "none"
+        (componentOptions === "none" && asList.length === 0)
       ) {
         return;
       }
       gridRef.current.onMouseDown(
         e.nativeEvent,
-        pickerVisible,
+        componentPickerVisible,
+        openComponentPicker,
+        closeComponentPicker,
+        connectionPickerVisible,
+        openConnectionPicker,
+        closeConnectionPicker,
         pickerRef.current,
-        openPicker,
-        closePicker
+        connectionPickerRef.current
       );
     },
-    [pickerVisible, componentOptions, openPicker, closePicker]
+    [
+      asList,
+      componentPickerVisible,
+      componentOptions,
+      connectionPickerVisible,
+      openComponentPicker,
+      closeComponentPicker,
+      openConnectionPicker,
+      closeConnectionPicker,
+    ]
   );
   if (!document) {
     return null;
@@ -131,18 +186,26 @@ export const Grid: React.FC<GridProps> = (props) => {
       <canvas
         id={styles.container}
         ref={containerRef}
-        className={(componentOptions !== "none" && styles.can_interact) || ""}
+        className={
+          ((componentOptions !== "none" || asList.length > 0) &&
+            styles.can_interact) ||
+          ""
+        }
         onMouseDown={onCanvasMouseDown}
         onMouseMove={onCanvasMouseMove}
       ></canvas>
       <ComponentPicker
         pickerRef={pickerRef}
         options={pickerOptions}
-        position={{
-          top,
-          left,
-        }}
-        visible={pickerVisible}
+        position={componentPickerPosition}
+        visible={componentPickerVisible}
+      />
+      <ConnectionPicker
+        pickerRef={connectionPickerRef}
+        asList={asList}
+        position={connectionPickerPosition}
+        selectedRouterKey={selectedRouterKey}
+        visible={connectionPickerVisible}
       />
     </>
   );
