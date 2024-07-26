@@ -6,6 +6,7 @@ import { Colors } from "../constants/theme";
 import { AutonomousSystemTree } from "./AutonomousSystemTree";
 import { Rect2D } from "./geometry/Rect2D";
 import { IPv4Address } from "../types/routing";
+import { Router } from "./Router";
 
 export class Grid {
   /**
@@ -207,7 +208,7 @@ export class Grid {
     column: number,
     cell: GridCell,
     tooltipElement: HTMLDivElement
-  ) => {
+  ): { left: number; top?: number; bottom?: number } => {
     if (!this.canvasRef.current) {
       return { left: 0, top: 0 };
     }
@@ -225,6 +226,8 @@ export class Grid {
       }
       const { x } = this.gridRect[row - 1][column + 1];
       return { left: x, top: y - height + canvasY };
+
+      // return { left: x, bottom: (this.gridSize - row) * this.getCellSize() };
     }
     if (verticalPosition === "bottom") {
       const { y } = this.gridRect[row + 1][column - 1];
@@ -263,13 +266,14 @@ export class Grid {
   onMouseDown = (
     e: MouseEvent,
     pickerOpen: boolean,
-    openPicker: (left: number, top: number) => void,
+    openPicker: (left: number, top?: number, bottom?: number) => void,
     closePicker: (e: MouseEvent) => void,
     connectionPickerOpen: boolean,
     openConnectionPicker: (
-      routerKey: string,
+      router: Router,
       left: number,
-      top: number
+      top?: number,
+      bottom?: number
     ) => void,
     closeConnectionPicker: (e: MouseEvent) => void,
     pickerElement?: HTMLDivElement | null,
@@ -296,7 +300,10 @@ export class Grid {
       nearestAs.routerLocations.has(nearestAs.getRouterLocationKey(row, column))
     ) {
       // Clicked on a router.
-      const { left, top } = this.getPickerPosition(
+      const router = nearestAs.routerLocations.get(
+        nearestAs.getRouterLocationKey(row, column)
+      )!;
+      const { left, top, bottom } = this.getPickerPosition(
         row,
         column,
         rect,
@@ -306,11 +313,7 @@ export class Grid {
         closeConnectionPicker(e);
         return;
       } else {
-        openConnectionPicker(
-          nearestAs.getRouterLocationKey(row, column),
-          left,
-          top
-        );
+        openConnectionPicker(router, left, top, bottom);
       }
       return;
     }
@@ -319,14 +322,14 @@ export class Grid {
       return;
     }
     if (pickerElement) {
-      const { left, top } = this.getPickerPosition(
+      const { left, top, bottom } = this.getPickerPosition(
         row,
         column,
         rect,
         pickerElement
       );
       // TODO: Add AND !(Paths.contains location key)
-      openPicker(left, top);
+      openPicker(left, top, bottom);
     }
     this.activeLocation = [row, column];
   };
@@ -403,6 +406,51 @@ export class Grid {
     this.asTree.insert(asCentroid, as);
     this.previousHoverLocation = undefined;
     onPlaced && onPlaced(e);
+  };
+
+  drawRouterConnection = (routerA: Router, routerB: Router) => {
+    const context = this.canvasRef.current?.getContext("2d");
+    if (!context) {
+      console.warn("Context missing");
+      return;
+    }
+    const cellSize = this.getCellSize();
+    const { location: locA } = routerA;
+    const [aX, aY] = locA;
+    const { location: locB } = routerB;
+    const [bX, bY] = locB;
+    const slope = (bY - aY) / (bX - aX);
+    const theta = Math.atan(slope);
+    context.save();
+    const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
+    context.strokeStyle = "black";
+    context.fillStyle = "black";
+    let startX = aX * cellSize + cellSize / 2,
+      startY = aY * cellSize,
+      endX = bX * cellSize + cellSize / 2,
+      endY = (bY + 1) * cellSize;
+    context.beginPath();
+    if (theta === Math.PI / 2) {
+      startY = (aY + 1) * cellSize;
+      endY = bY * cellSize;
+    } else if (theta !== -Math.PI / 2) {
+      startX = (aX > bX ? aX : aX + 1) * cellSize;
+      startY = aY * cellSize + cellSize / 2;
+      endX = (aX > bX ? bX + 1 : bX) * cellSize;
+      endY = bY * cellSize + cellSize / 2;
+    }
+    context.moveTo(startX, startY);
+    context.lineTo(endX, endY);
+    context.font = "16px sans-serif";
+    const textX = (startX + endX) / 2,
+      textY = (startY + endY) / 2;
+    context.translate(textX, textY);
+    context.rotate(theta);
+    context.fillText(distance.toFixed(2), 0, -5);
+    context.stroke();
+    context.fill();
+    context.closePath();
+    context.restore();
   };
 
   /**

@@ -13,8 +13,9 @@ export interface PickerProps {
   visible?: boolean;
   pickerRef?: React.LegacyRef<HTMLDivElement>;
   position: {
-    top: number;
-    left: number;
+    top?: number | string;
+    left?: number | string;
+    bottom?: number | string;
   };
   options: PickerOption[];
 }

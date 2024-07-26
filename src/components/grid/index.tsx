@@ -14,9 +14,19 @@ import { PiRectangleDashed } from "react-icons/pi";
 import { ComponentPicker, PickerOption } from "../picker";
 import { AutonomousSystem } from "../../entities/AutonomousSystem";
 import { ConnectionPicker } from "../connection_picker";
+import { Router } from "../../entities/Router";
 interface GridProps {
   gridSize: number;
 }
+
+type PickerState = {
+  visible: boolean;
+  position: {
+    left: string | number;
+    top?: string | number;
+    bottom?: string | number;
+  };
+};
 
 export const Grid: React.FC<GridProps> = (props) => {
   const { gridSize } = props;
@@ -26,17 +36,17 @@ export const Grid: React.FC<GridProps> = (props) => {
   const [asList, setAsList] = useState<AutonomousSystem[]>([]);
   const containerRef = useRef<HTMLCanvasElement>(null);
   const connectionPickerRef = useRef<HTMLDivElement>(null);
-  const [selectedRouterKey, setSelectedRouterKey] = useState("");
+  const [selectedRouter, setSelectedRouter] = useState<Router>();
   const pickerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<GridEntity>();
-  const [componentPicker, setComponentPicker] = useState({
+  const [componentPicker, setComponentPicker] = useState<PickerState>({
     visible: false,
     position: {
       top: -200,
       left: -200,
     },
   });
-  const [connectionPicker, setConnectionPicker] = useState({
+  const [connectionPicker, setConnectionPicker] = useState<PickerState>({
     visible: false,
     position: {
       top: -200,
@@ -45,24 +55,27 @@ export const Grid: React.FC<GridProps> = (props) => {
   });
 
   const openConnectionPicker = useCallback(
-    (routerKey: string, left: number, top: number) => {
-      setSelectedRouterKey(routerKey);
-      setConnectionPicker({ visible: true, position: { top, left } });
+    (router: Router, left: number, top?: number, bottom?: number) => {
+      setSelectedRouter(router);
+      setConnectionPicker({ visible: true, position: { top, left, bottom } });
     },
     []
   );
 
   const closeConnectionPicker = useCallback((e: MouseEvent) => {
-    setSelectedRouterKey("");
+    setSelectedRouter(undefined);
     setConnectionPicker({
       visible: false,
       position: { left: -200, top: -200 },
     });
   }, []);
 
-  const openComponentPicker = useCallback((left: number, top: number) => {
-    setComponentPicker({ visible: true, position: { left, top } });
-  }, []);
+  const openComponentPicker = useCallback(
+    (left: number, top?: number, bottom?: number) => {
+      setComponentPicker({ visible: true, position: { left, top } });
+    },
+    []
+  );
 
   const closeComponentPicker = useCallback((e: MouseEvent) => {
     setComponentPicker({ visible: false, position: { left: -200, top: -200 } });
@@ -204,7 +217,8 @@ export const Grid: React.FC<GridProps> = (props) => {
         pickerRef={connectionPickerRef}
         asList={asList}
         position={connectionPickerPosition}
-        selectedRouterKey={selectedRouterKey}
+        selectedRouter={selectedRouter}
+        addRouterConnection={gridRef.current?.drawRouterConnection}
         visible={connectionPickerVisible}
       />
     </>

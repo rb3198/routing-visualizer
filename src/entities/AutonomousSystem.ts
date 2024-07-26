@@ -61,6 +61,7 @@ export class AutonomousSystem {
           routerLocations.map(([x, y], idx) => [
             this.getRouterLocationKey(x, y),
             new Router(
+              this.getRouterLocationKey(x, y),
               [x, y],
               new IPv4Address(byte1, byte2, 0, this.routerSubnetMask)
             ),
@@ -76,6 +77,7 @@ export class AutonomousSystem {
     const [byte1, byte2] = this.ip.bytes;
     const nRouters = this.routerLocations.size;
     const router = new Router(
+      key,
       [col, row],
       new IPv4Address(byte1, byte2, nRouters, 0, this.routerSubnetMask)
     );
