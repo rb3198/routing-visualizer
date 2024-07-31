@@ -13,31 +13,30 @@ import {
 export class GridCell {
   x: number;
   y: number;
-  height: number;
-  width: number;
+  size: number;
   cellStrokeColor: string;
   private type: "router" | "path" | "none" = "none";
   constructor(
     x: number,
     y: number,
-    height: number,
-    width: number,
+    size: number,
     cellStrokeColor: string = "#ddd"
   ) {
     this.x = x;
     this.y = y;
     this.cellStrokeColor = cellStrokeColor;
-    this.height = height;
-    this.width = width;
+    this.size = size;
   }
 
-  private beforeDraw = (context: CanvasRenderingContext2D) => {
-    context.clearRect(this.x, this.y, this.width, this.height);
+  private beforeDraw = (context: CanvasRenderingContext2D, stroke?: string) => {
+    const prevStrokeStyle = context.strokeStyle;
+    context.clearRect(this.x, this.y, this.size, this.size);
     context.beginPath();
-    context.rect(this.x, this.y, this.width, this.height);
-    context.strokeStyle = this.cellStrokeColor;
+    context.rect(this.x, this.y, this.size, this.size);
+    context.strokeStyle = stroke || this.cellStrokeColor;
     context.stroke();
     context.closePath();
+    context.strokeStyle = prevStrokeStyle;
   };
 
   /**
@@ -55,11 +54,13 @@ export class GridCell {
       console.error("Cannot draw on a cell that contains a router or a path.");
       return;
     }
+    context.save();
+    context.strokeStyle = plusColor;
     context.beginPath();
     context.arc(
-      this.x + this.width / 2,
-      this.y + this.height / 2,
-      0.4 * this.width,
+      this.x + this.size / 2,
+      this.y + this.size / 2,
+      0.4 * this.size,
       0,
       Math.PI * 2
     );
@@ -70,43 +71,44 @@ export class GridCell {
     context.beginPath();
     // vertical bar
     context.rect(
-      this.x - 1 + this.width / 2,
-      this.y + this.height / 4,
+      this.x - 1 + this.size / 2,
+      this.y + this.size / 4,
       2,
-      this.height / 2
+      this.size / 2
     );
     // horizontal bar
     context.rect(
-      this.x + this.width / 4,
-      this.y - 1 + this.height / 2,
-      this.width / 2,
+      this.x + this.size / 4,
+      this.y - 1 + this.size / 2,
+      this.size / 2,
       2
     );
     context.fillStyle = plusColor;
     context.stroke();
     context.fill();
     context.closePath();
+    context.restore();
   };
 
   drawRouter = (context: CanvasRenderingContext2D, routerIp: string) => {
-    const { x, y, width, height } = this;
+    const { x, y, size } = this;
     context.beginPath();
     context.fillStyle = Colors.complementary;
-    context.rect(x, y, width, height);
+    context.rect(x, y, size, size);
     context.fill();
     context.closePath();
     context.beginPath();
     drawRouterBox.call(this, context);
     drawRouterAntennas.call(this, context);
     drawRouterButtons.call(this, context);
-    context.moveTo(x + 0.55 * width, y + 0.7 * height);
-    context.lineTo(x + 0.825 * width, y + 0.7 * height);
+    context.moveTo(x + 0.55 * size, y + 0.7 * size);
+    context.lineTo(x + 0.825 * size, y + 0.7 * size);
     context.strokeStyle = "white";
     context.lineWidth = 1.25;
     context.stroke();
     context.closePath();
     context.fillStyle = "white";
-    context.font = `${height / 5.5}px sans-serif`;
+    context.font = `${size / 5.5}px sans-serif`;
     const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
       context.measureText(routerIp);
     const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
@@ -115,8 +117,8 @@ export class GridCell {
     this.type = "router";
   };
 
-  drawEmpty = (context: CanvasRenderingContext2D) => {
-    this.beforeDraw(context);
+  drawEmpty = (context: CanvasRenderingContext2D, stroke?: string) => {
+    this.beforeDraw(context, stroke);
     this.type = "none";
   };
 }

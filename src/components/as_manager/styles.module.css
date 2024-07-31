@@ -1,0 +1,20 @@
+.canvas {
+    position: absolute;
+    left: 0;
+}
+
+#add_icon_layer {
+    z-index: 2;
+}
+
+#as_layer {
+    z-index: 3;
+}
+
+#as_component_layer {
+    z-index: 4;
+}
+
+#router_connection_layer {
+    z-index: 5;
+}

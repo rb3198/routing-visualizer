@@ -1,12 +1,12 @@
 import "./App.css";
-import { Grid } from "./components/grid";
+import { GridManager } from "./components/grid_manager";
 import { Header } from "./components/header";
 
 function App() {
   return (
     <div className="App">
       <Header />
-      <Grid gridSize={40} />
+      <GridManager gridSize={40} />
     </div>
   );
 }
