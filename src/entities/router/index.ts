@@ -1,7 +1,7 @@
 import { Point2D } from "../../types/geometry";
 import { IPv4Address } from "../ip/ipv4_address";
 import { OSPFPacket } from "../ospf/packets/packet_base";
-import { IPLinkInterface } from "../IPLinkInterface";
+import { IPLinkInterface } from "../ip/link_interface";
 import { IPPacket } from "../ip/packets";
 import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
 import { OSPFInterface } from "./ospf_interface";

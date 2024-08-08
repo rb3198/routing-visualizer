@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import styles from "./styles.module.css";
-import { GridCell } from "../../entities/GridCell";
+import { GridCell } from "../../entities/geometry/grid_cell";
 import { AutonomousSystemTree } from "../../entities/AutonomousSystemTree";
 import { mapCoordsToGridCell, onCanvasLayout } from "../../utils/ui";
 import { Point2D } from "../../types/geometry";
@@ -21,7 +21,7 @@ import { ConnectionPicker } from "../connection_picker";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
 import { IPv4Address } from "../../entities/ip/ipv4_address";
-import { AutonomousSystem } from "../../entities/AutonomousSystem";
+import { AutonomousSystem } from "../../entities/autonomous_system";
 import { Colors } from "../../constants/theme";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";

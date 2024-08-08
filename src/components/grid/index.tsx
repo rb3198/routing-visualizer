@@ -5,7 +5,7 @@ import React, {
   useRef,
 } from "react";
 import styles from "./styles.module.css";
-import { GridCell } from "../../entities/GridCell";
+import { GridCell } from "../../entities/geometry/grid_cell";
 import { onCanvasLayout } from "../../utils/ui";
 
 interface GridProps {

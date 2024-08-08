@@ -1,4 +1,4 @@
-import { GridCell } from "../entities/GridCell";
+import { GridCell } from "../entities/geometry/grid_cell";
 
 export const drawRouterBox = function (
   this: GridCell,

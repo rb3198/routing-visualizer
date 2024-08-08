@@ -1,4 +1,4 @@
-import { GridCell } from "../entities/GridCell";
+import { GridCell } from "../entities/geometry/grid_cell";
 
 export const debounce = (func: Function, wait: number) => {
   let timeout: number | undefined;

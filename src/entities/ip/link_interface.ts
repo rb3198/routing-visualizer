@@ -1,9 +1,9 @@
-import { IPProtocolNumber } from "./ip/enum/ip_protocol_number";
-import { IPv4Address } from "./ip/ipv4_address";
-import { TwoWayMap } from "../utils/two_way_map";
-import { IPacket } from "./interfaces/IPacket";
-import { ospfMessageHandler } from "./message_handlers/ospf_message_handler";
-import { Router } from "./router";
+import { IPProtocolNumber } from "./enum/ip_protocol_number";
+import { IPv4Address } from "./ipv4_address";
+import { TwoWayMap } from "../../utils/two_way_map";
+import { IPacket } from "../interfaces/IPacket";
+import { ospfMessageHandler } from "../message_handlers/ospf_message_handler";
+import { Router } from "../router";
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.

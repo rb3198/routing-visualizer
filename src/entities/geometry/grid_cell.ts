@@ -1,9 +1,9 @@
-import { Colors } from "../constants/theme";
+import { Colors } from "../../constants/theme";
 import {
   drawRouterAntennas,
   drawRouterBox,
   drawRouterButtons,
-} from "../utils/grid_cell";
+} from "../../utils/grid_cell";
 
 /**
  * Class representing a single cell in the grid.

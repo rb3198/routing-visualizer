@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import styles from "./styles.module.css";
-import { AutonomousSystem } from "../../entities/AutonomousSystem";
+import { AutonomousSystem } from "../../entities/autonomous_system";
 import { CiRouter } from "react-icons/ci";
 import { Router } from "../../entities/router";
 

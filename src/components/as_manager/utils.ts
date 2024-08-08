@@ -1,4 +1,4 @@
-import { GridCell } from "../../entities/GridCell";
+import { GridCell } from "../../entities/geometry/grid_cell";
 import { Router } from "../../entities/router";
 import { Point2D } from "../../types/geometry";
 

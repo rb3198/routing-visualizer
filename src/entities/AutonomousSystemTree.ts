@@ -1,7 +1,7 @@
 import { KDTree } from "ts-data-structures-collection/trees";
-import { AutonomousSystem } from "./AutonomousSystem";
+import { AutonomousSystem } from "./autonomous_system";
 import { Rect2D } from "./geometry/Rect2D";
-import { GridCell } from "./GridCell";
+import { GridCell } from "./geometry/grid_cell";
 
 export class AutonomousSystemTree extends KDTree<AutonomousSystem> {
   constructor() {

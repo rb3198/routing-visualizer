@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Grid } from "../grid";
-import { GridCell } from "../../entities/GridCell";
+import { GridCell } from "../../entities/geometry/grid_cell";
 import { ASManager } from "../as_manager";
 interface GridProps {
   gridSize: number;
