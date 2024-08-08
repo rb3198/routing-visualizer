@@ -20,11 +20,11 @@ import { ComponentPicker, PickerOption } from "../picker";
 import { ConnectionPicker } from "../connection_picker";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
-import { IPv4Address } from "../../types/routing";
+import { IPv4Address } from "../../entities/ip/ipv4_address";
 import { AutonomousSystem } from "../../entities/AutonomousSystem";
 import { Colors } from "../../constants/theme";
 import { Rect2D } from "../../entities/geometry/Rect2D";
-import { Router } from "../../entities/Router";
+import { Router } from "../../entities/router";
 
 interface ASManagerProps {
   gridRect: GridCell[][];
@@ -223,7 +223,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     }
     const rect = gridRect[row][col];
     const router = placeRouter(row, col);
-    rect.drawRouter(context, router.ip.ip);
+    rect.drawRouter(context, router.id.ip);
     managePreviousHover(row, col);
     closeComponentPicker();
   }, [gridRect, closeComponentPicker, managePreviousHover]);

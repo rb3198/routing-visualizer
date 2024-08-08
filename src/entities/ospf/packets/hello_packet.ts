@@ -1,4 +1,4 @@
-import { IPv4Address } from "../../../types/routing";
+import { IPv4Address } from "../../ip/ipv4_address";
 import { OSPFHeader } from "./header";
 import { OSPFPacket } from "./packet_base";
 

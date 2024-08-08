@@ -1,4 +1,4 @@
-import { IPv4Address } from "../../../types/routing";
+import { IPv4Address } from "../ipv4_address";
 import { IPProtocolNumber } from "../enum/ip_protocol_number";
 
 /**

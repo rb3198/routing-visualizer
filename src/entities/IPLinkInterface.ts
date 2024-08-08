@@ -1,5 +1,5 @@
 import { IPProtocolNumber } from "./ip/enum/ip_protocol_number";
-import { IPv4Address } from "../types/routing";
+import { IPv4Address } from "./ip/ipv4_address";
 import { TwoWayMap } from "../utils/two_way_map";
 import { IPacket } from "./interfaces/IPacket";
 import { ospfMessageHandler } from "./message_handlers/ospf_message_handler";

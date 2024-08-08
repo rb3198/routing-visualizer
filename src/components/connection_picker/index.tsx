@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import styles from "./styles.module.css";
 import { AutonomousSystem } from "../../entities/AutonomousSystem";
 import { CiRouter } from "react-icons/ci";
-import { Router } from "../../entities/Router";
+import { Router } from "../../entities/router";
 
 export interface ConnectionPickerProps {
   selectedRouter?: Router;
@@ -103,7 +103,7 @@ const Connection: React.FC<ConnectionProps> = memo(
         <div className={styles.iconContainer}>
           <CiRouter className={styles.icon} />
         </div>
-        {router.ip.ip}
+        {router.id.ip}
       </li>
     );
   }

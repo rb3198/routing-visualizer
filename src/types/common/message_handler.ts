@@ -1,6 +1,6 @@
 import { Router } from "../../entities/router";
 import { TwoWayMap } from "../../utils/two_way_map";
-import { IPv4Address } from "../routing";
+import { IPv4Address } from "../../entities/ip/ipv4_address";
 
 export type MessageHandler = (
   interfaceId: string,
