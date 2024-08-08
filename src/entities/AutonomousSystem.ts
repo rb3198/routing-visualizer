@@ -1,9 +1,10 @@
 import { Point2D } from "../types/geometry";
-import { IPv4Address } from "../types/routing";
+import { IPv4Address } from "./ip/ipv4_address";
 import { getAllRectPoints } from "../utils/geometry";
 import { Rect2D } from "./geometry/Rect2D";
 import { GridCell } from "./GridCell";
-import { Router } from "./Router";
+import { OSPFConfig } from "./ospf/config";
+import { Router } from "./router";
 
 export class AutonomousSystem {
   /**
@@ -35,6 +36,11 @@ export class AutonomousSystem {
   routerSubnetMask: number = 24;
 
   /**
+   * AS in the simulator also behaves as a single OSPF Area. Therefore, OSPF Configuration is attached to the AS itself.
+   */
+  ospfConfig: OSPFConfig;
+
+  /**
    *
    * @param low Top left point of the AS's bounding box
    * @param high Bottom right point of the AS's bounding box
@@ -56,6 +62,7 @@ export class AutonomousSystem {
     this.boundingBox = new Rect2D(low, high);
     this.id = id;
     this.ip = new IPv4Address(byte1, byte2, 0, 0, asSubnetMask);
+    this.ospfConfig = new OSPFConfig(id);
     this.routerLocations = routerLocations
       ? new Map(
           routerLocations.map(([x, y], idx) => [
@@ -63,7 +70,8 @@ export class AutonomousSystem {
             new Router(
               this.getRouterLocationKey(x, y),
               [x, y],
-              new IPv4Address(byte1, byte2, 0, this.routerSubnetMask)
+              new IPv4Address(byte1, byte2, 0, this.routerSubnetMask),
+              this.ospfConfig
             ),
           ])
         )
@@ -79,7 +87,8 @@ export class AutonomousSystem {
     const router = new Router(
       key,
       [col, row],
-      new IPv4Address(byte1, byte2, nRouters, 0, this.routerSubnetMask)
+      new IPv4Address(byte1, byte2, nRouters, 0, this.routerSubnetMask),
+      this.ospfConfig
     );
     this.routerLocations.set(key, router);
     return router;
@@ -144,7 +153,7 @@ export class AutonomousSystem {
     for (let [loc, router] of this.routerLocations.entries()) {
       const [row, col] = loc.split("_").map((l) => parseInt(l));
       gridRect[row][col] &&
-        gridRect[row][col].drawRouter(context, router.ip.ip);
+        gridRect[row][col].drawRouter(context, router.id.ip);
     }
   };
 }
