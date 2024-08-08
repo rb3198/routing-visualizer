@@ -9,6 +9,12 @@
 
 #header-title {
     color: white;
+    display: flex;
+    align-items: center;
+}
+
+#header-title svg {
+    margin-right: 12px;
 }
 
 nav {
