@@ -65,7 +65,7 @@ export class AutonomousSystem {
     this.ospfConfig = new OSPFConfig(id);
     this.routerLocations = routerLocations
       ? new Map(
-          routerLocations.map(([x, y], idx) => [
+          routerLocations.map(([x, y]) => [
             this.getRouterLocationKey(x, y),
             new Router(
               this.getRouterLocationKey(x, y),
@@ -93,10 +93,6 @@ export class AutonomousSystem {
     this.routerLocations.set(key, router);
     return router;
   };
-
-  private buildPaths = (context: CanvasRenderingContext2D) => {};
-
-  exchangeOSPFPackets = () => {};
 
   /**
    * Draws the AS from scratch on the grid.

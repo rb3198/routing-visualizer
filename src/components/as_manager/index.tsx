@@ -12,7 +12,7 @@ import { AutonomousSystemTree } from "../../entities/AutonomousSystemTree";
 import { mapCoordsToGridCell, onCanvasLayout } from "../../utils/ui";
 import { Point2D } from "../../types/geometry";
 import {
-  drawRouterConnection as drawRouterConnectionUtil,
+  drawRouterConnection,
   getASPosition,
   getPickerPosition,
 } from "./utils";
@@ -25,6 +25,7 @@ import { AutonomousSystem } from "../../entities/autonomous_system";
 import { Colors } from "../../constants/theme";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
+import { IPLinkInterface } from "../../entities/ip/link_interface";
 
 interface ASManagerProps {
   gridRect: GridCell[][];
@@ -60,6 +61,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
   const routerConnectionLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
   const connectionPickerRef = useRef<HTMLDivElement>(null);
+  const linkInterfaceCounter = useRef(0);
   const [connectionPicker, setConnectionPicker] =
     useState<PickerState>(defaultPickerState);
   const [componentPicker, setComponentPicker] =
@@ -402,15 +404,19 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     }
   }, [componentOptions, placeAS, placeRouter]);
 
-  const drawRouterConnection = useCallback(
+  const connectRouters = useCallback(
     (routerA: Router, routerB: Router) => {
       const context = routerConnectionLayerRef.current?.getContext("2d");
       if (!context) {
         return;
       }
-      drawRouterConnectionUtil(routerA, routerB, cellSize, context);
+      drawRouterConnection(routerA, routerB, cellSize, context);
+      const linkId = `li_${linkInterfaceCounter.current++}`;
+      const baseIp = new IPv4Address(192, 1, linkInterfaceCounter.current, 0);
+      new IPLinkInterface(linkId, baseIp, [routerA, routerB]);
+      closeConnectionPicker();
     },
-    [cellSize]
+    [cellSize, closeConnectionPicker]
   );
 
   return (
@@ -443,7 +449,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         pickerRef={connectionPickerRef}
         connectionOptions={connectionOptions}
         position={connectionPickerPosition}
-        addRouterConnection={drawRouterConnection}
+        addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
         visible={connectionPickerVisible}
       />
