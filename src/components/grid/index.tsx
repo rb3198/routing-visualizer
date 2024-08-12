@@ -1,9 +1,4 @@
-import React, {
-  MouseEventHandler,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import React, { useCallback, useLayoutEffect, useRef } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
 import { onCanvasLayout } from "../../utils/ui";
@@ -15,7 +10,7 @@ interface GridProps {
 }
 
 export const Grid: React.FC<GridProps> = (props) => {
-  const { gridSize, gridRect, setGrid } = props;
+  const { gridSize, setGrid } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const constructGrid = useCallback(
@@ -50,6 +45,6 @@ export const Grid: React.FC<GridProps> = (props) => {
     const cellSize = canvasRef.current.width / gridSize;
     const gridRect = constructGrid(canvasRef.current, cellSize);
     setGrid(gridRect);
-  }, [gridSize, constructGrid]);
+  }, [gridSize, setGrid, constructGrid]);
   return <canvas ref={canvasRef} id={styles.cell_grid} />;
 };

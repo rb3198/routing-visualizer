@@ -1,6 +1,7 @@
 import React, {
   MouseEventHandler,
   useCallback,
+  useContext,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -26,6 +27,7 @@ import { Colors } from "../../constants/theme";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
+import { NotificationTooltipContext } from "../../contexts/notification_tooltip";
 
 interface ASManagerProps {
   gridRect: GridCell[][];
@@ -73,6 +75,8 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     AutonomousSystem[]
   >([]);
   const [selectedRouter, setSelectedRouter] = useState<Router>();
+  const notificationTooltipContext = useContext(NotificationTooltipContext);
+  const { open: openNotificationTooltip } = notificationTooltipContext || {};
   const cellSize = (gridRect.length && gridRect[0][0].size) || 0;
   const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
   const gridSizeY = gridRect.length || 0;
@@ -96,10 +100,40 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
   }, []);
 
   const openConnectionPicker = useCallback(
-    (left: number, top?: number, bottom?: number) => {
+    (left: number, top?: number, bottom?: number, selectedRouter?: Router) => {
+      if (!selectedRouter) {
+        return;
+      }
+      const { ipInterfaces, key: selectedRouterKey } = selectedRouter;
+      const selectedRouterIpInterfaces = Array.from(
+        new Set(ipInterfaces.keys())
+      );
+      const filteredConnectionOptions = (connectionOptions || [])
+        .filter((as) => as.routerLocations.size > 0)
+        .map((as) => {
+          const { routerLocations, id } = as;
+          return {
+            id,
+            connectionOptions: [...routerLocations].filter(([loc, router]) => {
+              const { ipInterfaces } = router;
+              // If the same interfaces exist on the router, it means that they're connected already.
+              const routerIpInterfaces = new Set(ipInterfaces.keys());
+              const isConnectedToRouter = selectedRouterIpInterfaces.some(
+                (interfaceId) => routerIpInterfaces.has(interfaceId)
+              );
+              return loc !== selectedRouterKey && !isConnectedToRouter;
+            }),
+          };
+        })
+        .filter(({ connectionOptions }) => connectionOptions.length > 0);
+      if (!filteredConnectionOptions.length) {
+        openNotificationTooltip &&
+          openNotificationTooltip("No more connection options available.");
+        return;
+      }
       setConnectionPicker({ visible: true, position: { top, left, bottom } });
     },
-    []
+    [connectionOptions, openNotificationTooltip]
   );
 
   const closeConnectionPicker = useCallback(() => {
@@ -339,7 +373,8 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         const { routerLocations, getRouterLocationKey } = nearestAs;
         const routerLoc = getRouterLocationKey(row, column);
         if (routerLocations.has(routerLoc)) {
-          setSelectedRouter(routerLocations.get(routerLoc));
+          const selectedRouter = routerLocations.get(routerLoc);
+          setSelectedRouter(selectedRouter);
           const { left, bottom, top } = getPickerPosition(
             row,
             column,
@@ -347,7 +382,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
             connectionPickerRef.current,
             asLayerRef.current
           );
-          openConnectionPicker(left, top, bottom);
+          openConnectionPicker(left, top, bottom, selectedRouter);
         }
       }
       const {

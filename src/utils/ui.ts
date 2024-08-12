@@ -26,12 +26,7 @@ export const mapCoordsToGridCell = (
   gridRect: GridCell[][],
   canvas: HTMLCanvasElement
 ) => {
-  const {
-    x: canvasX,
-    y: canvasY,
-    width: canvasWidth,
-    height: canvasHeight,
-  } = canvas.getBoundingClientRect();
+  const { x: canvasX, y: canvasY } = canvas.getBoundingClientRect();
   const offsetX = clientX - canvasX;
   const offsetY = clientY - canvasY;
   const column = Math.floor(offsetX / cellSize);

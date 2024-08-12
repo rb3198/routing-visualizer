@@ -53,39 +53,43 @@ export const ConnectionPicker: React.FC<ConnectionPickerProps> = (props) => {
     })
     .filter(({ connectionOptions }) => connectionOptions.length > 0);
   return (
-    (filteredConnectionOptions.length > 0 && (
-      <div
-        ref={pickerRef}
-        id={styles.container}
-        style={{
-          zIndex: visible ? 100 : -1,
-          opacity: visible ? 1 : 0,
-          top,
-          left,
-          bottom,
-        }}
-      >
-        <p className={styles.description}>Connect to...</p>
-        {filteredConnectionOptions.map(({ id, connectionOptions }) => {
-          return (
-            <React.Fragment key={`connection_picker_as_${id}`}>
-              <p className={`${styles.as_name} ${styles.description}`}>{id}</p>
-              <ul>
-                {connectionOptions.map(([loc, router]) => (
-                  <Connection
-                    loc={loc}
-                    router={router}
-                    key={`r_picker_${loc}`}
-                    rootRouter={selectedRouter}
-                    addRouterConnection={addRouterConnection}
-                  />
-                ))}
-              </ul>
-            </React.Fragment>
-          );
-        })}
-      </div>
-    )) || <></>
+    <div
+      ref={pickerRef}
+      id={styles.container}
+      style={{
+        zIndex: visible ? 100 : -1,
+        opacity: visible ? 1 : 0,
+        top,
+        left,
+        bottom,
+      }}
+    >
+      {(filteredConnectionOptions.length > 0 && (
+        <>
+          <p className={styles.description}>Connect to...</p>
+          {filteredConnectionOptions.map(({ id, connectionOptions }) => {
+            return (
+              <React.Fragment key={`connection_picker_as_${id}`}>
+                <p className={`${styles.as_name} ${styles.description}`}>
+                  {id}
+                </p>
+                <ul>
+                  {connectionOptions.map(([loc, router]) => (
+                    <Connection
+                      loc={loc}
+                      router={router}
+                      key={`r_picker_${loc}`}
+                      rootRouter={selectedRouter}
+                      addRouterConnection={addRouterConnection}
+                    />
+                  ))}
+                </ul>
+              </React.Fragment>
+            );
+          })}
+        </>
+      )) || <></>}
+    </div>
   );
 };
 
