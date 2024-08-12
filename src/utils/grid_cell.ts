@@ -1,15 +1,15 @@
-import { GridCell } from "../entities/GridCell";
+import { GridCell } from "../entities/geometry/grid_cell";
 
 export const drawRouterBox = function (
   this: GridCell,
   context: CanvasRenderingContext2D
 ) {
-  const { x, y, width, height } = this;
-  const hStart = 0.1 * width,
-    yStart = 0.55 * height;
-  const length = 0.8 * width,
-    breadth = 0.3 * height;
-  const arcRadius = 0.1 * width;
+  const { x, y, size } = this;
+  const hStart = 0.1 * size,
+    yStart = 0.55 * size;
+  const length = 0.8 * size,
+    breadth = 0.3 * size;
+  const arcRadius = 0.1 * size;
   const y1 = y + yStart;
   const y2 = y + (yStart + breadth);
   const p1 = [x + hStart, y1];
@@ -31,21 +31,21 @@ export const drawRouterAntennas = function (
   this: GridCell,
   context: CanvasRenderingContext2D
 ) {
-  const { x, y, width, height } = this;
-  context.moveTo(x + 0.7 * width, y + 0.2 * height);
-  context.lineTo(x + 0.7 * width, y + 0.55 * height);
-  context.moveTo(x + 0.325 * width, y + 0.3 * height);
-  context.lineTo(x + 0.325 * width, y + 0.55 * height);
+  const { x, y, size } = this;
+  context.moveTo(x + 0.7 * size, y + 0.2 * size);
+  context.lineTo(x + 0.7 * size, y + 0.55 * size);
+  context.moveTo(x + 0.325 * size, y + 0.3 * size);
+  context.lineTo(x + 0.325 * size, y + 0.55 * size);
 };
 
 export const drawRouterButtons = function (
   this: GridCell,
   context: CanvasRenderingContext2D
 ) {
-  const { x, y, width, height } = this;
-  const r = 0.015 * width;
-  context.moveTo(x + 0.2 * width, y + 0.7 * height);
-  context.arc(x + 0.25 * width, y + 0.7 * height, r, 0, 2 * Math.PI);
-  context.moveTo(x + 0.4 * width, y + 0.7 * height);
-  context.arc(x + 0.4 * width, y + 0.7 * height, r, 0, 2 * Math.PI);
+  const { x, y, size } = this;
+  const r = 0.015 * size;
+  context.moveTo(x + 0.2 * size, y + 0.7 * size);
+  context.arc(x + 0.25 * size, y + 0.7 * size, r, 0, 2 * Math.PI);
+  context.moveTo(x + 0.4 * size, y + 0.7 * size);
+  context.arc(x + 0.4 * size, y + 0.7 * size, r, 0, 2 * Math.PI);
 };

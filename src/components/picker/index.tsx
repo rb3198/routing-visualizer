@@ -13,8 +13,9 @@ export interface PickerProps {
   visible?: boolean;
   pickerRef?: React.LegacyRef<HTMLDivElement>;
   position: {
-    top: number;
-    left: number;
+    top?: number | string;
+    left?: number | string;
+    bottom?: number | string;
   };
   options: PickerOption[];
 }
@@ -28,7 +29,7 @@ export const ComponentPicker: React.FC<PickerProps> = (props) => {
         ref={pickerRef}
         id={styles.container}
         style={{
-          zIndex: visible ? 2 : -1,
+          zIndex: visible ? 100 : -1,
           opacity: visible ? 1 : 0,
           position: "absolute",
           top,

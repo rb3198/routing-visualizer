@@ -1,8 +1,10 @@
-import { Point2D } from "../types/geometry";
-import { getAllRectPoints } from "../utils/geometry";
-import { Rect2D } from "./geometry/Rect2D";
-import { GridCell } from "./GridCell";
-import { Router } from "./Router";
+import { Point2D } from "../../types/geometry";
+import { IPv4Address } from "../ip/ipv4_address";
+import { getAllRectPoints } from "../../utils/geometry";
+import { Rect2D } from "../geometry/Rect2D";
+import { GridCell } from "../geometry/grid_cell";
+import { OSPFConfig } from "../ospf/config";
+import { Router } from "../router";
 
 export class AutonomousSystem {
   /**
@@ -12,7 +14,7 @@ export class AutonomousSystem {
    */
   boundingBox: Rect2D;
   /**
-   * A set of all locations of the router, stored as `<x coordinate>_<y_coordinate>`
+   * A set of all locations of routers stored in the AS, stored as `<x coordinate>_<y_coordinate>`
    */
   routerLocations: Map<string, Router>;
 
@@ -22,9 +24,21 @@ export class AutonomousSystem {
   id: string;
 
   /**
+   * IP of this AS.
+   */
+  ip: IPv4Address;
+
+  /**
    * Cell containing the label of the AS. Should be non-interactive.
    */
   labelCell: Point2D;
+
+  routerSubnetMask: number = 24;
+
+  /**
+   * AS in the simulator also behaves as a single OSPF Area. Therefore, OSPF Configuration is attached to the AS itself.
+   */
+  ospfConfig: OSPFConfig;
 
   /**
    *
@@ -37,16 +51,28 @@ export class AutonomousSystem {
     low: Point2D,
     high: Point2D,
     id: string,
+    ip: IPv4Address,
     routerLocations?: Point2D[]
   ) {
+    // 2 bytes for identifying the AS, 3rd byte for the router,
+    // and the 4th byte to identify devices connected to the router.
+    const [byte1, byte2] = ip.bytes;
+    const asSubnetMask = 16;
     this.labelCell = low;
     this.boundingBox = new Rect2D(low, high);
     this.id = id;
+    this.ip = new IPv4Address(byte1, byte2, 0, 0, asSubnetMask);
+    this.ospfConfig = new OSPFConfig(id);
     this.routerLocations = routerLocations
       ? new Map(
           routerLocations.map(([x, y]) => [
             this.getRouterLocationKey(x, y),
-            new Router([x, y]),
+            new Router(
+              this.getRouterLocationKey(x, y),
+              [x, y],
+              new IPv4Address(byte1, byte2, 0, this.routerSubnetMask),
+              this.ospfConfig
+            ),
           ])
         )
       : new Map();
@@ -56,15 +82,17 @@ export class AutonomousSystem {
 
   placeRouter = (row: number, col: number) => {
     const key = this.getRouterLocationKey(row, col);
-    this.routerLocations.set(key, new Router([col, row]));
-    if (this.routerLocations.size > 1) {
-      this.buildPaths();
-    }
+    const [byte1, byte2] = this.ip.bytes;
+    const nRouters = this.routerLocations.size;
+    const router = new Router(
+      key,
+      [col, row],
+      new IPv4Address(byte1, byte2, nRouters, 0, this.routerSubnetMask),
+      this.ospfConfig
+    );
+    this.routerLocations.set(key, router);
+    return router;
   };
-
-  buildPaths = () => {};
-
-  exchangeOSPFPackets = () => {};
 
   /**
    * Draws the AS from scratch on the grid.
@@ -118,9 +146,10 @@ export class AutonomousSystem {
       low[1] * cellSize + (5 * textHeight) / 4,
       20
     );
-    for (let [loc] of this.routerLocations.entries()) {
+    for (let [loc, router] of this.routerLocations.entries()) {
       const [row, col] = loc.split("_").map((l) => parseInt(l));
-      gridRect[row][col] && gridRect[row][col].drawRouter(context);
+      gridRect[row][col] &&
+        gridRect[row][col].drawRouter(context, router.id.ip);
     }
   };
 }
