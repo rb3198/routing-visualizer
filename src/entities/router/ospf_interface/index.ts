@@ -9,7 +9,7 @@ import { OSPFHeader } from "../../ospf/packets/header";
 import { HelloPacketBody } from "../../ospf/packets/hello_packet";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
-import { downToInit } from "./neighbor_transition_handlers";
+import { helloReceived } from "./neighbor_event_handlers";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -104,17 +104,10 @@ export class OSPFInterface {
       );
       return;
     }
-    const { state } = neighbor;
     switch (event) {
       case NeighborSMEvent.HelloReceived:
-        switch (state) {
-          case State.Down:
-            return downToInit.call(this, neighbor);
-          default:
-            break;
-        }
+        helloReceived.call(this, neighbor);
         break;
-
       default:
         break;
     }
