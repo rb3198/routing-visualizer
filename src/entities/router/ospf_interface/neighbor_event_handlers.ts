@@ -1,5 +1,6 @@
 import { OSPFInterface } from ".";
 import { State } from "../../ospf/enum";
+import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
 import { NeighborTableRow } from "../../ospf/tables";
 import { deadTimerFactory } from "./timer_factories";
 
@@ -53,3 +54,10 @@ export const oneWayReceived: NeighborEventHandler = function (this, neighbor) {
     });
   }
 };
+
+export const neighborEventHandlerFactory = new Map([
+  [NeighborSMEvent.HelloReceived, helloReceived],
+  [NeighborSMEvent.OneWay, oneWayReceived],
+]);
+
+export default neighborEventHandlerFactory;

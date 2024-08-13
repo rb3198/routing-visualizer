@@ -9,7 +9,7 @@ import { OSPFHeader } from "../../ospf/packets/header";
 import { HelloPacketBody } from "../../ospf/packets/hello_packet";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
-import { helloReceived } from "./neighbor_event_handlers";
+import neighborEventHandlerFactory from "./neighbor_event_handlers";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -49,7 +49,7 @@ export class OSPFInterface {
     packet: HelloPacket
   ) => {
     const { header, body } = packet;
-    const { deadInterval } = body;
+    const { deadInterval, neighborList } = body;
     const { routerId } = header;
     const { neighborTable } = this;
     if (!this.shouldProcessHelloPacket(packet)) {
@@ -67,11 +67,22 @@ export class OSPFInterface {
           interfaceId
         )
       );
-      return this.neighborStateMachine(
-        routerId.ip,
-        NeighborSMEvent.HelloReceived
-      );
     }
+    this.neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
+    const presentInNeighborList = neighborList.has(this.router.id.toString());
+    this.neighborStateMachine(
+      routerId.ip,
+      presentInNeighborList
+        ? NeighborSMEvent.TwoWayReceived
+        : NeighborSMEvent.OneWay
+    );
+    if (!presentInNeighborList) {
+      return;
+    }
+    /*
+    Potential TODO:
+    Create Interface State Machine, and Handle change in neighbor's router Priority Field.
+    */
   };
 
   /**
@@ -104,13 +115,8 @@ export class OSPFInterface {
       );
       return;
     }
-    switch (event) {
-      case NeighborSMEvent.HelloReceived:
-        helloReceived.call(this, neighbor);
-        break;
-      default:
-        break;
-    }
+    const eventHandler = neighborEventHandlerFactory.get(event);
+    eventHandler && eventHandler.call(this, neighbor);
   };
 
   onOspfNeighborDown = () => {
