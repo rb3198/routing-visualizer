@@ -178,5 +178,8 @@ export class OSPFInterface {
         ddPacket
       );
     }
+    /*
+    TODO: Send complete DD packets in Exchange state.
+    */
   };
 }

@@ -77,10 +77,26 @@ const twoWayReceived: NeighborEventHandler = function (this, neighbor) {
   }
 };
 
+/**
+ * `NegotiationDone` Event Handler. See Section 10.6, 10.8.
+ * @param this
+ * @param neighbor
+ */
+const negotiationDone: NeighborEventHandler = function (this, neighbor) {
+  const { neighborTable } = this;
+  const { routerId } = neighbor;
+  neighborTable.set(routerId.toString(), {
+    ...neighbor,
+    state: State.Exchange,
+  });
+  this.sendDDPacket(neighbor);
+};
+
 export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.HelloReceived, helloReceived],
   [NeighborSMEvent.OneWay, oneWayReceived],
   [NeighborSMEvent.TwoWayReceived, twoWayReceived],
+  [NeighborSMEvent.NegotiationDone, negotiationDone],
 ]);
 
 export default neighborEventHandlerFactory;
