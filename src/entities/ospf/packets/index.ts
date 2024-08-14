@@ -1,1 +1,2 @@
-export { HelloPacket } from "./hello_packet";
+export { HelloPacket } from "./hello";
+export { DDPacket } from "./dd";
