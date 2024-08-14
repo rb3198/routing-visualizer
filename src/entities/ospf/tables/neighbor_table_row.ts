@@ -1,5 +1,6 @@
 import { IPv4Address } from "../../ip/ipv4_address";
 import { State } from "../enum";
+import { LSAHeader } from "../lsa";
 
 export class NeighborTableRow {
   /**
@@ -45,6 +46,11 @@ export class NeighborTableRow {
    */
   rxmtTimer?: NodeJS.Timeout;
 
+  /**
+   *
+   */
+  linkStateRequestList: LSAHeader[];
+
   constructor(
     routerId: IPv4Address,
     state: State,
@@ -59,5 +65,6 @@ export class NeighborTableRow {
     this.address = address;
     this.interfaceId = interfaceId;
     this.master = master ?? false;
+    this.linkStateRequestList = [];
   }
 }

@@ -92,11 +92,32 @@ const negotiationDone: NeighborEventHandler = function (this, neighbor) {
   this.sendDDPacket(neighbor);
 };
 
+const exchangeDone: NeighborEventHandler = function (this, neighbor) {
+  const { neighborTable } = this;
+  const { routerId, linkStateRequestList } = neighbor;
+  neighborTable.set(routerId.toString(), {
+    ...neighbor,
+    state: linkStateRequestList.length ? State.Loading : State.Full,
+  });
+  // TODO: Send LSA Request Packets to the neighbor.
+};
+
+const loadingDone: NeighborEventHandler = function (this, neighbor) {
+  const { neighborTable } = this;
+  const { routerId } = neighbor;
+  neighborTable.set(routerId.toString(), {
+    ...neighbor,
+    state: State.Full,
+  });
+};
+
 export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.HelloReceived, helloReceived],
   [NeighborSMEvent.OneWay, oneWayReceived],
   [NeighborSMEvent.TwoWayReceived, twoWayReceived],
   [NeighborSMEvent.NegotiationDone, negotiationDone],
+  [NeighborSMEvent.ExchangeDone, exchangeDone],
+  [NeighborSMEvent.LoadingDone, loadingDone],
 ]);
 
 export default neighborEventHandlerFactory;
