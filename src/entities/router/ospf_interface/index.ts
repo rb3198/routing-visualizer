@@ -4,9 +4,9 @@ import { IPProtocolNumber } from "../../ip/enum/ip_protocol_number";
 import { OSPFConfig } from "../../ospf/config";
 import { PacketType, State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
-import { HelloPacket } from "../../ospf/packets";
+import { DDPacket, HelloPacket } from "../../ospf/packets";
 import { OSPFHeader } from "../../ospf/packets/header";
-import { HelloPacketBody } from "../../ospf/packets/hello_packet";
+import { HelloPacketBody } from "../../ospf/packets/hello";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
 import neighborEventHandlerFactory from "./neighbor_event_handlers";
@@ -153,5 +153,30 @@ export class OSPFInterface {
       IPProtocolNumber.ospf,
       helloPacket
     );
+  };
+
+  sendDDPacket = (neighbor: NeighborTableRow) => {
+    const { config, router } = this;
+    const { areaId } = config;
+    const { state, interfaceId, address, ddSeqNumber } = neighbor;
+    const { ipInterfaces } = router;
+    const ipInterface = ipInterfaces.get(interfaceId);
+    if (state === State.ExStart) {
+      const ddPacket = new DDPacket(
+        this.router.id,
+        areaId,
+        ddSeqNumber ? ddSeqNumber + 1 : Date.now(),
+        true,
+        true,
+        true,
+        []
+      );
+      ipInterface?.sendMessage(
+        router,
+        address,
+        IPProtocolNumber.ospf,
+        ddPacket
+      );
+    }
   };
 }

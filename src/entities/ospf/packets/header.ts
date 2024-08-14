@@ -10,6 +10,9 @@ import { PacketType } from "../enum";
 export class OSPFHeader {
   version: number;
   type: PacketType;
+  /**
+   * ID of the packet's source.
+   */
   routerId: IPv4Address;
   areaId: string;
   constructor(

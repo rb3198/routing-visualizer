@@ -16,7 +16,7 @@ type NeighborEventHandler = (
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
  */
-export const helloReceived: NeighborEventHandler = function (this, neighbor) {
+const helloReceived: NeighborEventHandler = function (this, neighbor) {
   const { config, neighborTable } = this;
   const { deadInterval } = config;
   const { state, routerId } = neighbor;
@@ -44,7 +44,7 @@ export const helloReceived: NeighborEventHandler = function (this, neighbor) {
  * @param this The OSPF Interface
  * @param neighbor  The OSPF Neighbor
  */
-export const oneWayReceived: NeighborEventHandler = function (this, neighbor) {
+const oneWayReceived: NeighborEventHandler = function (this, neighbor) {
   const { neighborTable } = this;
   const { routerId, state } = neighbor;
   if (state >= State.TwoWay) {
@@ -55,9 +55,32 @@ export const oneWayReceived: NeighborEventHandler = function (this, neighbor) {
   }
 };
 
+/**
+ * Handler for the event `TwoWayReceived`, which is fired when the router sees itself in a received hello packet.
+ * - Always forms an adjacency (transitions to Ex-Start state) since we simulate a point to point network.
+ * @param this
+ * @param neighbor
+ */
+const twoWayReceived: NeighborEventHandler = function (this, neighbor) {
+  const { neighborTable, config } = this;
+  const { rxmtInterval } = config;
+  const { routerId, state } = neighbor;
+  if (state === State.Init) {
+    neighborTable.set(routerId.toString(), {
+      ...neighbor,
+      state: State.ExStart,
+      rxmtTimer: setTimeout(
+        this.sendDDPacket.bind(this, neighbor),
+        rxmtInterval
+      ),
+    });
+  }
+};
+
 export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.HelloReceived, helloReceived],
   [NeighborSMEvent.OneWay, oneWayReceived],
+  [NeighborSMEvent.TwoWayReceived, twoWayReceived],
 ]);
 
 export default neighborEventHandlerFactory;
