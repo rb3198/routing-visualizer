@@ -111,6 +111,29 @@ const loadingDone: NeighborEventHandler = function (this, neighbor) {
   });
 };
 
+// AdjOK event handler is not required since this event will never be transmitted in our simulator.
+
+/**
+ * The `SeqNumberMismatch` (Regressive event) event handler. The adjacency is torn down, and then an attempt is made at reestablishment.
+ * - The LS Retransmission list, DB Summary List, and LS Request List are cleared of LSAs.
+ * - New state is set to `ExStart` and DD packets are sent to the neighbor with current router as the master (2 Way Received event handler).
+ * @param this
+ * @param neighbor
+ */
+const seqNumberMismatch: NeighborEventHandler = function (this, neighbor) {
+  const { neighborTable, config } = this;
+  const { rxmtInterval } = config;
+  const { routerId } = neighbor;
+  neighborTable.set(routerId.toString(), {
+    ...neighbor,
+    state: State.ExStart,
+    linkStateRequestList: [],
+    dbSummaryList: [],
+    linkStateRetransmissionList: [],
+    rxmtTimer: setTimeout(this.sendDDPacket.bind(this, neighbor), rxmtInterval),
+  });
+};
+
 export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.HelloReceived, helloReceived],
   [NeighborSMEvent.OneWay, oneWayReceived],
@@ -118,6 +141,7 @@ export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.NegotiationDone, negotiationDone],
   [NeighborSMEvent.ExchangeDone, exchangeDone],
   [NeighborSMEvent.LoadingDone, loadingDone],
+  [NeighborSMEvent.SeqNumberMismatch, seqNumberMismatch],
 ]);
 
 export default neighborEventHandlerFactory;

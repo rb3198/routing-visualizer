@@ -103,10 +103,7 @@ export class OSPFInterface {
     );
   };
 
-  private neighborStateMachine = (
-    neighborId: string,
-    event: NeighborSMEvent
-  ): void => {
+  neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
     const { neighborTable } = this;
     const neighbor = neighborTable.get(neighborId);
     if (!neighbor) {

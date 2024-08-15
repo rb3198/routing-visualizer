@@ -47,9 +47,27 @@ export class NeighborTableRow {
   rxmtTimer?: NodeJS.Timeout;
 
   /**
-   *
+   * The list of LSAs that need to be received from this neighbor in order to synchronize the two neighbors' link-state databases.
+   * This list is created as Database Description packets are received, and is then sent to the neighbor in Link State Request packets.
+   * The list is depleted as appropriate Link State Update packets are received.
    */
   linkStateRequestList: LSAHeader[];
+
+  /**
+   * The complete list of LSAs that make up the area link-state
+   * database, at the moment the neighbor goes into Database Exchange state.
+   *
+   * This list is sent to the neighbor in Database Description packets.
+   */
+  dbSummaryList: any[]; // TODO
+
+  /**
+   * The list of LSAs that need to be received from this neighbor in order to synchronize the two neighbors' link-state databases.
+   *
+   * This list is created as Database Description packets are received, and is then sent to the neighbor in Link State Request packets.
+   * The list is depleted as appropriate Link State Update packets are received.
+   */
+  linkStateRetransmissionList: any[]; // TODO
 
   constructor(
     routerId: IPv4Address,
@@ -66,5 +84,7 @@ export class NeighborTableRow {
     this.interfaceId = interfaceId;
     this.master = master ?? false;
     this.linkStateRequestList = [];
+    this.dbSummaryList = [];
+    this.linkStateRetransmissionList = [];
   }
 }
