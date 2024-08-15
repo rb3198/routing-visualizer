@@ -1,5 +1,6 @@
 import { OSPFInterface } from ".";
 import { State } from "../../ospf/enum";
+import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
 import { NeighborTableRow } from "../../ospf/tables";
 
 /**
@@ -30,8 +31,11 @@ export function deadTimerFactory(
   deadInterval: number
 ) {
   const callback = () => {
-    neighbor.state = State.Down;
-    this.onOspfNeighborDown();
+    const { routerId } = neighbor;
+    this.neighborStateMachine(
+      routerId.toString(),
+      NeighborSMEvent.InactivityTimer
+    );
   };
   return setTimeout(callback, deadInterval);
 }

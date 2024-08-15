@@ -51,6 +51,9 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
     neighborTable.set(routerId.toString(), {
       ...neighbor,
       state: State.Init,
+      linkStateRequestList: [],
+      linkStateRetransmissionList: [],
+      dbSummaryList: [],
     });
   }
 };
@@ -152,7 +155,7 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
 };
 
 /**
- * The action for event BadLSReq is exactly the same as for the neighbor event `SeqNumberMismatch`.
+ * The action for event `BadLSReq` is exactly the same as for the neighbor event `SeqNumberMismatch`.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
  */
@@ -161,6 +164,29 @@ const badLsRequest: NeighborEventHandler = function (neighbor) {
   if (state >= State.Exchange) {
     seqNumberMismatch.call(this, neighbor);
   }
+};
+
+/**
+ * The `KillNbr`, `LLDown`, and `InactivityTimer` Event Handlers.
+ * - The state of the neighbor transitions to `DOWN`.
+ * - The Link state retransmission list, Database summary list and Link state request list are cleared of LSAs.
+ * - The Inactivity Timer is disabled.
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
+ */
+const killNeighbor: NeighborEventHandler = function (neighbor) {
+  const { neighborTable } = this;
+  const { routerId, deadTimer } = neighbor;
+  clearTimeout(deadTimer);
+  neighborTable.set(routerId.toString(), {
+    ...neighbor,
+    state: State.Down,
+    linkStateRequestList: [],
+    linkStateRetransmissionList: [],
+    dbSummaryList: [],
+    deadTimer: undefined,
+  });
+  this.onOspfNeighborDown();
 };
 
 export const neighborEventHandlerFactory = new Map([
@@ -172,6 +198,15 @@ export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.LoadingDone, loadingDone],
   [NeighborSMEvent.SeqNumberMismatch, seqNumberMismatch],
   [NeighborSMEvent.BadLSReq, badLsRequest],
+  [NeighborSMEvent.KillNbr, killNeighbor],
+  /**
+   * The `LLDown` event handler is the same as `KillNeighbor` handler.
+   */
+  [NeighborSMEvent.LLDown, killNeighbor],
+  /**
+   * The `InactivityTimer` event handler is the same as `KillNeighbor` handler.
+   */
+  [NeighborSMEvent.InactivityTimer, killNeighbor],
 ]);
 
 export default neighborEventHandlerFactory;
