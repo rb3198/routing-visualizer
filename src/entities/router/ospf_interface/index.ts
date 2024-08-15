@@ -4,12 +4,10 @@ import { IPProtocolNumber } from "../../ip/enum/ip_protocol_number";
 import { OSPFConfig } from "../../ospf/config";
 import { PacketType, State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
-import { HelloPacket } from "../../ospf/packets";
-import { OSPFHeader } from "../../ospf/packets/header";
-import { HelloPacketBody } from "../../ospf/packets/hello_packet";
+import { DDPacket, HelloPacket } from "../../ospf/packets";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
-import { downToInit } from "./neighbor_transition_handlers";
+import neighborEventHandlerFactory from "./neighbor_event_handlers";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -49,7 +47,7 @@ export class OSPFInterface {
     packet: HelloPacket
   ) => {
     const { header, body } = packet;
-    const { deadInterval } = body;
+    const { deadInterval, neighborList } = body;
     const { routerId } = header;
     const { neighborTable } = this;
     if (!this.shouldProcessHelloPacket(packet)) {
@@ -67,11 +65,22 @@ export class OSPFInterface {
           interfaceId
         )
       );
-      return this.neighborStateMachine(
-        routerId.ip,
-        NeighborSMEvent.HelloReceived
-      );
     }
+    this.neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
+    const presentInNeighborList = neighborList.has(this.router.id.toString());
+    this.neighborStateMachine(
+      routerId.ip,
+      presentInNeighborList
+        ? NeighborSMEvent.TwoWayReceived
+        : NeighborSMEvent.OneWay
+    );
+    if (!presentInNeighborList) {
+      return;
+    }
+    /*
+    Potential TODO:
+    Create Interface State Machine, and Handle change in neighbor's router Priority Field.
+    */
   };
 
   /**
@@ -92,10 +101,7 @@ export class OSPFInterface {
     );
   };
 
-  private neighborStateMachine = (
-    neighborId: string,
-    event: NeighborSMEvent
-  ): void => {
+  neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
     const { neighborTable } = this;
     const neighbor = neighborTable.get(neighborId);
     if (!neighbor) {
@@ -104,20 +110,8 @@ export class OSPFInterface {
       );
       return;
     }
-    const { state } = neighbor;
-    switch (event) {
-      case NeighborSMEvent.HelloReceived:
-        switch (state) {
-          case State.Down:
-            return downToInit.call(this, neighbor);
-          default:
-            break;
-        }
-        break;
-
-      default:
-        break;
-    }
+    const eventHandler = neighborEventHandlerFactory.get(event);
+    eventHandler && eventHandler.call(this, neighbor);
   };
 
   onOspfNeighborDown = () => {
@@ -139,13 +133,12 @@ export class OSPFInterface {
       (neighbor) => neighbor.routerId
     );
     const helloPacket = new HelloPacket(
-      new OSPFHeader(1, PacketType.Hello, router.id, areaId),
-      new HelloPacketBody(
-        0 /* Network mask TODO */,
-        helloInterval,
-        deadInterval,
-        neighborList
-      )
+      router.id,
+      areaId,
+      0, // Network Mask TODO
+      helloInterval,
+      deadInterval,
+      neighborList
     );
     const ipInterface = ipInterfaces.get(interfaceId);
     ipInterface?.sendMessage(
@@ -154,5 +147,33 @@ export class OSPFInterface {
       IPProtocolNumber.ospf,
       helloPacket
     );
+  };
+
+  sendDDPacket = (neighbor: NeighborTableRow) => {
+    const { config, router } = this;
+    const { areaId } = config;
+    const { state, interfaceId, address, ddSeqNumber } = neighbor;
+    const { ipInterfaces } = router;
+    const ipInterface = ipInterfaces.get(interfaceId);
+    if (state === State.ExStart) {
+      const ddPacket = new DDPacket(
+        this.router.id,
+        areaId,
+        ddSeqNumber ? ddSeqNumber + 1 : Date.now(),
+        true,
+        true,
+        true,
+        []
+      );
+      ipInterface?.sendMessage(
+        router,
+        address,
+        IPProtocolNumber.ospf,
+        ddPacket
+      );
+    }
+    /*
+    TODO: Send complete DD packets in Exchange state.
+    */
   };
 }

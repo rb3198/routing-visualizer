@@ -1,4 +1,8 @@
-import { DEFAULT_HELLO_INTERVAL, getDeadInterval } from "../constants";
+import {
+  DEFAULT_HELLO_INTERVAL,
+  DEFAULT_RXMT_INTERVAL,
+  getDeadInterval,
+} from "../constants";
 
 /**
  * Toned-down version of OSPF configuration.
@@ -17,9 +21,15 @@ export class OSPFConfig {
    */
   areaId: string;
 
-  constructor(areaId: string, helloInterval?: number) {
-    this.helloInterval = helloInterval || DEFAULT_HELLO_INTERVAL;
+  /**
+   * The number of milliseconds between LSA retransmissions.
+   */
+  rxmtInterval: number;
+
+  constructor(areaId: string, helloInterval?: number, rxmtInterval?: number) {
+    this.helloInterval = helloInterval ?? DEFAULT_HELLO_INTERVAL;
     this.deadInterval = getDeadInterval(this.helloInterval);
+    this.rxmtInterval = rxmtInterval ?? DEFAULT_RXMT_INTERVAL;
     this.areaId = areaId;
   }
 }

@@ -1,4 +1,6 @@
 import { IPv4Address } from "../../ip/ipv4_address";
+import { VERSION } from "../constants";
+import { PacketType } from "../enum";
 import { OSPFHeader } from "./header";
 import { OSPFPacket } from "./packet_base";
 
@@ -37,7 +39,21 @@ export class HelloPacketBody {
 
 export class HelloPacket extends OSPFPacket {
   body: HelloPacketBody;
-  constructor(header: OSPFHeader, body: HelloPacketBody) {
+  constructor(
+    routerId: IPv4Address,
+    areaId: string,
+    networkMask: number,
+    helloInterval: number,
+    deadInterval: number,
+    neighborList?: IPv4Address[]
+  ) {
+    const header = new OSPFHeader(VERSION, PacketType.Hello, routerId, areaId);
+    const body = new HelloPacketBody(
+      networkMask,
+      helloInterval,
+      deadInterval,
+      neighborList ?? []
+    );
     super(header);
     this.body = body;
   }
