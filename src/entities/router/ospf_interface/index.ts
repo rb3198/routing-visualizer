@@ -5,8 +5,6 @@ import { OSPFConfig } from "../../ospf/config";
 import { PacketType, State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
 import { DDPacket, HelloPacket } from "../../ospf/packets";
-import { OSPFHeader } from "../../ospf/packets/header";
-import { HelloPacketBody } from "../../ospf/packets/hello";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
 import neighborEventHandlerFactory from "./neighbor_event_handlers";
@@ -135,13 +133,12 @@ export class OSPFInterface {
       (neighbor) => neighbor.routerId
     );
     const helloPacket = new HelloPacket(
-      new OSPFHeader(1, PacketType.Hello, router.id, areaId),
-      new HelloPacketBody(
-        0 /* Network mask TODO */,
-        helloInterval,
-        deadInterval,
-        neighborList
-      )
+      router.id,
+      areaId,
+      0, // Network Mask TODO
+      helloInterval,
+      deadInterval,
+      neighborList
     );
     const ipInterface = ipInterfaces.get(interfaceId);
     ipInterface?.sendMessage(
