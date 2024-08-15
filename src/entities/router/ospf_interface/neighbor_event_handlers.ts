@@ -16,7 +16,7 @@ type NeighborEventHandler = (
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
  */
-const helloReceived: NeighborEventHandler = function (this, neighbor) {
+const helloReceived: NeighborEventHandler = function (neighbor) {
   const { config, neighborTable } = this;
   const { deadInterval } = config;
   const { state, routerId } = neighbor;
@@ -44,7 +44,7 @@ const helloReceived: NeighborEventHandler = function (this, neighbor) {
  * @param this The OSPF Interface
  * @param neighbor  The OSPF Neighbor
  */
-const oneWayReceived: NeighborEventHandler = function (this, neighbor) {
+const oneWayReceived: NeighborEventHandler = function (neighbor) {
   const { neighborTable } = this;
   const { routerId, state } = neighbor;
   if (state >= State.TwoWay) {
@@ -58,10 +58,10 @@ const oneWayReceived: NeighborEventHandler = function (this, neighbor) {
 /**
  * Handler for the event `TwoWayReceived`, which is fired when the router sees itself in a received hello packet.
  * - Always forms an adjacency (transitions to Ex-Start state) since we simulate a point to point network.
- * @param this
- * @param neighbor
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
  */
-const twoWayReceived: NeighborEventHandler = function (this, neighbor) {
+const twoWayReceived: NeighborEventHandler = function (neighbor) {
   const { neighborTable, config } = this;
   const { rxmtInterval } = config;
   const { routerId, state } = neighbor;
@@ -79,10 +79,10 @@ const twoWayReceived: NeighborEventHandler = function (this, neighbor) {
 
 /**
  * `NegotiationDone` Event Handler. See Section 10.6, 10.8.
- * @param this
- * @param neighbor
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
  */
-const negotiationDone: NeighborEventHandler = function (this, neighbor) {
+const negotiationDone: NeighborEventHandler = function (neighbor) {
   const { neighborTable } = this;
   const { routerId } = neighbor;
   neighborTable.set(routerId.toString(), {
@@ -92,7 +92,14 @@ const negotiationDone: NeighborEventHandler = function (this, neighbor) {
   this.sendDDPacket(neighbor);
 };
 
-const exchangeDone: NeighborEventHandler = function (this, neighbor) {
+/**
+ * The `ExchangeDone` event handler.
+ * - Sets state of the neighbor to `Loading` if more DDs are pending, else sets it to `Full`
+ * - Starts Sending LSA Request Packets to the neighbor
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
+ */
+const exchangeDone: NeighborEventHandler = function (neighbor) {
   const { neighborTable } = this;
   const { routerId, linkStateRequestList } = neighbor;
   neighborTable.set(routerId.toString(), {
@@ -102,7 +109,12 @@ const exchangeDone: NeighborEventHandler = function (this, neighbor) {
   // TODO: Send LSA Request Packets to the neighbor.
 };
 
-const loadingDone: NeighborEventHandler = function (this, neighbor) {
+/**
+ * The `LoadingDone` Event handler. Sets the state to full, since all the LSAs from the neighbor have been received.
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
+ */
+const loadingDone: NeighborEventHandler = function (neighbor) {
   const { neighborTable } = this;
   const { routerId } = neighbor;
   neighborTable.set(routerId.toString(), {
@@ -116,22 +128,39 @@ const loadingDone: NeighborEventHandler = function (this, neighbor) {
 /**
  * The `SeqNumberMismatch` (Regressive event) event handler. The adjacency is torn down, and then an attempt is made at reestablishment.
  * - The LS Retransmission list, DB Summary List, and LS Request List are cleared of LSAs.
- * - New state is set to `ExStart` and DD packets are sent to the neighbor with current router as the master (2 Way Received event handler).
- * @param this
- * @param neighbor
+ * - New state is set to `ExStart` and DD packets are sent to the neighbor with current router as the master.
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
  */
-const seqNumberMismatch: NeighborEventHandler = function (this, neighbor) {
+const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
   const { neighborTable, config } = this;
   const { rxmtInterval } = config;
-  const { routerId } = neighbor;
-  neighborTable.set(routerId.toString(), {
-    ...neighbor,
-    state: State.ExStart,
-    linkStateRequestList: [],
-    dbSummaryList: [],
-    linkStateRetransmissionList: [],
-    rxmtTimer: setTimeout(this.sendDDPacket.bind(this, neighbor), rxmtInterval),
-  });
+  const { routerId, state } = neighbor;
+  if (state >= State.Exchange) {
+    neighborTable.set(routerId.toString(), {
+      ...neighbor,
+      state: State.ExStart,
+      linkStateRequestList: [],
+      dbSummaryList: [],
+      linkStateRetransmissionList: [],
+      rxmtTimer: setTimeout(
+        this.sendDDPacket.bind(this, neighbor),
+        rxmtInterval
+      ),
+    });
+  }
+};
+
+/**
+ * The action for event BadLSReq is exactly the same as for the neighbor event `SeqNumberMismatch`.
+ * @param this The OSPF Interface
+ * @param neighbor The OSPF Neighbor
+ */
+const badLsRequest: NeighborEventHandler = function (neighbor) {
+  const { state } = neighbor;
+  if (state >= State.Exchange) {
+    seqNumberMismatch.call(this, neighbor);
+  }
 };
 
 export const neighborEventHandlerFactory = new Map([
@@ -142,6 +171,7 @@ export const neighborEventHandlerFactory = new Map([
   [NeighborSMEvent.ExchangeDone, exchangeDone],
   [NeighborSMEvent.LoadingDone, loadingDone],
   [NeighborSMEvent.SeqNumberMismatch, seqNumberMismatch],
+  [NeighborSMEvent.BadLSReq, badLsRequest],
 ]);
 
 export default neighborEventHandlerFactory;
