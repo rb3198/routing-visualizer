@@ -12,11 +12,7 @@ import { GridCell } from "../../entities/geometry/grid_cell";
 import { AutonomousSystemTree } from "../../entities/AutonomousSystemTree";
 import { mapCoordsToGridCell, onCanvasLayout } from "../../utils/ui";
 import { Point2D } from "../../types/geometry";
-import {
-  drawRouterConnection,
-  getASPosition,
-  getPickerPosition,
-} from "./utils";
+import { getASPosition, getPickerPosition } from "./utils";
 import { ComponentPicker, PickerOption } from "../picker";
 import { ConnectionPicker } from "../connection_picker";
 import { CiRouter } from "react-icons/ci";
@@ -28,7 +24,7 @@ import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
 import { NotificationTooltipContext } from "../../contexts/notification_tooltip";
-
+import { AnimationToolbar } from "../animation_toolbar";
 interface ASManagerProps {
   gridRect: GridCell[][];
   defaultAsSize: number;
@@ -57,13 +53,14 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
   const iconLayerHoverLocation = useRef<Point2D>();
   const asLayerHoverLocation = useRef<Point2D>();
   const asTree = useRef<AutonomousSystemTree>(new AutonomousSystemTree());
+  const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
   const asLayerRef = useRef<HTMLCanvasElement>(null);
   const asComponentLayerRef = useRef<HTMLCanvasElement>(null);
   const routerConnectionLayerRef = useRef<HTMLCanvasElement>(null);
+  const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
   const connectionPickerRef = useRef<HTMLDivElement>(null);
-  const linkInterfaceCounter = useRef(0);
   const [connectionPicker, setConnectionPicker] =
     useState<PickerState>(defaultPickerState);
   const [componentPicker, setComponentPicker] =
@@ -149,6 +146,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
       asLayerRef.current,
       asComponentLayerRef.current,
       routerConnectionLayerRef.current,
+      elementsLayerRef.current,
     ].forEach((canvas) => {
       if (canvas) {
         onCanvasLayout(canvas);
@@ -219,7 +217,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     const as = new AutonomousSystem(
       low,
       high,
-      `AS ${nAs + 1}`,
+      nAs,
       new IPv4Address(byte1, nAs + 1, 0, 0)
     );
     const { boundingBox } = as;
@@ -441,19 +439,40 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
 
   const connectRouters = useCallback(
     (routerA: Router, routerB: Router) => {
-      const context = routerConnectionLayerRef.current?.getContext("2d");
-      if (!context) {
-        return;
-      }
-      drawRouterConnection(routerA, routerB, cellSize, context);
-      const linkId = `li_${linkInterfaceCounter.current++}`;
-      const baseIp = new IPv4Address(192, 1, linkInterfaceCounter.current, 0);
-      new IPLinkInterface(linkId, baseIp, [routerA, routerB]);
+      const linkNo = linkInterfaceMap.current.size + 1;
+      const linkId = `li_${linkNo}`;
+      const baseIp = new IPv4Address(192, 1, linkNo, 0);
+      const link = new IPLinkInterface(
+        linkId,
+        baseIp,
+        cellSize,
+        [routerA, routerB],
+        routerConnectionLayerRef.current?.getContext("2d"),
+        elementsLayerRef.current?.getContext("2d")
+      );
+      linkInterfaceMap.current.set(linkId, link);
+      link.draw(routerA, routerB);
       closeConnectionPicker();
     },
     [cellSize, closeConnectionPicker]
   );
 
+  const startSimulation = useCallback(() => {
+    if (!linkInterfaceMap.current.size || !asTree.current.root) {
+      openNotificationTooltip &&
+        openNotificationTooltip(
+          "No Connections Created. Please create a network and then start the simulation"
+        );
+      return false;
+    }
+    asTree.current.inOrderTraversal(asTree.current.root).forEach(([, as]) => {
+      const { routerLocations } = as;
+      for (const router of routerLocations.values()) {
+        router.turnOn();
+      }
+    });
+    return true;
+  }, [openNotificationTooltip]);
   return (
     <>
       <canvas
@@ -471,6 +490,11 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         id={styles.router_connection_layer}
         className={styles.canvas}
         ref={routerConnectionLayerRef}
+      />
+      <canvas
+        id={styles.elements_layer}
+        className={styles.canvas}
+        ref={elementsLayerRef}
         onMouseMove={onHover}
         onClick={onCanvasClick}
       />
@@ -488,6 +512,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         selectedRouter={selectedRouter}
         visible={connectionPickerVisible}
       />
+      <AnimationToolbar startSimulation={startSimulation} />
     </>
   );
 };

@@ -1,5 +1,4 @@
 import { GridCell } from "../../entities/geometry/grid_cell";
-import { Router } from "../../entities/router";
 import { Point2D } from "../../types/geometry";
 
 /**
@@ -67,48 +66,4 @@ export const getPickerPosition = (
     return { left: x - width, top: y + canvasY };
   }
   return { left: x - width, top: y - height + canvasY };
-};
-
-export const drawRouterConnection = (
-  routerA: Router,
-  routerB: Router,
-  cellSize: number,
-  context: CanvasRenderingContext2D
-) => {
-  const { location: locA } = routerA;
-  const [aX, aY] = locA;
-  const { location: locB } = routerB;
-  const [bX, bY] = locB;
-  const slope = (bY - aY) / (bX - aX);
-  const theta = Math.atan(slope);
-  context.save();
-  const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
-  context.strokeStyle = "black";
-  context.fillStyle = "black";
-  let startX = aX * cellSize + cellSize / 2,
-    startY = aY * cellSize,
-    endX = bX * cellSize + cellSize / 2,
-    endY = (bY + 1) * cellSize;
-  context.beginPath();
-  if (theta === Math.PI / 2) {
-    startY = (aY + 1) * cellSize;
-    endY = bY * cellSize;
-  } else if (theta !== -Math.PI / 2) {
-    startX = (aX > bX ? aX : aX + 1) * cellSize;
-    startY = aY * cellSize + cellSize / 2;
-    endX = (aX > bX ? bX + 1 : bX) * cellSize;
-    endY = bY * cellSize + cellSize / 2;
-  }
-  context.moveTo(startX, startY);
-  context.lineTo(endX, endY);
-  context.font = "16px sans-serif";
-  const textX = (startX + endX) / 2,
-    textY = (startY + endY) / 2;
-  context.translate(textX, textY);
-  context.rotate(theta);
-  context.fillText(distance.toFixed(2), 0, -5);
-  context.stroke();
-  context.fill();
-  context.closePath();
-  context.restore();
 };

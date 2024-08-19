@@ -18,3 +18,7 @@
 #router_connection_layer {
     z-index: 5;
 }
+
+#elements_layer {
+    z-index: 6;
+}

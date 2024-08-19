@@ -12,9 +12,22 @@ export class IPLinkInterface {
   id: string;
   routers: TwoWayMap<string, Router>;
   baseIp: IPv4Address;
-  constructor(id: string, baseIp: IPv4Address, routers?: Router[]) {
+  gridCellSize: number;
+  connectionLayerContext?: CanvasRenderingContext2D | null;
+  elementLayerContext?: CanvasRenderingContext2D | null;
+  constructor(
+    id: string,
+    baseIp: IPv4Address,
+    gridCellSize: number,
+    routers: Router[],
+    connectionLayerContext?: CanvasRenderingContext2D | null,
+    elementLayerContext?: CanvasRenderingContext2D | null
+  ) {
     this.id = id;
     this.baseIp = baseIp;
+    this.gridCellSize = gridCellSize;
+    this.connectionLayerContext = connectionLayerContext;
+    this.elementLayerContext = elementLayerContext;
     this.routers = new TwoWayMap();
     this.assignIps(routers);
   }
@@ -56,5 +69,52 @@ export class IPLinkInterface {
       default:
         break;
     }
+  };
+
+  draw = (routerA: Router, routerB: Router) => {
+    if (
+      typeof this.gridCellSize === "undefined" ||
+      !this.connectionLayerContext
+    ) {
+      return;
+    }
+    const cellSize = this.gridCellSize;
+    const context = this.connectionLayerContext;
+    const { location: locA } = routerA;
+    const [aX, aY] = locA;
+    const { location: locB } = routerB;
+    const [bX, bY] = locB;
+    const slope = (bY - aY) / (bX - aX);
+    const theta = Math.atan(slope);
+    context.save();
+    const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
+    context.strokeStyle = "black";
+    context.fillStyle = "black";
+    let startX = aX * cellSize + cellSize / 2,
+      startY = aY * cellSize,
+      endX = bX * cellSize + cellSize / 2,
+      endY = (bY + 1) * cellSize;
+    context.beginPath();
+    if (theta === Math.PI / 2) {
+      startY = (aY + 1) * cellSize;
+      endY = bY * cellSize;
+    } else if (theta !== -Math.PI / 2) {
+      startX = (aX > bX ? aX : aX + 1) * cellSize;
+      startY = aY * cellSize + cellSize / 2;
+      endX = (aX > bX ? bX + 1 : bX) * cellSize;
+      endY = bY * cellSize + cellSize / 2;
+    }
+    context.moveTo(startX, startY);
+    context.lineTo(endX, endY);
+    context.font = "16px sans-serif";
+    const textX = (startX + endX) / 2,
+      textY = (startY + endY) / 2;
+    context.translate(textX, textY);
+    context.rotate(theta);
+    context.fillText(distance.toFixed(2), 0, -5);
+    context.stroke();
+    context.fill();
+    context.closePath();
+    context.restore();
   };
 }
