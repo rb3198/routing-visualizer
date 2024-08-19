@@ -19,14 +19,14 @@ export class OSPFConfig {
   /**
    * OSPF Area ID, which must match between the neighbors to establish adjacency.
    */
-  areaId: string;
+  areaId: number;
 
   /**
    * The number of milliseconds between LSA retransmissions.
    */
   rxmtInterval: number;
 
-  constructor(areaId: string, helloInterval?: number, rxmtInterval?: number) {
+  constructor(areaId: number, helloInterval?: number, rxmtInterval?: number) {
     this.helloInterval = helloInterval ?? DEFAULT_HELLO_INTERVAL;
     this.deadInterval = getDeadInterval(this.helloInterval);
     this.rxmtInterval = rxmtInterval ?? DEFAULT_RXMT_INTERVAL;

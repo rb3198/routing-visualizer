@@ -21,7 +21,12 @@ export class AutonomousSystem {
   /**
    * ID to identify the AS.
    */
-  id: string;
+  id: number;
+
+  /**
+   * Name of the AS.
+   */
+  name: string;
 
   /**
    * IP of this AS.
@@ -50,7 +55,7 @@ export class AutonomousSystem {
   constructor(
     low: Point2D,
     high: Point2D,
-    id: string,
+    id: number,
     ip: IPv4Address,
     routerLocations?: Point2D[]
   ) {
@@ -61,6 +66,7 @@ export class AutonomousSystem {
     this.labelCell = low;
     this.boundingBox = new Rect2D(low, high);
     this.id = id;
+    this.name = `AS ${id}`;
     this.ip = new IPv4Address(byte1, byte2, 0, 0, asSubnetMask);
     this.ospfConfig = new OSPFConfig(id);
     this.routerLocations = routerLocations
@@ -137,11 +143,11 @@ export class AutonomousSystem {
     context.setLineDash([]);
     context.font = `${cellSize / 2}px sans-serif`;
     const { actualBoundingBoxAscent, actualBoundingBoxDescent } =
-      context.measureText(this.id);
+      context.measureText(this.name);
     const textHeight = actualBoundingBoxAscent + actualBoundingBoxDescent;
     context.fillStyle = strokeStyle;
     context.fillText(
-      this.id,
+      this.name,
       low[0] * cellSize + textHeight / 4,
       low[1] * cellSize + (5 * textHeight) / 4,
       20

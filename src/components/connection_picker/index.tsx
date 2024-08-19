@@ -37,9 +37,9 @@ export const ConnectionPicker: React.FC<ConnectionPickerProps> = (props) => {
   const filteredConnectionOptions = (connectionOptions || [])
     .filter((as) => as.routerLocations.size > 0)
     .map((as) => {
-      const { routerLocations, id } = as;
+      const { routerLocations, name } = as;
       return {
-        id,
+        id: name,
         connectionOptions: [...routerLocations].filter(([loc, router]) => {
           const { ipInterfaces } = router;
           // If the same interfaces exist on the router, it means that they're connected already.

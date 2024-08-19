@@ -41,7 +41,7 @@ export class HelloPacket extends OSPFPacket {
   body: HelloPacketBody;
   constructor(
     routerId: IPv4Address,
-    areaId: string,
+    areaId: number,
     networkMask: number,
     helloInterval: number,
     deadInterval: number,
