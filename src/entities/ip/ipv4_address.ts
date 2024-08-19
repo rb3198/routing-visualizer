@@ -32,4 +32,9 @@ export class IPv4Address {
   toString = () => {
     return this.ip;
   };
+
+  equals = (comparedIp: IPv4Address) =>
+    this.toString() === comparedIp.toString();
+
+  referenceEquals = (comparedIp: IPv4Address) => this === comparedIp;
 }
