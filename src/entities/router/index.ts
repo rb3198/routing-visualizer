@@ -7,6 +7,7 @@ import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
 import { OSPFInterface } from "./ospf_interface";
 import { OSPFConfig } from "../ospf/config";
 import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
+import { BACKBONE_AREA_ID } from "../ospf/constants";
 
 export class Router {
   key: string;
@@ -66,6 +67,15 @@ export class Router {
     const { helloTimer } = ipLink;
     clearInterval(helloTimer);
     this.ipInterfaces.delete(ip.toString());
+    const { ospf } = this;
+    const { config } = ospf;
+    const oppRouter = ipLink.ipInterface.getOppositeRouter(this);
+    if (oppRouter) {
+      // If the router on the opposite side of the link was in the backbone area,
+      // the current area is no longer connected to the backbone since the its single link to the backbone was deleted.
+      config.connectedToBackbone &&=
+        oppRouter.ospf.config.areaId !== BACKBONE_AREA_ID;
+    }
   };
 
   receiveIPPacket = (interfaceId: string, packet: IPPacket) => {

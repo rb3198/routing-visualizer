@@ -25,6 +25,7 @@ import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
 import { NotificationTooltipContext } from "../../contexts/notification_tooltip";
 import { AnimationToolbar } from "../animation_toolbar";
+import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
 interface ASManagerProps {
   gridRect: GridCell[][];
   defaultAsSize: number;
@@ -37,6 +38,13 @@ type PickerState = {
     top?: string | number;
     bottom?: string | number;
   };
+};
+
+type ConnectionPickerState = PickerState & {
+  connectionOptions: {
+    name: string;
+    connectionOptions: [string, Router][];
+  }[];
 };
 
 const defaultPickerState = {
@@ -62,7 +70,10 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
   const componentPickerRef = useRef<HTMLDivElement>(null);
   const connectionPickerRef = useRef<HTMLDivElement>(null);
   const [connectionPicker, setConnectionPicker] =
-    useState<PickerState>(defaultPickerState);
+    useState<ConnectionPickerState>({
+      ...defaultPickerState,
+      connectionOptions: [],
+    });
   const [componentPicker, setComponentPicker] =
     useState<PickerState>(defaultPickerState);
   const [componentOptions, setComponentOptions] = useState<
@@ -106,11 +117,23 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         new Set(ipInterfaces.keys())
       );
       const filteredConnectionOptions = (connectionOptions || [])
-        .filter((as) => as.routerLocations.size > 0)
+        .filter((as) => {
+          const { ospf } = selectedRouter;
+          const { config } = ospf;
+          const { connectedToBackbone, areaId } = config;
+          if (areaId === BACKBONE_AREA_ID) {
+            return !as.ospfConfig.connectedToBackbone;
+          }
+          if (connectedToBackbone) {
+            return as.id !== BACKBONE_AREA_ID && as.routerLocations.size > 0;
+          }
+          return as.routerLocations.size > 0;
+        })
         .map((as) => {
-          const { routerLocations, id } = as;
+          const { routerLocations, id, name } = as;
           return {
             id,
+            name,
             connectionOptions: [...routerLocations].filter(([loc, router]) => {
               const { ipInterfaces } = router;
               // If the same interfaces exist on the router, it means that they're connected already.
@@ -128,16 +151,21 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
           openNotificationTooltip("No more connection options available.");
         return;
       }
-      setConnectionPicker({ visible: true, position: { top, left, bottom } });
+      setConnectionPicker({
+        visible: true,
+        position: { top, left, bottom },
+        connectionOptions: filteredConnectionOptions,
+      });
     },
     [connectionOptions, openNotificationTooltip]
   );
 
   const closeConnectionPicker = useCallback(() => {
-    setConnectionPicker({
+    setConnectionPicker((prevState) => ({
       visible: false,
       position: { left: -200, top: -200 },
-    });
+      connectionOptions: prevState.connectionOptions,
+    }));
   }, []);
 
   useLayoutEffect(() => {
@@ -505,12 +533,10 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         visible={componentPickerVisible}
       />
       <ConnectionPicker
+        {...connectionPicker}
         pickerRef={connectionPickerRef}
-        connectionOptions={connectionOptions}
-        position={connectionPickerPosition}
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
-        visible={connectionPickerVisible}
       />
       <AnimationToolbar startSimulation={startSimulation} />
     </>

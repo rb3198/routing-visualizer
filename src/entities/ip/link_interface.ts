@@ -4,6 +4,7 @@ import { TwoWayMap } from "../../utils/two_way_map";
 import { IPacket } from "../interfaces/IPacket";
 import { ospfMessageHandler } from "../message_handlers/ospf_message_handler";
 import { Router } from "../router";
+import { BACKBONE_AREA_ID } from "../ospf/constants";
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
@@ -19,7 +20,7 @@ export class IPLinkInterface {
     id: string,
     baseIp: IPv4Address,
     gridCellSize: number,
-    routers: Router[],
+    routers: [Router, Router],
     connectionLayerContext?: CanvasRenderingContext2D | null,
     elementLayerContext?: CanvasRenderingContext2D | null
   ) {
@@ -35,13 +36,37 @@ export class IPLinkInterface {
   private assignIps = (routers?: Router[]) => {
     const [byte1, byte2, byte3] = this.baseIp.bytes;
     let b3 = byte3;
+    let backboneRouterPresent = false;
     if (routers && routers.length > 0) {
       routers.forEach((router) => {
+        const { ospf } = router;
+        const { config } = ospf;
+        const { areaId } = config;
         const interfaceIp = new IPv4Address(byte1, byte2, ++b3, 0, 24);
-        this.routers.set(interfaceIp.ip, router);
+        this.routers.set(interfaceIp.toString(), router);
+        backboneRouterPresent =
+          backboneRouterPresent || areaId === BACKBONE_AREA_ID;
         router.addInterface(this);
       });
+      routers.forEach((router) => {
+        const { ospf } = router;
+        const { config } = ospf;
+        const { areaId, connectedToBackbone } = config;
+        config.connectedToBackbone =
+          areaId !== BACKBONE_AREA_ID &&
+          (connectedToBackbone || backboneRouterPresent);
+      });
     }
+  };
+
+  /**
+   * Gets the router on the other side of the link.
+   */
+  getOppositeRouter = (sourceRouter: Router) => {
+    const routers = Array.from(this.routers.values()).filter(
+      (router) => router !== sourceRouter
+    );
+    return routers[0];
   };
 
   /**

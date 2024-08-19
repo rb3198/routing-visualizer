@@ -97,13 +97,7 @@ export class OSPFInterface {
     if (!neighborTable.has(routerId.ip)) {
       neighborTable.set(
         routerId.ip,
-        new NeighborTableRow(
-          routerId,
-          State.Down,
-          Date.now() + deadInterval,
-          ipSrc,
-          interfaceId
-        )
+        new NeighborTableRow(routerId, State.Down, ipSrc, interfaceId)
       );
     }
     this.neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
@@ -174,7 +168,10 @@ export class OSPFInterface {
     );
     const helloPacket = new HelloPacket(
       router.id,
-      areaId,
+      ipInterface.getOppositeRouter(this.router).ospf.config.areaId ===
+      BACKBONE_AREA_ID
+        ? BACKBONE_AREA_ID
+        : areaId,
       subnetMask ?? 0,
       helloInterval,
       deadInterval,

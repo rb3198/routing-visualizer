@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import styles from "./styles.module.css";
-import { AutonomousSystem } from "../../entities/autonomous_system";
 import { CiRouter } from "react-icons/ci";
 import { Router } from "../../entities/router";
 
@@ -13,7 +12,10 @@ export interface ConnectionPickerProps {
     left?: number | string;
     bottom?: number | string;
   };
-  connectionOptions: AutonomousSystem[];
+  connectionOptions: {
+    name: string;
+    connectionOptions: [string, Router][];
+  }[];
   addRouterConnection?: (routerA: Router, routerB: Router) => any;
 }
 
@@ -32,26 +34,6 @@ export const ConnectionPicker: React.FC<ConnectionPickerProps> = (props) => {
     addRouterConnection,
   } = props;
   const { top, left, bottom } = position;
-  const { key: selectedRouterKey, ipInterfaces } = selectedRouter || {};
-  const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces?.keys()));
-  const filteredConnectionOptions = (connectionOptions || [])
-    .filter((as) => as.routerLocations.size > 0)
-    .map((as) => {
-      const { routerLocations, name } = as;
-      return {
-        id: name,
-        connectionOptions: [...routerLocations].filter(([loc, router]) => {
-          const { ipInterfaces } = router;
-          // If the same interfaces exist on the router, it means that they're connected already.
-          const routerIpInterfaces = new Set(ipInterfaces.keys());
-          const isConnectedToRouter = selectedRouterIpInterfaces.some(
-            (interfaceId) => routerIpInterfaces.has(interfaceId)
-          );
-          return loc !== selectedRouterKey && !isConnectedToRouter;
-        }),
-      };
-    })
-    .filter(({ connectionOptions }) => connectionOptions.length > 0);
   return (
     <div
       ref={pickerRef}
@@ -64,14 +46,14 @@ export const ConnectionPicker: React.FC<ConnectionPickerProps> = (props) => {
         bottom,
       }}
     >
-      {(filteredConnectionOptions.length > 0 && (
+      {(connectionOptions.length > 0 && (
         <>
           <p className={styles.description}>Connect to...</p>
-          {filteredConnectionOptions.map(({ id, connectionOptions }) => {
+          {connectionOptions.map(({ name, connectionOptions }) => {
             return (
-              <React.Fragment key={`connection_picker_as_${id}`}>
+              <React.Fragment key={`connection_picker_${name}`}>
                 <p className={`${styles.as_name} ${styles.description}`}>
-                  {id}
+                  {name}
                 </p>
                 <ul>
                   {connectionOptions.map(([loc, router]) => (
