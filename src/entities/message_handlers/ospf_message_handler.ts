@@ -13,11 +13,19 @@ export const ospfMessageHandler: MessageHandler = (
   listeners
 ) => {
   if (!(message instanceof OSPFPacket)) {
-    throw new Error(
+    console.error(
       "Non-OSPF Message sent to be handled by OSPF Message handler."
     );
+    return;
   }
   const { ip: dest } = destination;
+  const ipHeader = new IPHeader(
+    Date.now(),
+    IPProtocolNumber.ospf,
+    source,
+    destination
+  );
+  const ipPacket = new IPPacket(ipHeader, message);
   if (destination.ip === IPAddresses.OSPFBroadcast.ip) {
     listeners.forEach((router) => {
       router.receiveIPPacket(interfaceId, ipPacket);
@@ -30,7 +38,5 @@ export const ospfMessageHandler: MessageHandler = (
     );
     return;
   }
-  const ipHeader = new IPHeader(1, IPProtocolNumber.ospf, source, destination);
-  const ipPacket = new IPPacket(ipHeader, message);
   listeners.get(destination.ip)?.receiveIPPacket(interfaceId, ipPacket);
 };

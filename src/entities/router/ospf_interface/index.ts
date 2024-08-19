@@ -8,6 +8,9 @@ import { DDPacket, HelloPacket } from "../../ospf/packets";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
 import neighborEventHandlerFactory from "./neighbor_event_handlers";
+import { IPAddresses } from "../../../constants/ip_addresses";
+import { IPLinkInterface } from "../../ip/link_interface";
+import { BACKBONE_AREA_ID, VERSION } from "../../ospf/constants";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -21,21 +24,58 @@ export class OSPFInterface {
     this.config = config;
   }
 
+  /**
+   * Decides whether a received packet must be processed, as per section 8.2 of the spec.
+   * @param ipPacketId The IP ID of the packet.
+   * @param packet The OSPF Packet
+   * @returns
+   */
+  shouldReceiveIpPacket = (ipPacketId: number, packet: OSPFPacket) => {
+    const { router, config } = this;
+    const { areaId } = config;
+    const { header } = packet;
+    const { areaId: srcAreaId, routerId: packetSource, version } = header;
+    const versionOk = version === VERSION;
+    const sourceOk = !router.id.equals(packetSource); // The Hello packet originated from this router itself.
+    const areaIdOk = srcAreaId === areaId || srcAreaId === BACKBONE_AREA_ID; // Optionally add virtual link check if you implement virtual links
+    console.log(
+      `For packet ID ${ipPacketId} received by router ${this.router.id.toString()}`
+    );
+    console.log(
+      `VersionOK = ${versionOk}, SourceOK = ${sourceOk}, AreaOK = ${areaIdOk}`
+    );
+    return versionOk && sourceOk && areaIdOk;
+  };
+
   receivePacket = (
+    ipPacketId: number,
     interfaceId: string,
     ipSrc: IPv4Address,
     packet: OSPFPacket
   ) => {
     const { header } = packet;
-    const { type: packetType } = header;
+    const { type: packetType, routerId: packetSource } = header;
+    if (!this.shouldReceiveIpPacket(ipPacketId, packet)) {
+      console.log(
+        `Packet with ID ${ipPacketId} dropped by router ${this.router.id.toString()}`
+      );
+      return;
+    }
+    if (packetType === PacketType.Hello) {
+      if (!(packet instanceof HelloPacket)) {
+        console.error("Expected Hello Packet");
+        return;
+      }
+      return this.helloPacketHandler(ipSrc, interfaceId, packet);
+    }
+    if (!this.neighborTable.has(packetSource.toString())) {
+      console.log(
+        `Dropping packet with ID ${ipPacketId} since the source is not in the neighbor list of router ${this.router.id.toString()}`
+      );
+      return;
+    }
     switch (packetType) {
-      case PacketType.Hello:
-        if (!(packet instanceof HelloPacket)) {
-          console.error("Expected Hello Packet");
-          return;
-        }
-        this.helloPacketHandler(ipSrc, interfaceId, packet);
-        break;
+      // Add code to handle other types of packets here.
       default:
         break;
     }
@@ -124,26 +164,25 @@ export class OSPFInterface {
     */
   };
 
-  sendHelloPacket = (neighbor: NeighborTableRow) => {
+  sendHelloPacket = (ipInterface: IPLinkInterface) => {
     const { router, config, neighborTable } = this;
     const { areaId, helloInterval, deadInterval } = config;
-    const { ipInterfaces } = router;
-    const { interfaceId, address } = neighbor;
+    const { id: routerId } = router;
+    const [, , , , subnetMask] = routerId.bytes;
     const neighborList = [...neighborTable.values()].map(
       (neighbor) => neighbor.routerId
     );
     const helloPacket = new HelloPacket(
       router.id,
       areaId,
-      0, // Network Mask TODO
+      subnetMask ?? 0,
       helloInterval,
       deadInterval,
       neighborList
     );
-    const ipInterface = ipInterfaces.get(interfaceId);
     ipInterface?.sendMessage(
       router,
-      address,
+      IPAddresses.OSPFBroadcast,
       IPProtocolNumber.ospf,
       helloPacket
     );
@@ -154,7 +193,7 @@ export class OSPFInterface {
     const { areaId } = config;
     const { state, interfaceId, address, ddSeqNumber } = neighbor;
     const { ipInterfaces } = router;
-    const ipInterface = ipInterfaces.get(interfaceId);
+    const { ipInterface } = ipInterfaces.get(interfaceId) ?? {};
     if (state === State.ExStart) {
       const ddPacket = new DDPacket(
         this.router.id,
