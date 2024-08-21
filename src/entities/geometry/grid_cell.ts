@@ -20,7 +20,7 @@ export class GridCell {
     x: number,
     y: number,
     size: number,
-    cellStrokeColor: string = "#ddd"
+    cellStrokeColor: string = Colors.grid
   ) {
     this.x = x;
     this.y = y;

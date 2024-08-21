@@ -1,6 +1,7 @@
 export const Colors = {
   accent: "#324ca8",
   complementary: "#A8324C",
-  grid: "",
-  triadic: "#4CA832",
+  grid: "#DDD",
+  helloPacket: "#4CA832",
+  dd: "#A88E32",
 };
