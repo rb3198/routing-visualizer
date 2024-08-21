@@ -11,7 +11,20 @@ import {
   getSlopeAngleDist2D,
 } from "../../../utils/drawing";
 import { Point2D } from "../../../types/geometry";
+import { packetAnimationUtils } from "./utils";
+import { getAllRectPointsFromCentroid } from "../../../utils/geometry";
 
+const { getCheckpointCoords, getEndpointCoords, drawPacket } =
+  packetAnimationUtils;
+
+const nextPacketStatus = new Map<
+  "start" | "cp1" | "cp2" | "end",
+  "start" | "cp1" | "cp2" | "end"
+>([
+  ["start", "cp1"],
+  ["cp1", "cp2"],
+  ["cp2", "end"],
+]);
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
  */
@@ -93,26 +106,29 @@ export class IPLinkInterface {
     animTime: number = 2500
   ) => {
     const fromIpStr = this.routers.getKey(from);
-    const destRouter = this.getOppositeRouter(from);
+    const dest = this.getOppositeRouter(from);
     if (!fromIpStr) {
       throw new Error(
         "Unexpected sendMessage call on Link Interface. Does not connect the said IP address."
       );
     }
-    const { theta } = getSlopeAngleDist2D(from.location, destRouter.location);
-    const { startX, startY, endX, endY } = getLinkInterfaceCoords(
+    const start = getEndpointCoords.call(this, from.location);
+    const end = getEndpointCoords.call(this, dest.location);
+    const { cp1, cp2 } = getCheckpointCoords.call(
+      this,
       from.location,
-      destRouter.location,
-      theta,
-      this.gridCellSize
+      dest.location
     );
-    this.drawPacket(
-      [startX, startY],
-      [endX, endY],
-      [startX, startY],
+    this.animatePacket(
+      start,
+      end,
+      cp1,
+      cp2,
+      start,
       Date.now(),
       Date.now() + animTime,
-      color
+      color,
+      "start"
     );
     const fromIp = IPv4Address.fromString(fromIpStr);
     switch (protocol) {
@@ -123,55 +139,97 @@ export class IPLinkInterface {
     }
   };
 
-  drawPacket = (
+  animatePacket = (
     from: Point2D,
     to: Point2D,
+    cp1: Point2D,
+    cp2: Point2D,
     prevPosition: Point2D,
     startTime: number,
     endTime: number,
-    color: string
+    color: string,
+    status: "start" | "cp1" | "cp2" | "end",
+    cpStartTime: number = startTime
   ) => {
-    if (!this.elementLayerContext || Date.now() > endTime) {
+    const rectW = 16,
+      rectH = 10;
+    if (!this.elementLayerContext) {
       return;
     }
+    const { distance: totalDistance } = getSlopeAngleDist2D(from, to);
+    const totalTime = endTime - startTime;
     const context = this.elementLayerContext;
-    const [aX, aY] = from;
-    const [bX, bY] = to;
+    const { p1: low } = getAllRectPointsFromCentroid(
+      prevPosition,
+      rectW,
+      rectH
+    );
+    context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
+    let p1: Point2D, p2: Point2D;
+    switch (status) {
+      case "start":
+        p1 = from;
+        p2 = cp1;
+        break;
+      case "cp1":
+        p1 = cp1;
+        p2 = cp2;
+        break;
+      case "cp2":
+      default:
+        p1 = cp2;
+        p2 = to;
+        break;
+    }
+    const { distance } = getSlopeAngleDist2D(p1, p2);
+    const time = (distance * totalTime) / totalDistance;
+    const position = drawPacket.call(
+      this,
+      p1,
+      p2,
+      cpStartTime,
+      time,
+      { rectW, rectH },
+      color
+    );
+    const [aX, aY] = p1;
+    const [bX, bY] = p2;
+    const [px, py] = prevPosition;
+    const [cp1x, cp1y] = cp1;
+    const [cp2x, cp2y] = cp2;
+    const cpx = status === "start" ? cp1x : status === "cp1" ? cp2x : bX;
+    const cpy = status === "start" ? cp1y : status === "cp1" ? cp2y : bY;
     const directionX = bX === aX ? "none" : bX < aX ? "left" : "right";
     const directionY = bY === aY ? "none" : bY < aY ? "top" : "bottom";
-    const { slope, distance: totalDistance } = getSlopeAngleDist2D(from, to);
-    const v = totalDistance / (endTime - startTime);
-    const time = Date.now() - startTime;
-    const distance = v * time;
-    const x =
-      aX +
-      distance *
-        Math.sqrt(1 / (slope ** 2 + 1)) *
-        (directionX === "left" ? -1 : 1);
-    const y =
-      Math.abs(slope) === Infinity
-        ? aY + distance * (directionY === "top" ? -1 : 1)
-        : aY +
-          distance *
-            Math.abs(slope) *
-            Math.sqrt(1 / (slope ** 2 + 1)) *
-            (directionY === "top" ? -1 : 1);
-    context.save();
-    context.globalCompositeOperation = "destination-out";
-    const r = 10;
-    context.beginPath();
-    context.arc(prevPosition[0], prevPosition[1], r, 0, 2 * Math.PI);
-    context.fill();
-    context.closePath();
-    context.globalCompositeOperation = "source-over";
-    context.fillStyle = color;
-    context.beginPath();
-    context.arc(x, y, r, 0, 2 * Math.PI);
-    context.fill();
-    context.closePath();
-    context.restore();
+    const isPastCp =
+      directionX === "none"
+        ? directionY === "top"
+          ? py <= cpy
+          : py >= cpy
+        : directionX === "right"
+        ? px >= cpx
+        : px <= cpx;
+    if (isPastCp) {
+      status = nextPacketStatus.get(status) || "start";
+      cpStartTime = Date.now();
+    }
+    if (status === "end") {
+      context.clearRect(position[0] - 1, position[1] - 1, rectW + 2, rectH + 2);
+      return;
+    }
     window.requestAnimationFrame(() =>
-      this.drawPacket(from, to, [x, y], startTime, endTime, color)
+      this.animatePacket(
+        from,
+        to,
+        cp1,
+        cp2,
+        position,
+        startTime,
+        endTime,
+        color,
+        status,
+        cpStartTime
+      )
     );
   };
 

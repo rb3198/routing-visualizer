@@ -91,10 +91,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
 
   const { position: componentPickerPosition, visible: componentPickerVisible } =
     componentPicker;
-  const {
-    position: connectionPickerPosition,
-    visible: connectionPickerVisible,
-  } = connectionPicker;
+  const { visible: connectionPickerVisible } = connectionPicker;
 
   const openComponentPicker = useCallback(
     (left: number, top?: number, bottom?: number) => {
@@ -510,11 +507,6 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
       />
       <canvas id={styles.as_layer} className={styles.canvas} ref={asLayerRef} />
       <canvas
-        id={styles.as_component_layer}
-        className={styles.canvas}
-        ref={asComponentLayerRef}
-      />
-      <canvas
         id={styles.router_connection_layer}
         className={styles.canvas}
         ref={routerConnectionLayerRef}
@@ -523,6 +515,11 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         id={styles.elements_layer}
         className={styles.canvas}
         ref={elementsLayerRef}
+      />
+      <canvas
+        id={styles.as_component_layer}
+        className={styles.canvas}
+        ref={asComponentLayerRef}
         onMouseMove={onHover}
         onClick={onCanvasClick}
       />

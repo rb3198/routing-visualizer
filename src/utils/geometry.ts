@@ -40,3 +40,20 @@ export const getAllRectPoints = (
   const p4: Point2D = [lowX, highY];
   return { p1, p2, p3, p4 };
 };
+
+export const getAllRectPointsFromCentroid = (
+  centroid: Point2D,
+  length: number,
+  breadth: number
+) => {
+  const [x, y] = centroid;
+  const lowX = x - length / 2,
+    lowY = y - breadth / 2,
+    highX = x + length / 2,
+    highY = y + breadth / 2;
+  const p1: Point2D = [lowX, lowY];
+  const p2: Point2D = [highX, lowY];
+  const p3: Point2D = [highX, highY];
+  const p4: Point2D = [lowX, highY];
+  return { p1, p2, p3, p4 };
+};

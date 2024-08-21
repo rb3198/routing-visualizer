@@ -11,14 +11,14 @@
     z-index: 3;
 }
 
-#as_component_layer {
+#router_connection_layer {
     z-index: 4;
 }
 
-#router_connection_layer {
+#elements_layer {
     z-index: 5;
 }
 
-#elements_layer {
+#as_component_layer {
     z-index: 6;
 }
