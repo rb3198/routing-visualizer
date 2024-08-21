@@ -51,11 +51,20 @@ export class Router {
 
   addInterface = (ipInterface: IPLinkInterface) => {
     const { id } = ipInterface;
-    this.ipInterfaces.set(id, { ipInterface });
+    const { config } = this.ospf;
+    const { helloInterval } = config;
+    let helloTimer: NodeJS.Timeout | undefined;
     if (this.turnedOn) {
       // IF turnedOn send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
+      helloTimer = setInterval(() => {
+        this.ospf.sendHelloPacket(ipInterface);
+      }, helloInterval);
     }
+    this.ipInterfaces.set(id, {
+      ipInterface,
+      helloTimer,
+    });
   };
 
   removeInterface = (ip: IPv4Address | string) => {
@@ -99,6 +108,7 @@ export class Router {
     }
     this.turnedOn = true;
     for (const [ip, { ipInterface }] of this.ipInterfaces) {
+      this.ospf.sendHelloPacket(ipInterface);
       const helloTimer = setInterval(() => {
         this.ospf.sendHelloPacket(ipInterface);
       }, helloInterval);

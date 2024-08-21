@@ -11,6 +11,7 @@ import neighborEventHandlerFactory from "./neighbor_event_handlers";
 import { IPAddresses } from "../../../constants/ip_addresses";
 import { IPLinkInterface } from "../../ip/link_interface";
 import { BACKBONE_AREA_ID, VERSION } from "../../ospf/constants";
+import { Colors } from "../../../constants/theme";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -87,7 +88,7 @@ export class OSPFInterface {
     packet: HelloPacket
   ) => {
     const { header, body } = packet;
-    const { deadInterval, neighborList } = body;
+    const { neighborList } = body;
     const { routerId } = header;
     const { neighborTable } = this;
     if (!this.shouldProcessHelloPacket(packet)) {
@@ -181,7 +182,8 @@ export class OSPFInterface {
       router,
       IPAddresses.OSPFBroadcast,
       IPProtocolNumber.ospf,
-      helloPacket
+      helloPacket,
+      Colors.helloPacket
     );
   };
 

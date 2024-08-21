@@ -52,7 +52,7 @@ export class IPLinkInterface {
     this.assignIps(routers);
   }
 
-  private assignIps = (routers?: Router[]) => {
+  private assignIps = (routers: [Router, Router]) => {
     const [byte1, byte2, byte3] = this.baseIp.bytes;
     let b3 = byte3;
     let backboneRouterPresent = false;
@@ -65,9 +65,9 @@ export class IPLinkInterface {
         this.routers.set(interfaceIp.toString(), router);
         backboneRouterPresent =
           backboneRouterPresent || areaId === BACKBONE_AREA_ID;
-        router.addInterface(this);
       });
       routers.forEach((router) => {
+        router.addInterface(this);
         const { ospf } = router;
         const { config } = ospf;
         const { areaId, connectedToBackbone } = config;

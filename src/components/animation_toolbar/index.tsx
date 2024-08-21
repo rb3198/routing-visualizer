@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import styles from "./styles.module.css";
 import {
   FaFastBackward,
@@ -10,21 +10,20 @@ import {
 
 interface AnimationToolbarProps {
   startSimulation: () => boolean;
+  pauseSimulation: () => any;
+  playing?: boolean;
 }
 
 export const AnimationToolbar: React.FC<AnimationToolbarProps> = (props) => {
-  const { startSimulation } = props;
-  const [playing, setPlaying] = useState(false);
+  const { playing, startSimulation, pauseSimulation } = props;
 
-  const togglePlaying = useCallback(() => {
-    setPlaying((playing) => {
-      const newState = !playing;
-      if (newState) {
-        return startSimulation();
-      }
-      return newState;
-    });
-  }, [startSimulation]);
+  const togglePlaying = () => {
+    if (playing) {
+      pauseSimulation();
+    } else {
+      startSimulation();
+    }
+  };
   return (
     <div id={styles.container}>
       <div onClick={togglePlaying}>

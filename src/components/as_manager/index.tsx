@@ -83,6 +83,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     AutonomousSystem[]
   >([]);
   const [selectedRouter, setSelectedRouter] = useState<Router>();
+  const [simulationPlaying, setSimulationPlaying] = useState(false);
   const notificationTooltipContext = useContext(NotificationTooltipContext);
   const { open: openNotificationTooltip } = notificationTooltipContext || {};
   const cellSize = (gridRect.length && gridRect[0][0].size) || 0;
@@ -281,11 +282,11 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
       return;
     }
     const rect = gridRect[row][col];
-    const router = placeRouter(row, col);
+    const router = placeRouter(row, col, simulationPlaying);
     rect.drawRouter(context, router.id.ip);
     managePreviousHover(row, col);
     closeComponentPicker();
-  }, [gridRect, closeComponentPicker, managePreviousHover]);
+  }, [gridRect, simulationPlaying, closeComponentPicker, managePreviousHover]);
 
   const onHover: MouseEventHandler = useCallback(
     (e) => {
@@ -483,6 +484,7 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
   );
 
   const startSimulation = useCallback(() => {
+    setSimulationPlaying(true);
     if (!linkInterfaceMap.current.size || !asTree.current.root) {
       openNotificationTooltip &&
         openNotificationTooltip(
@@ -498,6 +500,10 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     });
     return true;
   }, [openNotificationTooltip]);
+
+  const pauseSimulation = useCallback(() => {
+    setSimulationPlaying(false);
+  }, []);
   return (
     <>
       <canvas
@@ -535,7 +541,11 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
       />
-      <AnimationToolbar startSimulation={startSimulation} />
+      <AnimationToolbar
+        startSimulation={startSimulation}
+        pauseSimulation={pauseSimulation}
+        playing={simulationPlaying}
+      />
     </>
   );
 };

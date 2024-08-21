@@ -86,7 +86,7 @@ export class AutonomousSystem {
 
   getRouterLocationKey = (row: number, col: number) => `${row}_${col}`;
 
-  placeRouter = (row: number, col: number) => {
+  placeRouter = (row: number, col: number, simulationPlaying?: boolean) => {
     const key = this.getRouterLocationKey(row, col);
     const [byte1, byte2] = this.ip.bytes;
     const nRouters = this.routerLocations.size;
@@ -94,7 +94,8 @@ export class AutonomousSystem {
       key,
       [col, row],
       new IPv4Address(byte1, byte2, nRouters, 0, this.routerSubnetMask),
-      this.ospfConfig
+      this.ospfConfig,
+      simulationPlaying // new router is turned on if the simulation is playing
     );
     this.routerLocations.set(key, router);
     return router;
