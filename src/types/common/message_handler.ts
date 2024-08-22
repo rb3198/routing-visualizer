@@ -7,5 +7,7 @@ export type MessageHandler = (
   from: IPv4Address,
   to: IPv4Address,
   message: unknown,
-  listeners: TwoWayMap<string, Router>
+  listeners: TwoWayMap<string, Router>,
+  color: string,
+  duration: number
 ) => any;

@@ -26,6 +26,8 @@ import { IPLinkInterface } from "../../entities/ip/link_interface";
 import { NotificationTooltipContext } from "../../contexts/notification_tooltip";
 import { AnimationToolbar } from "../animation_toolbar";
 import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
+import { IRootReducer } from "../../reducers";
+import { connect, ConnectedProps } from "react-redux";
 interface ASManagerProps {
   gridRect: GridCell[][];
   defaultAsSize: number;
@@ -56,7 +58,11 @@ const defaultPickerState = {
 };
 
 const rootIp = new IPv4Address(192, 0, 0, 0, 8);
-export const ASManager: React.FC<ASManagerProps> = (props) => {
+
+type ReduxProps = ConnectedProps<typeof connector>;
+export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
+  props
+) => {
   const { gridRect, defaultAsSize } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
   const asLayerHoverLocation = useRef<Point2D>();
@@ -549,3 +555,14 @@ export const ASManager: React.FC<ASManagerProps> = (props) => {
     </>
   );
 };
+
+const mapStateToProps = (state: IRootReducer) => {
+  const { eventLog } = state;
+  return {
+    eventLog,
+  };
+};
+
+const connector = connect(mapStateToProps);
+
+export const ASManager = connector(ASManagerComponent);
