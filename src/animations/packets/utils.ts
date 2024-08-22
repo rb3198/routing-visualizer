@@ -1,23 +1,20 @@
-import { IPLinkInterface } from ".";
-import { Point2D } from "../../../types/geometry";
-import { getSlopeAngleDist2D } from "../../../utils/drawing";
-import { getAllRectPointsFromCentroid } from "../../../utils/geometry";
+import { Point2D, RectDim } from "../../types/geometry";
+import { getSlopeAngleDist2D } from "../../utils/drawing";
+import {
+  getAllRectPointsFromCentroid,
+  getTravelDirection,
+} from "../../utils/geometry";
 
 export const packetAnimationUtils = {
-  getEndpointCoords: function (
-    this: IPLinkInterface,
-    location: Point2D
-  ): Point2D {
-    const { gridCellSize: cellSize } = this;
+  getEndpointCoords: function (cellSize: number, location: Point2D): Point2D {
     const [x, y] = location;
     return [x * cellSize + cellSize / 2, y * cellSize + cellSize / 2];
   },
   getCheckpointCoords: function (
-    this: IPLinkInterface,
+    cellSize: number,
     origin: Point2D,
     dest: Point2D
   ): { cp1: Point2D; cp2: Point2D } {
-    const { gridCellSize: cellSize } = this;
     const [orX, orY] = origin;
     const [destX, destY] = dest;
     let cp1: Point2D, cp2: Point2D;
@@ -42,20 +39,17 @@ export const packetAnimationUtils = {
     return { cp1, cp2 };
   },
   drawPacket: function (
-    this: IPLinkInterface,
+    context: CanvasRenderingContext2D,
     from: Point2D,
     to: Point2D,
     startTime: number,
     totalTime: number,
-    packetDim: { rectH: number; rectW: number },
+    packetDim: RectDim,
     color: string
   ): Point2D {
-    const { rectW, rectH } = packetDim;
-    const context = this.elementLayerContext;
+    const { w: rectW, h: rectH } = packetDim;
     const [aX, aY] = from;
-    const [bX, bY] = to;
-    const directionX = bX === aX ? "none" : bX < aX ? "left" : "right";
-    const directionY = bY === aY ? "none" : bY < aY ? "top" : "bottom";
+    const { directionX, directionY } = getTravelDirection(from, to);
     const { slope, distance: totalDistance } = getSlopeAngleDist2D(from, to);
     const v = totalDistance / totalTime;
     const time = Date.now() - startTime;

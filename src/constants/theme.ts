@@ -4,4 +4,5 @@ export const Colors = {
   grid: "#DDD",
   helloPacket: "#4CA832",
   dd: "#A88E32",
+  droppedPacket: "#E13A1E",
 };

@@ -1,21 +1,31 @@
+import { emitEvent } from "../../action_creators";
 import { IPAddresses } from "../../constants/ip_addresses";
+import { store } from "../../store";
 import { MessageHandler } from "../../types/common/message_handler";
 import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
+import { IPLinkInterface } from "../ip/link_interface";
 import { IPPacket } from "../ip/packets";
 import { IPHeader } from "../ip/packets/header";
 import { OSPFPacket } from "../ospf/packets/packet_base";
 
-export const ospfMessageHandler: MessageHandler = (
+export const ospfMessageHandler: MessageHandler = async function (
+  this: IPLinkInterface,
   interfaceId,
   source,
   destination,
   message,
-  listeners
-) => {
+  listeners,
+  color,
+  duration
+) {
   if (!(message instanceof OSPFPacket)) {
     console.error(
       "Non-OSPF Message sent to be handled by OSPF Message handler."
     );
+    return;
+  }
+  const sourceRouter = listeners.get(source.toString());
+  if (!sourceRouter) {
     return;
   }
   const { ip: dest } = destination;
@@ -27,9 +37,19 @@ export const ospfMessageHandler: MessageHandler = (
   );
   const ipPacket = new IPPacket(ipHeader, message);
   if (destination.ip === IPAddresses.OSPFBroadcast.ip) {
-    listeners.forEach((router) => {
-      router.receiveIPPacket(interfaceId, ipPacket);
-    });
+    for (const dest of listeners.values()) {
+      const e = emitEvent(
+        "packetTransfer",
+        this.gridCellSize,
+        sourceRouter,
+        dest,
+        duration,
+        color,
+        this.elementLayerContext
+      );
+      await e(store.dispatch);
+      dest.receiveIPPacket(interfaceId, ipPacket);
+    }
     return;
   }
   if (!listeners.hasKey(dest)) {
