@@ -1,5 +1,6 @@
 import { Router } from "../../entities/router";
 import { Point2D, RectDim } from "../../types/geometry";
+import { getDefaultPacketRect } from "../../utils/drawing";
 import {
   getAllRectPointsFromCentroid,
   getEuclideanDistance,
@@ -25,7 +26,7 @@ export const packetAnimations = {
     src: Router,
     dest: Router,
     duration: number,
-    packetRect: RectDim = { w: cellSize / 2, h: cellSize / 3.5 },
+    packetRect: RectDim = getDefaultPacketRect(cellSize),
     color: string
   ) {
     let status: "start" | "cp1" | "cp2" | "end" = "start";
@@ -108,6 +109,80 @@ export const packetAnimations = {
         cpStartTime = Date.now();
       }
     }
-    context.clearRect(position[0] - 1, position[1] - 1, rectW + 2, rectH + 2);
+    const { p1: low } = getAllRectPointsFromCentroid(position, rectW, rectH);
+    context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
+  },
+
+  /**
+   * Method to animate a packet drop by a router
+   * @param router
+   * @param duration Duration of the anim in ms
+   * @param color
+   * @returns
+   */
+  packetDrop: async (
+    context: CanvasRenderingContext2D,
+    cellSize: number,
+    router: Router,
+    duration: number,
+    color: string,
+    rectDim: RectDim = getDefaultPacketRect(cellSize)
+  ) => {
+    const { w: rectW, h: rectH } = rectDim;
+    const { location } = router;
+    const [col, row] = location;
+    const origin: Point2D = [
+      cellSize * (col + 1 / 2),
+      cellSize * (row + 1 / 2),
+    ];
+    const cp1y = cellSize * (row + 1);
+    // packet ends at the midpoint of the cell below
+    const dest: Point2D = [cellSize * (col + 1 / 2), cellSize * (row + 3 / 2)];
+    const [, destY] = dest;
+    let position: Point2D = [...origin];
+    const startTime = Date.now();
+    const totalDistance = getEuclideanDistance(origin, dest);
+    const v = totalDistance / duration;
+    const startY = position[1];
+    while (position[1] <= destY) {
+      await new Promise<void>((resolve) =>
+        window.requestAnimationFrame(() => {
+          const { p1: prevLow } = getAllRectPointsFromCentroid(
+            position,
+            rectW,
+            rectH
+          );
+          context.clearRect(
+            prevLow[0] - 1,
+            prevLow[1] - 1,
+            rectW + 2,
+            rectH + 2
+          );
+          const time = Date.now() - startTime;
+          const distance = v * time;
+          const y = startY + distance;
+          position = [position[0], y];
+          const { p1: low } = getAllRectPointsFromCentroid(
+            position,
+            rectW,
+            rectH
+          );
+          const [, lowY] = low;
+          context.save();
+          context.fillStyle = color;
+          if (lowY > cp1y) {
+            context.globalAlpha = (destY - y) / (destY - cp1y);
+          }
+          context.beginPath();
+          context.rect(...low, rectW, rectH);
+          context.fill();
+          context.closePath();
+          context.restore();
+          resolve();
+        })
+      );
+    }
+    const { p1: low } = getAllRectPointsFromCentroid(position, rectW, rectH);
+    context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
   },
 };
