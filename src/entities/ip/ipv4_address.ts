@@ -11,7 +11,8 @@ export class IPv4Address {
   }
 
   static fromString = (ip: string) => {
-    const bytes = ip.split(".").map((byte) => parseInt(byte));
+    const [ipBytes, subnetMask] = ip.split("/");
+    const bytes = ipBytes.split(".").map((byte) => parseInt(byte));
     if (
       bytes.length < 4 ||
       bytes.length > 5 ||
@@ -21,8 +22,8 @@ export class IPv4Address {
         "Invalid IP Address specified to create an instance of IPv4 address."
       );
     }
-    const [byte1, byte2, byte3, byte4, subnetMask] = bytes;
-    return new IPv4Address(byte1, byte2, byte3, byte4, subnetMask);
+    const [byte1, byte2, byte3, byte4] = bytes;
+    return new IPv4Address(byte1, byte2, byte3, byte4, parseInt(subnetMask));
   };
 
   get ip() {
@@ -32,4 +33,9 @@ export class IPv4Address {
   toString = () => {
     return this.ip;
   };
+
+  equals = (comparedIp: IPv4Address) =>
+    this.toString() === comparedIp.toString();
+
+  referenceEquals = (comparedIp: IPv4Address) => this === comparedIp;
 }

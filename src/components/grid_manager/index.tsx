@@ -17,7 +17,7 @@ export const GridManager: React.FC<GridProps> = (props) => {
   return (
     <>
       <Grid setGrid={setGrid} gridSize={gridSize} gridRect={grid} />
-      <ASManager gridRect={grid} defaultAsSize={Math.ceil(gridSize / 6)} />
+      <ASManager gridRect={grid} defaultAsSize={Math.ceil(gridSize / 5)} />
     </>
   );
 };

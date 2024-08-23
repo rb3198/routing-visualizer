@@ -40,7 +40,7 @@ export class DDPacket extends OSPFPacket {
   body: DDPacketBody;
   constructor(
     routerId: IPv4Address,
-    areaId: string,
+    areaId: number,
     ddSeqNumber?: number,
     init?: boolean,
     m?: boolean,

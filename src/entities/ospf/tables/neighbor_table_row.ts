@@ -8,7 +8,6 @@ export class NeighborTableRow {
    */
   routerId: IPv4Address;
   state: State;
-  deadTime: number; // stored in epoch
   /**
    * Address of the neighbor on the IP interface.
    */
@@ -27,10 +26,7 @@ export class NeighborTableRow {
   master: boolean;
 
   // lastDDPacket - Last Received DBD Packet TODO
-  /**
-   * Timeout to send hello packets.
-   */
-  helloTimer?: NodeJS.Timeout;
+
   /**
    * Timeout to set the router to DOWN state after no hello packet communication for `deadInterval` milliseconds.
    */
@@ -72,14 +68,12 @@ export class NeighborTableRow {
   constructor(
     routerId: IPv4Address,
     state: State,
-    deadTime: number,
     address: IPv4Address,
     interfaceId: string,
     master?: boolean
   ) {
     this.routerId = routerId;
     this.state = state;
-    this.deadTime = deadTime;
     this.address = address;
     this.interfaceId = interfaceId;
     this.master = master ?? false;

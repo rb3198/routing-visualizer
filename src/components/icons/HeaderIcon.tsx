@@ -1,9 +1,5 @@
 import React from "react";
-
-interface IconProps {
-  color?: string;
-  classes?: string;
-}
+import { IconProps } from "./IconProps";
 
 export const HeaderIcon: React.FC<IconProps> = ({ color, classes }) => {
   return (

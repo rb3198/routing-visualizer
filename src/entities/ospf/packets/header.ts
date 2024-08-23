@@ -14,12 +14,12 @@ export class OSPFHeader {
    * ID of the packet's source.
    */
   routerId: IPv4Address;
-  areaId: string;
+  areaId: number;
   constructor(
     version: number,
     type: PacketType,
     routerId: IPv4Address,
-    areaId: string
+    areaId: number
   ) {
     this.version = version;
     this.type = type;

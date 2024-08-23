@@ -1,27 +1,60 @@
+import { emitEvent } from "../../action_creators";
 import { IPAddresses } from "../../constants/ip_addresses";
+import { store } from "../../store";
 import { MessageHandler } from "../../types/common/message_handler";
 import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
+import { IPLinkInterface } from "../ip/link_interface";
 import { IPPacket } from "../ip/packets";
 import { IPHeader } from "../ip/packets/header";
 import { OSPFPacket } from "../ospf/packets/packet_base";
 
-export const ospfMessageHandler: MessageHandler = (
+export const ospfMessageHandler: MessageHandler = async function (
+  this: IPLinkInterface,
   interfaceId,
   source,
   destination,
   message,
-  listeners
-) => {
+  listeners,
+  color,
+  duration
+) {
   if (!(message instanceof OSPFPacket)) {
-    throw new Error(
+    console.error(
       "Non-OSPF Message sent to be handled by OSPF Message handler."
     );
+    return;
+  }
+  const context = window.elementLayer?.getContext("2d");
+  const sourceRouter = listeners.get(source.toString());
+  if (!sourceRouter) {
+    return;
   }
   const { ip: dest } = destination;
+  const ipHeader = new IPHeader(
+    Date.now(),
+    IPProtocolNumber.ospf,
+    source,
+    destination
+  );
+  const ipPacket = new IPPacket(ipHeader, message);
   if (destination.ip === IPAddresses.OSPFBroadcast.ip) {
-    listeners.forEach((router) => {
-      router.receiveIPPacket(interfaceId, ipPacket);
-    });
+    for (const dest of Array.from(listeners.values()).sort((a, b) =>
+      a === sourceRouter ? -1 : 0
+    )) {
+      const e = emitEvent({
+        event: "packetTransfer",
+        src: sourceRouter,
+        dest,
+        viz: {
+          context,
+          duration,
+          color,
+        },
+        packet: message,
+      });
+      await e(store.dispatch);
+      dest.receiveIPPacket(interfaceId, ipPacket);
+    }
     return;
   }
   if (!listeners.hasKey(dest)) {
@@ -30,7 +63,5 @@ export const ospfMessageHandler: MessageHandler = (
     );
     return;
   }
-  const ipHeader = new IPHeader(1, IPProtocolNumber.ospf, source, destination);
-  const ipPacket = new IPPacket(ipHeader, message);
   listeners.get(destination.ip)?.receiveIPPacket(interfaceId, ipPacket);
 };

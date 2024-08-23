@@ -1,4 +1,5 @@
 import { GridCell } from "../entities/geometry/grid_cell";
+import { store } from "../store";
 
 export const debounce = (func: Function, wait: number) => {
   let timeout: number | undefined;
@@ -22,10 +23,10 @@ export const onCanvasLayout = (canvas: HTMLCanvasElement) => {
 export const mapCoordsToGridCell = (
   clientX: number,
   clientY: number,
-  cellSize: number,
   gridRect: GridCell[][],
   canvas: HTMLCanvasElement
 ) => {
+  const { cellSize } = store.getState();
   const { x: canvasX, y: canvasY } = canvas.getBoundingClientRect();
   const offsetX = clientX - canvasX;
   const offsetY = clientY - canvasY;

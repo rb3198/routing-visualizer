@@ -2,6 +2,9 @@ import React, { useCallback, useLayoutEffect, useRef } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
 import { onCanvasLayout } from "../../utils/ui";
+import { bindActionCreators, Dispatch } from "redux";
+import { setCellSize } from "../../action_creators";
+import { connect, ConnectedProps } from "react-redux";
 
 interface GridProps {
   gridRect: GridCell[][];
@@ -9,8 +12,9 @@ interface GridProps {
   setGrid: React.Dispatch<React.SetStateAction<GridCell[][]>>;
 }
 
-export const Grid: React.FC<GridProps> = (props) => {
-  const { gridSize, setGrid } = props;
+type ReduxProps = ConnectedProps<typeof connector>;
+export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
+  const { gridSize, setGrid, setCellSize } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const constructGrid = useCallback(
@@ -43,8 +47,19 @@ export const Grid: React.FC<GridProps> = (props) => {
     }
     onCanvasLayout(canvasRef.current);
     const cellSize = canvasRef.current.width / gridSize;
+    setCellSize(cellSize);
     const gridRect = constructGrid(canvasRef.current, cellSize);
     setGrid(gridRect);
-  }, [gridSize, setGrid, constructGrid]);
+  }, [gridSize, setGrid, constructGrid, setCellSize]);
   return <canvas ref={canvasRef} id={styles.cell_grid} />;
 };
+
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return {
+    setCellSize: bindActionCreators(setCellSize, dispatch),
+  };
+};
+
+const connector = connect(undefined, mapDispatchToProps);
+
+export const Grid = connector(GridComponent);
