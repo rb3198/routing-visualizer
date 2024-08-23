@@ -45,9 +45,7 @@ export class OSPFInterface {
           0, // TODO: Consume cell size reducer
         color: Colors.droppedPacket,
         duration: 1000,
-        context:
-          this.router.ipInterfaces.get(interfaceId)?.ipInterface
-            .elementLayerContext,
+        context: window.elementLayer?.getContext("2d"),
       },
     })(store.dispatch);
   };

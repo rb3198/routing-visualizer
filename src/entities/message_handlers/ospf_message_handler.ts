@@ -24,7 +24,7 @@ export const ospfMessageHandler: MessageHandler = async function (
     );
     return;
   }
-  const context = this.elementLayerContext;
+  const context = window.elementLayer?.getContext("2d");
   const cellSize = this.gridCellSize;
   const sourceRouter = listeners.get(source.toString());
   if (!sourceRouter) {

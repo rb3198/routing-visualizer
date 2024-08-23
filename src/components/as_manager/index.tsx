@@ -184,6 +184,9 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         onCanvasLayout(canvas);
       }
     });
+    window.elementLayer = elementsLayerRef.current;
+    window.gridComponentLayer = asComponentLayerRef.current;
+    window.routerConnectionLayer = routerConnectionLayerRef.current;
   }, []);
 
   /**
@@ -474,14 +477,10 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       const linkNo = linkInterfaceMap.current.size + 1;
       const linkId = `li_${linkNo}`;
       const baseIp = new IPv4Address(192, 1, linkNo, 0);
-      const link = new IPLinkInterface(
-        linkId,
-        baseIp,
-        cellSize,
-        [routerA, routerB],
-        routerConnectionLayerRef.current?.getContext("2d"),
-        elementsLayerRef.current?.getContext("2d")
-      );
+      const link = new IPLinkInterface(linkId, baseIp, cellSize, [
+        routerA,
+        routerB,
+      ]);
       linkInterfaceMap.current.set(linkId, link);
       link.draw(routerA, routerB);
       closeConnectionPicker();

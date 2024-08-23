@@ -19,21 +19,15 @@ export class IPLinkInterface {
   routers: TwoWayMap<string, Router>;
   baseIp: IPv4Address;
   gridCellSize: number;
-  connectionLayerContext?: CanvasRenderingContext2D | null;
-  elementLayerContext?: CanvasRenderingContext2D | null;
   constructor(
     id: string,
     baseIp: IPv4Address,
     gridCellSize: number,
-    routers: [Router, Router],
-    connectionLayerContext?: CanvasRenderingContext2D | null,
-    elementLayerContext?: CanvasRenderingContext2D | null
+    routers: [Router, Router]
   ) {
     this.id = id;
     this.baseIp = baseIp;
     this.gridCellSize = gridCellSize;
-    this.connectionLayerContext = connectionLayerContext;
-    this.elementLayerContext = elementLayerContext;
     this.routers = new TwoWayMap();
     this.assignIps(routers);
   }
@@ -117,14 +111,11 @@ export class IPLinkInterface {
   };
 
   draw = (routerA: Router, routerB: Router) => {
-    if (
-      typeof this.gridCellSize === "undefined" ||
-      !this.connectionLayerContext
-    ) {
+    const context = window.routerConnectionLayer?.getContext("2d");
+    if (typeof this.gridCellSize === "undefined" || !context) {
       return;
     }
     const cellSize = this.gridCellSize;
-    const context = this.connectionLayerContext;
     const { location: locA } = routerA;
     const [aX, aY] = locA;
     const { location: locB } = routerB;
