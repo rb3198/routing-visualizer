@@ -24,6 +24,8 @@ export const ospfMessageHandler: MessageHandler = async function (
     );
     return;
   }
+  const context = this.elementLayerContext;
+  const cellSize = this.gridCellSize;
   const sourceRouter = listeners.get(source.toString());
   if (!sourceRouter) {
     return;
@@ -37,16 +39,21 @@ export const ospfMessageHandler: MessageHandler = async function (
   );
   const ipPacket = new IPPacket(ipHeader, message);
   if (destination.ip === IPAddresses.OSPFBroadcast.ip) {
-    for (const dest of listeners.values()) {
-      const e = emitEvent(
-        "packetTransfer",
-        this.gridCellSize,
-        sourceRouter,
+    for (const dest of Array.from(listeners.values()).sort((a, b) =>
+      a === sourceRouter ? -1 : 0
+    )) {
+      const e = emitEvent({
+        event: "packetTransfer",
+        src: sourceRouter,
         dest,
-        duration,
-        color,
-        this.elementLayerContext
-      );
+        viz: {
+          context,
+          duration,
+          color,
+          cellSize,
+        },
+        packet: message,
+      });
       await e(store.dispatch);
       dest.receiveIPPacket(interfaceId, ipPacket);
     }

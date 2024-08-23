@@ -3,24 +3,31 @@ import { ActionCreator, Dispatch } from "redux";
 import { packetAnimations } from "../animations/packets";
 import { Router } from "../entities/router";
 import { RectDim } from "../types/geometry";
+import { OSPFPacket } from "../entities/ospf/packets/packet_base";
 
-export type NetworkEvent = "packetTransfer" | "packetDrop";
+export type EmitEventArgs = {
+  packet: OSPFPacket;
+  viz: {
+    cellSize: number;
+    color: string;
+    duration: number;
+    context?: CanvasRenderingContext2D | null;
+    packetRect?: RectDim;
+  };
+} & (
+  | { event: "packetTransfer"; src: Router; dest: Router }
+  | { event: "packetDrop"; router: Router }
+);
 
 export const emitEvent =
-  (
-    event: NetworkEvent,
-    cellSize: number,
-    src: Router,
-    dest: Router,
-    duration: number,
-    color: string,
-    context?: CanvasRenderingContext2D | null,
-    packetRect?: RectDim
-  ) =>
+  (args: EmitEventArgs) =>
   async (dispatch: Dispatch): Promise<EventLogAction> => {
+    const { event, viz } = args;
+    const { context, cellSize, duration, color, packetRect } = viz;
     if (context) {
       switch (event) {
         case "packetTransfer":
+          const { src, dest } = args;
           await packetAnimations.packetTransfer(
             context,
             cellSize,
@@ -29,6 +36,17 @@ export const emitEvent =
             duration,
             packetRect,
             color
+          );
+          break;
+        case "packetDrop":
+          const { router } = args;
+          await packetAnimations.packetDrop(
+            context,
+            cellSize,
+            router,
+            duration,
+            color,
+            packetRect
           );
           break;
         default:

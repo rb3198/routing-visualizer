@@ -1,4 +1,4 @@
-import { Point2D } from "../types/geometry";
+import { Point2D, RectDim } from "../types/geometry";
 
 export const getSlopeAngleDist2D = (p1: Point2D, p2: Point2D) => {
   const [aX, aY] = p1;
@@ -31,4 +31,12 @@ export const getLinkInterfaceCoords = (
     endY = bY * cellSize + cellSize / 2;
   }
   return { startX, startY, endX, endY };
+};
+
+/**
+ * Given the cell size of the grid, configures the packet's rect dimensions
+ * @param cellSize
+ */
+export const getDefaultPacketRect = (cellSize: number): RectDim => {
+  return { w: cellSize / 2, h: cellSize / 3.5 };
 };
