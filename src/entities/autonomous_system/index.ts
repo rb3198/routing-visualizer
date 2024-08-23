@@ -5,6 +5,7 @@ import { Rect2D } from "../geometry/Rect2D";
 import { GridCell } from "../geometry/grid_cell";
 import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
+import { store } from "../../store";
 
 export class AutonomousSystem {
   /**
@@ -107,15 +108,14 @@ export class AutonomousSystem {
    * @param context
    * @param strokeStyle
    * @param fillStyle
-   * @param cellSize Size in px of each cell in the grid.
    */
   draw = (
     context: CanvasRenderingContext2D,
     strokeStyle: string,
     fillStyle: string,
-    cellSize: number,
     gridRect: GridCell[][]
   ) => {
+    const { cellSize } = store.getState();
     const { low, high } = this.boundingBox;
     context.clearRect(
       low[0] * cellSize,

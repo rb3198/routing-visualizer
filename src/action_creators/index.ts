@@ -4,11 +4,11 @@ import { packetAnimations } from "../animations/packets";
 import { Router } from "../entities/router";
 import { RectDim } from "../types/geometry";
 import { OSPFPacket } from "../entities/ospf/packets/packet_base";
+import { store } from "../store";
 
 export type EmitEventArgs = {
   packet: OSPFPacket;
   viz: {
-    cellSize: number;
     color: string;
     duration: number;
     context?: CanvasRenderingContext2D | null;
@@ -23,7 +23,8 @@ export const emitEvent =
   (args: EmitEventArgs) =>
   async (dispatch: Dispatch): Promise<EventLogAction> => {
     const { event, viz } = args;
-    const { context, cellSize, duration, color, packetRect } = viz;
+    const { cellSize } = store.getState();
+    const { context, duration, color, packetRect } = viz;
     if (context) {
       switch (event) {
         case "packetTransfer":

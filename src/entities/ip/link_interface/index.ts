@@ -10,6 +10,7 @@ import {
   getLinkInterfaceCoords,
   getSlopeAngleDist2D,
 } from "../../../utils/drawing";
+import { store } from "../../../store";
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
@@ -18,16 +19,9 @@ export class IPLinkInterface {
   id: string;
   routers: TwoWayMap<string, Router>;
   baseIp: IPv4Address;
-  gridCellSize: number;
-  constructor(
-    id: string,
-    baseIp: IPv4Address,
-    gridCellSize: number,
-    routers: [Router, Router]
-  ) {
+  constructor(id: string, baseIp: IPv4Address, routers: [Router, Router]) {
     this.id = id;
     this.baseIp = baseIp;
-    this.gridCellSize = gridCellSize;
     this.routers = new TwoWayMap();
     this.assignIps(routers);
   }
@@ -111,11 +105,11 @@ export class IPLinkInterface {
   };
 
   draw = (routerA: Router, routerB: Router) => {
+    const { cellSize } = store.getState();
     const context = window.routerConnectionLayer?.getContext("2d");
-    if (typeof this.gridCellSize === "undefined" || !context) {
+    if (!context) {
       return;
     }
-    const cellSize = this.gridCellSize;
     const { location: locA } = routerA;
     const [aX, aY] = locA;
     const { location: locB } = routerB;

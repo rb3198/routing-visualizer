@@ -1,28 +1,16 @@
 import { Reducer } from "redux";
 import { EventLogAction } from "../types/actions";
 
-type EventLogState = {
-  cellSize: number;
-  logs: any[];
-};
-
-const initialState: EventLogState = {
-  cellSize: 0,
-  logs: [],
-};
+type EventLogState = any[];
 
 export const eventLogReducer: Reducer<EventLogState, EventLogAction> = (
-  state = initialState,
+  state = [],
   action
 ) => {
   const { type, data } = action;
-  const { logs } = state;
   switch (type) {
     case "ADD_LOG":
-      return {
-        ...state,
-        logs: [...logs, data],
-      };
+      return [...state, data];
     default:
       return state;
   }

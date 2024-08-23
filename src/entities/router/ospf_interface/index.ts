@@ -40,9 +40,6 @@ export class OSPFInterface {
       packet,
       router: this.router,
       viz: {
-        cellSize:
-          this.router.ipInterfaces.get(interfaceId)?.ipInterface.gridCellSize ??
-          0, // TODO: Consume cell size reducer
         color: Colors.droppedPacket,
         duration: 1000,
         context: window.elementLayer?.getContext("2d"),

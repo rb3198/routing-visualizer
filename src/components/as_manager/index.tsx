@@ -92,7 +92,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   const [simulationPlaying, setSimulationPlaying] = useState(false);
   const notificationTooltipContext = useContext(NotificationTooltipContext);
   const { open: openNotificationTooltip } = notificationTooltipContext || {};
-  const cellSize = (gridRect.length && gridRect[0][0].size) || 0;
   const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
   const gridSizeY = gridRect.length || 0;
 
@@ -258,18 +257,12 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     const { boundingBox } = as;
     const { centroid: asCentroid } = boundingBox;
     const asFillColor = Colors.accent + "55";
-    as.draw(asLayerContext, Colors.accent, asFillColor, cellSize, gridRect);
+    as.draw(asLayerContext, Colors.accent, asFillColor, gridRect);
     asTree.current.insert(asCentroid, as);
     iconLayerContext && gridRect[row][col].drawEmpty(iconLayerContext);
     iconLayerHoverLocation.current = undefined;
     closeComponentPicker();
-  }, [
-    iconLayerHoverLocation,
-    cellSize,
-    defaultAsSize,
-    gridRect,
-    closeComponentPicker,
-  ]);
+  }, [iconLayerHoverLocation, defaultAsSize, gridRect, closeComponentPicker]);
 
   const placeRouter: MouseEventHandler = useCallback(() => {
     if (
@@ -318,7 +311,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       const { row, column, cell } = mapCoordsToGridCell(
         clientX,
         clientY,
-        cellSize,
         gridRect,
         iconLayerRef.current
       );
@@ -369,7 +361,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     },
     [
       gridRect,
-      cellSize,
       componentPickerVisible,
       connectionPickerVisible,
       defaultAsSize,
@@ -388,7 +379,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       const { row, column, cell } = mapCoordsToGridCell(
         clientX,
         clientY,
-        cellSize,
         gridRect,
         iconLayerRef.current
       );
@@ -438,7 +428,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       gridRect,
       componentPickerVisible,
       connectionPickerVisible,
-      cellSize,
       componentOptions,
       openConnectionPicker,
       closeConnectionPicker,
@@ -477,15 +466,12 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       const linkNo = linkInterfaceMap.current.size + 1;
       const linkId = `li_${linkNo}`;
       const baseIp = new IPv4Address(192, 1, linkNo, 0);
-      const link = new IPLinkInterface(linkId, baseIp, cellSize, [
-        routerA,
-        routerB,
-      ]);
+      const link = new IPLinkInterface(linkId, baseIp, [routerA, routerB]);
       linkInterfaceMap.current.set(linkId, link);
       link.draw(routerA, routerB);
       closeConnectionPicker();
     },
-    [cellSize, closeConnectionPicker]
+    [closeConnectionPicker]
   );
 
   const startSimulation = useCallback(() => {
