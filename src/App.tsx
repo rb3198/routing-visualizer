@@ -6,6 +6,7 @@ import { NotificationTooltipContext } from "./contexts/notification_tooltip";
 import { NotificationTooltip } from "./components/notification_tooltip";
 import { Provider } from "react-redux";
 import { store } from "./store";
+import { EventLog } from "./components/event_log";
 
 function App() {
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -31,7 +32,8 @@ function App() {
           }}
         >
           <Header />
-          <GridManager gridSize={40} />
+          <GridManager gridSize={35} />
+          <EventLog />
           <NotificationTooltip />
         </NotificationTooltipContext.Provider>
       </Provider>

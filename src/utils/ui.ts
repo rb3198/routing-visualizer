@@ -17,7 +17,7 @@ export const onCanvasLayout = (canvas: HTMLCanvasElement) => {
   const { documentElement } = document;
   const { clientHeight, clientWidth } = documentElement;
   canvas.height = 0.92 * clientHeight;
-  canvas.width = clientWidth;
+  canvas.width = 0.75 * clientWidth;
 };
 
 export const mapCoordsToGridCell = (

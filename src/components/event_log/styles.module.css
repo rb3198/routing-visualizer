@@ -1,0 +1,42 @@
+#container {
+    width: 25vw;
+    position: absolute;
+    left: 75vw;
+    overflow-y: scroll;
+    max-height: 92.5vh;
+}
+
+#container::-webkit-scrollbar {
+    display: none;
+}
+
+#title {
+    position: sticky;
+    padding: 2vh 0;
+    top: 0;
+    background-color: white;
+}
+#log_list {
+    list-style: none;
+    text-align: justify;
+    padding: 0 1.25vh;
+    font-size: .75vw;
+}
+
+.event {
+    opacity: 0;
+    transition: opacity .5s;
+    margin-bottom: 1.25vh;
+}
+
+.event.visible {
+    opacity: 1;
+}
+
+.link {
+    margin-right: .75vw;
+    text-decoration: underline;
+    cursor: pointer;
+    color: #324ca8;
+    font-weight: 600;
+}
