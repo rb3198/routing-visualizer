@@ -7,6 +7,7 @@ import { NotificationTooltip } from "./components/notification_tooltip";
 import { Provider } from "react-redux";
 import { store } from "./store";
 import { EventLog } from "./components/event_log";
+import { HelloPacketDetailModal } from "./components/modals/packet_details/hello_packet_detail";
 
 function App() {
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -18,6 +19,14 @@ function App() {
   const openTooltip = useCallback((message: string) => {
     setTooltipVisible(true);
     setTooltipMessage(message);
+  }, []);
+
+  const renderModals = useCallback(() => {
+    return (
+      <>
+        <HelloPacketDetailModal />
+      </>
+    );
   }, []);
   return (
     <div className="App">
@@ -35,6 +44,7 @@ function App() {
           <GridManager gridSize={35} />
           <EventLog />
           <NotificationTooltip />
+          {renderModals()}
         </NotificationTooltipContext.Provider>
       </Provider>
     </div>

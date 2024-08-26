@@ -1,4 +1,6 @@
+import { openModal } from "../../../action_creators";
 import { PacketColorMap } from "../../../constants/theme";
+import { store } from "../../../store";
 import { IPPacket } from "../../ip/packets";
 import { PacketType } from "../../ospf/enum";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
@@ -33,7 +35,9 @@ export class PacketSentEvent extends PacketEvent {
       },
       {
         label: "View Packet",
-        onClick: () => {}, // TODO: When Modal is created, dispatch a store event opening the modal showing the packet.
+        onClick: () => {
+          store.dispatch(openModal("packet", packet));
+        },
       },
     ];
     super(packet.body, links, callback);
