@@ -1,7 +1,8 @@
 import { Reducer } from "redux";
 import { EventLogAction } from "../types/actions";
+import { NetworkEventBase } from "../entities/network_event/base";
 
-type EventLogState = any[];
+type EventLogState = NetworkEventBase[];
 
 export const eventLogReducer: Reducer<EventLogState, EventLogAction> = (
   state = [],
