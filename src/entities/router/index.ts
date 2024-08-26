@@ -8,6 +8,9 @@ import { OSPFInterface } from "./ospf_interface";
 import { OSPFConfig } from "../ospf/config";
 import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
 import { BACKBONE_AREA_ID } from "../ospf/constants";
+import { store } from "../../store";
+import { emitEvent } from "../../action_creators";
+import { InterfaceNetworkEvent } from "../network_event/interface_event";
 
 export class Router {
   key: string;
@@ -54,6 +57,10 @@ export class Router {
     const { config } = this.ospf;
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
+    emitEvent({
+      eventName: "interfaceEvent",
+      event: new InterfaceNetworkEvent("added", this),
+    })(store.dispatch);
     if (this.turnedOn) {
       // IF turnedOn send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);

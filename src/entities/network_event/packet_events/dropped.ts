@@ -25,6 +25,6 @@ export class PacketDroppedEvent extends PacketEvent {
   get message() {
     const { id } = this.router;
     return `<span style="color: ${Colors.droppedPacket}; font-weight: bold">Packet dropped</span> by router <b>${id}</b>.<br>
-    <b>Reason:</b> ${this.reason}.`;
+    <b>Reason:</b> ${this.reason}`;
   }
 }
