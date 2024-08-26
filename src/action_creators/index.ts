@@ -1,4 +1,4 @@
-import { CellSizeAction, EventLogAction } from "../types/actions";
+import { CellSizeAction, EventLogAction, ModalAction } from "../types/actions";
 import { ActionCreator, Dispatch } from "redux";
 import { packetAnimations } from "../animations/packets";
 import { RectDim } from "../types/geometry";
@@ -6,6 +6,7 @@ import { store } from "../store";
 import { PacketSentEvent } from "../entities/network_event/packet_events/sent";
 import { PacketDroppedEvent } from "../entities/network_event/packet_events/dropped";
 import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
+import { IPPacket } from "../entities/ip/packets";
 
 type VizArgs = {
   color: string;
@@ -86,5 +87,22 @@ export const setCellSize: ActionCreator<CellSizeAction> = (
   return {
     type: "SET_CELL_SIZE",
     cellSize,
+  };
+};
+
+export const openModal: ActionCreator<ModalAction> = (
+  type: "packet_desc" | "packet",
+  data: IPPacket
+) => {
+  return {
+    type: "OPEN_MODAL",
+    data,
+    modal: type,
+  };
+};
+
+export const closeModal: ActionCreator<ModalAction> = () => {
+  return {
+    type: "CLOSE_MODAL",
   };
 };
