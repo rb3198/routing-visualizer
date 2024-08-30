@@ -7,7 +7,7 @@ import { NotificationTooltip } from "./components/notification_tooltip";
 import { Provider } from "react-redux";
 import { store } from "./store";
 import { EventLog } from "./components/event_log";
-import { HelloPacketDetailModal } from "./components/modals/packet_details/hello_packet_detail";
+import { PacketDetailModal } from "./components/modals/packet_details";
 
 function App() {
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -24,7 +24,7 @@ function App() {
   const renderModals = useCallback(() => {
     return (
       <>
-        <HelloPacketDetailModal />
+        <PacketDetailModal />
       </>
     );
   }, []);

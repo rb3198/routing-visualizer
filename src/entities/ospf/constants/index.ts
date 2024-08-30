@@ -14,3 +14,5 @@ export const VERSION = 2;
  * The ID of the Backbone area.
  */
 export const BACKBONE_AREA_ID = 0;
+
+export const NOT_IMPLEMENTED = "NOT_IMPLEMENTED";

@@ -1,0 +1,13 @@
+.desc {
+    font-size: .764vw;
+    margin-top: 1vw;
+    display: flex;
+    align-items: center;
+    text-align: justify;
+}
+
+.hover_desc {
+    text-align: center;
+    width: 100%;
+    font-style: italic;
+}

@@ -13,7 +13,7 @@
     z-index: 101;
     position: absolute;
     background-color: white;
-    width: 75vw;
+    width: 50vw;
     left: 50vw;
     top: 50vh;
     transform: translate(-50%, -50%);
@@ -32,8 +32,8 @@
     text-align: left;
     justify-content: space-between;
     align-items: center;
-    font-size: 1.5vw;
-    padding-bottom: .618vw;
+    font-size: 1vw;
+    padding-bottom: 1vw;
 }
 
 #close {
@@ -42,4 +42,5 @@
 
 #body {
     text-align: justify;
+    position: relative;
 }
