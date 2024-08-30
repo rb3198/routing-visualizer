@@ -16,6 +16,7 @@ import { store } from "../../../store";
 import { emitEvent } from "../../../action_creators";
 import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
 import { getIpPacketDropReason } from "./utils";
+import { IPPacket } from "src/entities/ip/packets";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -29,11 +30,13 @@ export class OSPFInterface {
     this.config = config;
   }
 
-  dropPacket = (ipPacketId: number, packet: OSPFPacket, reason: string) => {
+  dropPacket = (ipPacket: IPPacket, reason: string) => {
+    const { header } = ipPacket;
+    const { id } = header;
     console.log(
-      `Packet with ID ${ipPacketId} dropped by router ${this.router.id.toString()}`
+      `Packet with ID ${id} dropped by router ${this.router.id.toString()}`
     );
-    const event = new PacketDroppedEvent(this.router, packet, reason);
+    const event = new PacketDroppedEvent(this.router, ipPacket, reason);
     emitEvent({
       eventName: "packetDropped",
       event,
@@ -74,34 +77,37 @@ export class OSPFInterface {
   };
 
   receivePacket = (
-    ipPacketId: number,
     interfaceId: string,
     ipSrc: IPv4Address,
-    packet: OSPFPacket
+    packet: IPPacket
   ) => {
+    if (!(packet.body instanceof OSPFPacket)) {
+      throw new Error("OSPF Packet expected to be received on OSPF Interface");
+    }
     const { id: routerId } = this.router;
-    const { header } = packet;
+    const { header: ipHeader, body: ospfPacket } = packet;
+    const { id: ipPacketId } = ipHeader;
+    const { header } = ospfPacket;
     const { type: packetType, routerId: packetSource } = header;
     const { ok: packetOk, reason } = this.shouldReceiveIpPacket(
       ipPacketId,
-      packet
+      ospfPacket
     );
     if (!packetOk) {
-      return this.dropPacket(ipPacketId, packet, reason);
+      return this.dropPacket(packet, reason);
     }
     if (packetType === PacketType.Hello) {
-      if (!(packet instanceof HelloPacket)) {
+      if (!(ospfPacket instanceof HelloPacket)) {
         console.error("Expected Hello Packet");
         return;
       }
-      return this.helloPacketHandler(ipPacketId, ipSrc, interfaceId, packet);
+      return this.helloPacketHandler(packet, ipSrc, interfaceId, ospfPacket);
     }
     if (!this.neighborTable.has(packetSource.toString())) {
       console.log(
         `Dropping packet with ID ${ipPacketId} since the source is not in the neighbor list of router ${routerId.toString()}`
       );
       return this.dropPacket(
-        ipPacketId,
         packet,
         `Source of the packet is not in the neighbor list of router ${routerId.toString()}`
       );
@@ -114,7 +120,7 @@ export class OSPFInterface {
   };
 
   helloPacketHandler = (
-    ipPacketId: number,
+    ipPacket: IPPacket,
     ipSrc: IPv4Address,
     interfaceId: string,
     packet: HelloPacket
@@ -124,11 +130,7 @@ export class OSPFInterface {
     const { routerId } = header;
     const { neighborTable } = this;
     if (!this.shouldProcessHelloPacket(packet)) {
-      return this.dropPacket(
-        ipPacketId,
-        packet,
-        "Hello packet config mismatch."
-      );
+      return this.dropPacket(ipPacket, "Hello packet config mismatch.");
     }
     // Router ID is derived from the router ID contained in the OSPF Header.
     if (!neighborTable.has(routerId.ip)) {

@@ -1,23 +1,33 @@
+import { store } from "src/store";
 import { Colors } from "../../../constants/theme";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { Router } from "../../router";
 import { NetworkEventCallback } from "../base";
 import { PacketEvent } from "./base";
+import { openModal } from "src/action_creators";
+import { IPPacket } from "src/entities/ip/packets";
 
 export class PacketDroppedEvent extends PacketEvent {
   reason: string;
   router: Router;
+  ipPacket: IPPacket;
   constructor(
     router: Router,
-    packet: OSPFPacket,
+    packet: IPPacket,
     reason: string,
     callback?: NetworkEventCallback
   ) {
+    if (!(packet.body instanceof OSPFPacket)) {
+      throw new Error("OSPF Packet expected.");
+    }
     const link = {
       label: "View Packet",
-      onClick: () => {}, // TODO: When Modal is created, dispatch a store event opening the modal showing the packet.
+      onClick: () => {
+        store.dispatch(openModal("packet", packet));
+      },
     };
-    super(packet, [link], callback);
+    super(packet.body, [link], callback);
+    this.ipPacket = packet;
     this.router = router;
     this.reason = reason;
   }
