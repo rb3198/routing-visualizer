@@ -95,14 +95,21 @@ export const setCellSize: ActionCreator<CellSizeAction> = (
   };
 };
 
-export const openModal: ActionCreator<ModalAction> = (
-  type: "packet_desc" | "packet",
-  data: IPPacket
+export const openPacketModal: ActionCreator<ModalAction> = (data: IPPacket) => {
+  return {
+    type: "OPEN_MODAL",
+    active: "packet",
+    data,
+  };
+};
+
+export const openNeighborTableModal: ActionCreator<ModalAction> = (
+  data: NeighborTableEvent
 ) => {
   return {
     type: "OPEN_MODAL",
+    active: "neighbor_table",
     data,
-    modal: type,
   };
 };
 

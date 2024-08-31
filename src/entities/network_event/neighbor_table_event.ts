@@ -1,6 +1,8 @@
+import { emitEvent, openNeighborTableModal } from "src/action_creators";
 import { Router } from "../router";
 import { NetworkEventBase, NetworkEventLink } from "./base";
 import { NetworkEventType } from "./network_event_type";
+import { store } from "src/store";
 
 export type NeighborTableEventType = "added" | "deleted";
 
@@ -15,15 +17,19 @@ export class NeighborTableEvent extends NetworkEventBase {
     changeType: NeighborTableEventType,
     description: string
   ) {
-    const link: NetworkEventLink = {
-      label: "View Table",
-      onClick: () => {}, // TODO: Open Neighbor Table Modal once created.
-    };
-    super(NetworkEventType.ospfNeighborTable, [link]);
+    super(NetworkEventType.ospfNeighborTable, []);
     this.router = router;
     this.affectedNeighborId = affectedNeighborId;
     this.changeType = changeType;
     this.description = description;
+    this.links = [
+      {
+        label: "View Table",
+        onClick: () => {
+          store.dispatch(openNeighborTableModal(this));
+        },
+      },
+    ];
   }
 
   get message() {

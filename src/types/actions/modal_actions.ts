@@ -1,11 +1,9 @@
-import { IPPacket } from "../../entities/ip/packets";
+import { ActiveModalState } from "src/reducers/modals";
 
 export type ModalAction =
-  | {
+  | ({
       type: "OPEN_MODAL";
-      data: IPPacket;
-      modal: "packet_desc" | "packet";
-    }
+    } & ActiveModalState)
   | {
       type: "CLOSE_MODAL";
     };
