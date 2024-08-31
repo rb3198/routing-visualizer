@@ -1,0 +1,46 @@
+#backdrop {
+    position: absolute;
+    z-index: 100;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: none;
+}
+
+#container {
+    z-index: 101;
+    position: absolute;
+    background-color: white;
+    width: 50vw;
+    left: 50vw;
+    top: 50vh;
+    transform: translate(-50%, -50%);
+    padding: 1vw;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+#container.visible, #backdrop.visible {
+    opacity: 1;
+    display: block;
+}
+
+#title {
+    display: flex;
+    text-align: left;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1vw;
+    padding-bottom: 1vw;
+}
+
+#close {
+    cursor: pointer;
+}
+
+#body {
+    text-align: justify;
+    position: relative;
+}

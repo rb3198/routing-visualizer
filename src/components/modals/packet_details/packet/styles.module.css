@@ -1,0 +1,56 @@
+#packet_container {
+    display: flex;
+    justify-content: center;
+}
+
+#packet {
+    width: 75%;
+    border-left: 3px solid #aaa;
+    border-bottom: 3px solid #aaa;
+}
+
+.row {
+    display: flex;
+}
+
+.field {
+    border-top: 3px solid #aaa;
+    border-right: 3px solid #aaa;
+    padding: .764vw 0;
+    flex: 1;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.field:hover {
+    background-color: #324ca8;
+    color: white;
+}
+
+.value {
+    font-size: .764vw;
+    font-weight: bold;
+}
+
+.fieldLabel {
+    opacity: .75;
+    font-size: .618vw;
+}
+
+#separator {
+    height: 0;
+    width: 100%;
+    border-top: 4px dashed #324ca8aa;
+    position: absolute;
+    z-index: 2;
+}
+
+.packet_component_label {
+    position: absolute;
+    left: 0;
+    color: #324ca8aa;
+    font-weight: bold;
+}

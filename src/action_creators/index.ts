@@ -1,70 +1,108 @@
-import { CellSizeAction, EventLogAction } from "../types/actions";
+import { CellSizeAction, EventLogAction, ModalAction } from "../types/actions";
 import { ActionCreator, Dispatch } from "redux";
 import { packetAnimations } from "../animations/packets";
-import { Router } from "../entities/router";
 import { RectDim } from "../types/geometry";
-import { OSPFPacket } from "../entities/ospf/packets/packet_base";
 import { store } from "../store";
+import { PacketSentEvent } from "../entities/network_event/packet_events/sent";
+import { PacketDroppedEvent } from "../entities/network_event/packet_events/dropped";
+import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
+import { IPPacket } from "../entities/ip/packets";
 
-export type EmitEventArgs = {
-  packet: OSPFPacket;
-  viz: {
-    color: string;
-    duration: number;
-    context?: CanvasRenderingContext2D | null;
-    packetRect?: RectDim;
-  };
-} & (
-  | { event: "packetTransfer"; src: Router; dest: Router }
-  | { event: "packetDrop"; router: Router }
-);
+type VizArgs = {
+  color: string;
+  duration: number;
+  context?: CanvasRenderingContext2D | null;
+  packetRect?: RectDim;
+};
+
+export type EmitEventArgs =
+  | {
+      event: PacketSentEvent;
+      eventName: "packetSent";
+      viz: VizArgs;
+    }
+  | {
+      event: PacketDroppedEvent;
+      eventName: "packetDropped";
+      viz: VizArgs;
+    }
+  | {
+      event: InterfaceNetworkEvent;
+      eventName: "interfaceEvent";
+    };
+
+const packetSent = async (event: PacketSentEvent, viz: VizArgs) => {
+  const { src, dest } = event;
+  const { context, duration, packetRect, color } = viz;
+  const { cellSize } = store.getState();
+  context &&
+    (await packetAnimations.packetTransfer(
+      context,
+      cellSize,
+      src,
+      dest,
+      duration,
+      packetRect,
+      color
+    ));
+};
+
+const packetDrop = async (event: PacketDroppedEvent, viz: VizArgs) => {
+  const { router } = event;
+  const { context, duration, color, packetRect } = viz;
+  const { cellSize } = store.getState();
+  context &&
+    (await packetAnimations.packetDrop(
+      context,
+      cellSize,
+      router,
+      duration,
+      color,
+      packetRect
+    ));
+};
 
 export const emitEvent =
   (args: EmitEventArgs) =>
-  async (dispatch: Dispatch): Promise<EventLogAction> => {
-    const { event, viz } = args;
-    const { cellSize } = store.getState();
-    const { context, duration, color, packetRect } = viz;
-    if (context) {
-      switch (event) {
-        case "packetTransfer":
-          const { src, dest } = args;
-          await packetAnimations.packetTransfer(
-            context,
-            cellSize,
-            src,
-            dest,
-            duration,
-            packetRect,
-            color
-          );
-          break;
-        case "packetDrop":
-          const { router } = args;
-          await packetAnimations.packetDrop(
-            context,
-            cellSize,
-            router,
-            duration,
-            color,
-            packetRect
-          );
-          break;
-        default:
-          break;
-      }
-    }
-    return dispatch<EventLogAction>({
+  async (dispatch: Dispatch): Promise<void> => {
+    const { event, eventName } = args;
+    dispatch<EventLogAction>({
       type: "ADD_LOG",
-      data: {},
+      data: event,
     });
+    switch (eventName) {
+      case "packetSent":
+        await packetSent(event, args.viz);
+        break;
+      case "packetDropped":
+        await packetDrop(event, args.viz);
+        break;
+      default:
+        break;
+    }
   };
-
 export const setCellSize: ActionCreator<CellSizeAction> = (
   cellSize: number
 ) => {
   return {
     type: "SET_CELL_SIZE",
     cellSize,
+  };
+};
+
+export const openModal: ActionCreator<ModalAction> = (
+  type: "packet_desc" | "packet",
+  data: IPPacket
+) => {
+  return {
+    type: "OPEN_MODAL",
+    data,
+    modal: type,
+  };
+};
+
+export const closeModal: ActionCreator<ModalAction> = () => {
+  return {
+    type: "CLOSE_MODAL",
   };
 };

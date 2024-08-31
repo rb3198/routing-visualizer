@@ -1,5 +1,6 @@
 #cell_grid {
     position: absolute;
     left: 0;
+    right: 30vw;
     z-index: 1;
 }

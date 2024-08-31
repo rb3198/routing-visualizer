@@ -1,6 +1,5 @@
 import { Point2D } from "../../types/geometry";
 import { IPv4Address } from "../ip/ipv4_address";
-import { OSPFPacket } from "../ospf/packets/packet_base";
 import { IPLinkInterface } from "../ip/link_interface";
 import { IPPacket } from "../ip/packets";
 import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
@@ -8,6 +7,9 @@ import { OSPFInterface } from "./ospf_interface";
 import { OSPFConfig } from "../ospf/config";
 import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
 import { BACKBONE_AREA_ID } from "../ospf/constants";
+import { store } from "../../store";
+import { emitEvent } from "../../action_creators";
+import { InterfaceNetworkEvent } from "../network_event/interface_event";
 
 export class Router {
   key: string;
@@ -54,6 +56,10 @@ export class Router {
     const { config } = this.ospf;
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
+    emitEvent({
+      eventName: "interfaceEvent",
+      event: new InterfaceNetworkEvent("added", this),
+    })(store.dispatch);
     if (this.turnedOn) {
       // IF turnedOn send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
@@ -88,12 +94,12 @@ export class Router {
   };
 
   receiveIPPacket = (interfaceId: string, packet: IPPacket) => {
-    const { header, body } = packet;
-    const { protocol, source, id } = header;
+    const { header } = packet;
+    const { protocol, source } = header;
     const { receivePacket } = this.ospf;
     switch (protocol) {
       case IPProtocolNumber.ospf:
-        receivePacket(id, interfaceId, source, body as OSPFPacket);
+        receivePacket(interfaceId, source, packet);
         break;
       default:
         break;

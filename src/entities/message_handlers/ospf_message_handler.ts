@@ -6,7 +6,18 @@ import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
 import { IPLinkInterface } from "../ip/link_interface";
 import { IPPacket } from "../ip/packets";
 import { IPHeader } from "../ip/packets/header";
+import { PacketSentEvent } from "../network_event/packet_events/sent";
 import { OSPFPacket } from "../ospf/packets/packet_base";
+import { Router } from "../router";
+
+const getPacketSentEvent = (
+  src: Router,
+  dest: Router,
+  ipPacket: IPPacket,
+  interfaceId: string
+) => {
+  return new PacketSentEvent(src, dest, ipPacket, interfaceId);
+};
 
 export const ospfMessageHandler: MessageHandler = async function (
   this: IPLinkInterface,
@@ -41,16 +52,20 @@ export const ospfMessageHandler: MessageHandler = async function (
     for (const dest of Array.from(listeners.values()).sort((a, b) =>
       a === sourceRouter ? -1 : 0
     )) {
-      const e = emitEvent({
-        event: "packetTransfer",
-        src: sourceRouter,
+      const event = getPacketSentEvent(
+        sourceRouter,
         dest,
+        ipPacket,
+        interfaceId
+      );
+      const e = emitEvent({
+        event,
+        eventName: "packetSent",
         viz: {
+          color,
           context,
           duration,
-          color,
         },
-        packet: message,
       });
       await e(store.dispatch);
       dest.receiveIPPacket(interfaceId, ipPacket);
