@@ -1,10 +1,5 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Modal } from "..";
-import { IRootReducer } from "../../../reducers";
-import { connect, ConnectedProps } from "react-redux";
+import React, { useLayoutEffect, useMemo, useState } from "react";
 import { HelloPacket } from "../../../entities/ospf/packets";
-import { bindActionCreators, Dispatch } from "redux";
-import { closeModal } from "../../../action_creators";
 import { PacketInteractive } from "./packet";
 import styles from "./styles.module.css";
 import { PacketType } from "src/entities/ospf/enum";
@@ -12,16 +7,19 @@ import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import { getHelloVizRows } from "./descriptions/body";
 import { HelloPacketBody } from "src/entities/ospf/packets/hello";
 import { getHeaderRows } from "./descriptions/header";
+import { IPPacket } from "src/entities/ip/packets";
 
-type ReduxProps = ConnectedProps<typeof connector>;
-const PacketDetailModalComponent: React.FC<ReduxProps> = (props) => {
-  const { modal, close } = props;
-  const modalRef = useRef<HTMLDivElement>(null);
+interface PacketDetailModalProps {
+  packet: IPPacket;
+  modalRef: React.RefObject<HTMLDivElement>;
+}
+export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
+  props
+) => {
+  const { packet, modalRef } = props;
   const [fieldDesc, setFieldDesc] = useState("");
   const [descHeight, setDescHeight] = useState(0);
-  const { active, data } = modal;
-  const { header: ipHeader, body: ipBody } = data || {};
-  const { id } = ipHeader || {};
+  const { body: ipBody } = packet || {};
 
   const headerRows = useMemo(() => {
     if (!(ipBody instanceof OSPFPacket)) {
@@ -66,18 +64,13 @@ const PacketDetailModalComponent: React.FC<ReduxProps> = (props) => {
       });
     });
     setDescHeight(maxHeight);
-  }, [headerRows, bodyRows]);
+  }, [headerRows, bodyRows, modalRef]);
 
   if (!ipBody) {
     return null;
   }
   return (
-    <Modal
-      visible={active === "packet"}
-      close={close}
-      title={`Hello Packet (ID ${id})`}
-      modalRef={modalRef}
-    >
+    <>
       <PacketInteractive
         packet={ipBody as HelloPacket}
         bodyRows={bodyRows}
@@ -92,23 +85,6 @@ const PacketDetailModalComponent: React.FC<ReduxProps> = (props) => {
           </p>
         )}
       </div>
-    </Modal>
+    </>
   );
 };
-
-const mapStateToProps = (state: IRootReducer) => {
-  const { modalState } = state;
-  return {
-    modal: modalState,
-  };
-};
-
-const mapDispatchToProps = (dispatch: Dispatch) => {
-  return {
-    close: bindActionCreators(closeModal, dispatch),
-  };
-};
-
-const connector = connect(mapStateToProps, mapDispatchToProps);
-
-export const PacketDetailModal = connector(PacketDetailModalComponent);
