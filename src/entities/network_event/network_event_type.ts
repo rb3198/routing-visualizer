@@ -18,7 +18,9 @@ export enum NetworkEventType {
    */
   packet,
   /**
-   * OSPF Events
+   * OSPF Neighbor table Events
+   *
+   * **Example**: Neighbor added to / deleted from neighbor table.
    */
-  ospf,
+  ospfNeighborTable,
 }

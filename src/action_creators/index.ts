@@ -7,6 +7,7 @@ import { PacketSentEvent } from "../entities/network_event/packet_events/sent";
 import { PacketDroppedEvent } from "../entities/network_event/packet_events/dropped";
 import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
 import { IPPacket } from "../entities/ip/packets";
+import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 
 type VizArgs = {
   color: string;
@@ -29,6 +30,10 @@ export type EmitEventArgs =
   | {
       event: InterfaceNetworkEvent;
       eventName: "interfaceEvent";
+    }
+  | {
+      event: NeighborTableEvent;
+      eventName: "neighborTableEvent";
     };
 
 const packetSent = async (event: PacketSentEvent, viz: VizArgs) => {
