@@ -17,24 +17,17 @@ type NeighborEventHandler = (
  * @param neighbor The OSPF Neighbor
  */
 const helloReceived: NeighborEventHandler = function (neighbor) {
-  const { config, neighborTable } = this;
+  const { config } = this;
   const { deadInterval } = config;
-  const { state, routerId } = neighbor;
+  const { state } = neighbor;
   // action for all states - Clear dead timer.
   if (neighbor.deadTimer) {
     clearTimeout(neighbor.deadTimer);
   }
-  const deadTimer = deadTimerFactory.call(this, neighbor, deadInterval);
-  neighborTable.set(routerId.toString(), {
-    ...neighbor,
-    deadTimer,
-  });
+  neighbor.deadTimer = deadTimerFactory.call(this, neighbor, deadInterval);
   // state transition to init if the router is in a `DOWN` state.
   if (state === State.Down) {
-    neighborTable.set(routerId.toString(), {
-      ...neighbor,
-      state: State.Init,
-    });
+    neighbor.state = State.Init;
   }
 };
 
@@ -45,16 +38,12 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
  * @param neighbor  The OSPF Neighbor
  */
 const oneWayReceived: NeighborEventHandler = function (neighbor) {
-  const { neighborTable } = this;
-  const { routerId, state } = neighbor;
+  const { state } = neighbor;
   if (state >= State.TwoWay) {
-    neighborTable.set(routerId.toString(), {
-      ...neighbor,
-      state: State.Init,
-      linkStateRequestList: [],
-      linkStateRetransmissionList: [],
-      dbSummaryList: [],
-    });
+    neighbor.state = State.Init;
+    neighbor.linkStateRequestList = [];
+    neighbor.linkStateRetransmissionList = [];
+    neighbor.dbSummaryList = [];
   }
 };
 
@@ -65,18 +54,15 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const twoWayReceived: NeighborEventHandler = function (neighbor) {
-  const { neighborTable, config } = this;
+  const { config } = this;
   const { rxmtInterval } = config;
-  const { routerId, state } = neighbor;
+  const { state } = neighbor;
   if (state === State.Init) {
-    neighborTable.set(routerId.toString(), {
-      ...neighbor,
-      state: State.ExStart,
-      rxmtTimer: setTimeout(
-        this.sendDDPacket.bind(this, neighbor),
-        rxmtInterval
-      ),
-    });
+    neighbor.state = State.ExStart;
+    neighbor.rxmtTimer = setTimeout(
+      this.sendDDPacket.bind(this, neighbor),
+      rxmtInterval
+    );
   }
 };
 
@@ -86,12 +72,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const negotiationDone: NeighborEventHandler = function (neighbor) {
-  const { neighborTable } = this;
-  const { routerId } = neighbor;
-  neighborTable.set(routerId.toString(), {
-    ...neighbor,
-    state: State.Exchange,
-  });
+  neighbor.state = State.Exchange;
   this.sendDDPacket(neighbor);
 };
 
@@ -103,12 +84,8 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const exchangeDone: NeighborEventHandler = function (neighbor) {
-  const { neighborTable } = this;
-  const { routerId, linkStateRequestList } = neighbor;
-  neighborTable.set(routerId.toString(), {
-    ...neighbor,
-    state: linkStateRequestList.length ? State.Loading : State.Full,
-  });
+  const { linkStateRequestList } = neighbor;
+  neighbor.state = linkStateRequestList.length ? State.Loading : State.Full;
   // TODO: Send LSA Request Packets to the neighbor.
 };
 
@@ -118,12 +95,7 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const loadingDone: NeighborEventHandler = function (neighbor) {
-  const { neighborTable } = this;
-  const { routerId } = neighbor;
-  neighborTable.set(routerId.toString(), {
-    ...neighbor,
-    state: State.Full,
-  });
+  neighbor.state = State.Full;
 };
 
 // AdjOK event handler is not required since this event will never be transmitted in our simulator.
@@ -136,21 +108,18 @@ const loadingDone: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
-  const { neighborTable, config } = this;
+  const { config } = this;
   const { rxmtInterval } = config;
-  const { routerId, state } = neighbor;
+  const { state } = neighbor;
   if (state >= State.Exchange) {
-    neighborTable.set(routerId.toString(), {
-      ...neighbor,
-      state: State.ExStart,
-      linkStateRequestList: [],
-      dbSummaryList: [],
-      linkStateRetransmissionList: [],
-      rxmtTimer: setTimeout(
-        this.sendDDPacket.bind(this, neighbor),
-        rxmtInterval
-      ),
-    });
+    neighbor.state = State.ExStart;
+    neighbor.linkStateRequestList = [];
+    neighbor.dbSummaryList = [];
+    neighbor.linkStateRetransmissionList = [];
+    neighbor.rxmtTimer = setTimeout(
+      this.sendDDPacket.bind(this, neighbor),
+      rxmtInterval
+    );
   }
 };
 
@@ -175,17 +144,13 @@ const badLsRequest: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const killNeighbor: NeighborEventHandler = function (neighbor) {
-  const { neighborTable } = this;
-  const { routerId, deadTimer } = neighbor;
+  const { deadTimer } = neighbor;
   clearTimeout(deadTimer);
-  neighborTable.set(routerId.toString(), {
-    ...neighbor,
-    state: State.Down,
-    linkStateRequestList: [],
-    linkStateRetransmissionList: [],
-    dbSummaryList: [],
-    deadTimer: undefined,
-  });
+  neighbor.state = State.Down;
+  neighbor.linkStateRequestList = [];
+  neighbor.linkStateRetransmissionList = [];
+  neighbor.dbSummaryList = [];
+  neighbor.deadTimer = undefined;
   this.onOspfNeighborDown();
 };
 
