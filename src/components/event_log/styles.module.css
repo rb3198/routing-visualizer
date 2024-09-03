@@ -3,11 +3,8 @@
     position: absolute;
     left: 75vw;
     overflow-y: scroll;
+    min-height: 92.5vh;
     max-height: 92.5vh;
-}
-
-#container::-webkit-scrollbar {
-    display: none;
 }
 
 #title {
