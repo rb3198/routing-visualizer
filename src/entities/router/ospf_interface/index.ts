@@ -135,6 +135,7 @@ export class OSPFInterface {
     emitEvent({
       eventName: "neighborTableEvent",
       event: new NeighborTableEvent(
+        Date.now(),
         this.router,
         routerId.ip,
         "added",

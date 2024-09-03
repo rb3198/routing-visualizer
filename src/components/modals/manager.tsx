@@ -28,8 +28,10 @@ const Manager: React.FC<ReduxProps> = (props) => {
           body instanceof OSPFPacket ? getKey(PacketType, body.header.type) : ""
         } Packet (ID ${id})`;
       case "neighbor_table":
-        const { router } = data as NeighborTableEvent;
-        return `Neighbor Table for ${router.id}`;
+        const { routerId, timestamp } = data as NeighborTableEvent;
+        return `${routerId}'s Neighbor Table Snapshot at ${new Date(
+          timestamp
+        ).toLocaleTimeString()}`;
       default:
         return "";
     }
@@ -45,7 +47,12 @@ const Manager: React.FC<ReduxProps> = (props) => {
           />
         );
       case "neighbor_table":
-        return <NeighborTableModalBody />;
+        return (
+          <NeighborTableModalBody
+            event={data as NeighborTableEvent}
+            modalRef={modalRef}
+          />
+        );
       default:
         return null;
     }

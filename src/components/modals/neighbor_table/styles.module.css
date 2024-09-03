@@ -1,0 +1,27 @@
+#description {
+    margin-top: 1vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#message {
+    margin-bottom: 1vw;
+}
+.centered_text {
+    text-align: center;
+    align-items: center;
+}
+
+.justified_text {
+    text-align: justify;
+}
+
+#description ul {
+    list-style-position: inside;
+    list-style-type: square;
+}
+
+#description li p {
+    display: inline;
+}
