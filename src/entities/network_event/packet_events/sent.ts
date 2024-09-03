@@ -1,4 +1,4 @@
-import { openModal } from "../../../action_creators";
+import { openPacketModal } from "../../../action_creators";
 import { PacketColorMap } from "../../../constants/theme";
 import { store } from "../../../store";
 import { IPPacket } from "../../ip/packets";
@@ -36,7 +36,7 @@ export class PacketSentEvent extends PacketEvent {
       {
         label: "View Packet",
         onClick: () => {
-          store.dispatch(openModal("packet", packet));
+          store.dispatch(openPacketModal(packet));
         },
       },
     ];

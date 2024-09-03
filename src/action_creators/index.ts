@@ -7,6 +7,7 @@ import { PacketSentEvent } from "../entities/network_event/packet_events/sent";
 import { PacketDroppedEvent } from "../entities/network_event/packet_events/dropped";
 import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
 import { IPPacket } from "../entities/ip/packets";
+import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 
 type VizArgs = {
   color: string;
@@ -29,6 +30,10 @@ export type EmitEventArgs =
   | {
       event: InterfaceNetworkEvent;
       eventName: "interfaceEvent";
+    }
+  | {
+      event: NeighborTableEvent;
+      eventName: "neighborTableEvent";
     };
 
 const packetSent = async (event: PacketSentEvent, viz: VizArgs) => {
@@ -90,14 +95,21 @@ export const setCellSize: ActionCreator<CellSizeAction> = (
   };
 };
 
-export const openModal: ActionCreator<ModalAction> = (
-  type: "packet_desc" | "packet",
-  data: IPPacket
+export const openPacketModal: ActionCreator<ModalAction> = (data: IPPacket) => {
+  return {
+    type: "OPEN_MODAL",
+    active: "packet",
+    data,
+  };
+};
+
+export const openNeighborTableModal: ActionCreator<ModalAction> = (
+  data: NeighborTableEvent
 ) => {
   return {
     type: "OPEN_MODAL",
+    active: "neighbor_table",
     data,
-    modal: type,
   };
 };
 

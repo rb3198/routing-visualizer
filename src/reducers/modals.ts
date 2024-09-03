@@ -1,11 +1,24 @@
 import { Reducer } from "redux";
 import { IPPacket } from "../entities/ip/packets";
 import { ModalAction } from "../types/actions";
+import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 
-export type ModalReducerState = {
-  active: "packet_desc" | "packet" | "none";
-  data?: IPPacket | null;
-};
+export type ActiveModalState =
+  | {
+      active: "packet";
+      data: IPPacket;
+    }
+  | {
+      active: "neighbor_table";
+      data: NeighborTableEvent;
+    };
+
+export type ModalReducerState =
+  | ActiveModalState
+  | {
+      active: "none";
+      data?: null;
+    };
 
 const initialState: ModalReducerState = {
   data: null,
@@ -18,10 +31,19 @@ export const modalReducer: Reducer<ModalReducerState, ModalAction> = (
   const { type } = action;
   switch (type) {
     case "OPEN_MODAL":
-      const { data, modal } = action;
+      const { data, active } = action;
+      if (active === "neighbor_table")
+        return {
+          active,
+          data,
+        };
+      if (active === "packet")
+        return {
+          active,
+          data,
+        };
       return {
-        active: modal,
-        data,
+        active: "none",
       };
     case "CLOSE_MODAL":
       return {

@@ -67,7 +67,7 @@ export const PacketInteractive: React.FC<PacketVizProps> = (props) => {
   const renderFields = useCallback(
     (rows: PacketVizField[][]) => {
       return rows.map((row) => (
-        <div className={styles.row}>
+        <div className={styles.row} key={`packet_row_${row[0]?.label ?? ""}`}>
           {row.map((field) => {
             return (
               <Field

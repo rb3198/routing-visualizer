@@ -4,7 +4,7 @@ import { OSPFPacket } from "../../ospf/packets/packet_base";
 import { Router } from "../../router";
 import { NetworkEventCallback } from "../base";
 import { PacketEvent } from "./base";
-import { openModal } from "src/action_creators";
+import { openPacketModal } from "src/action_creators";
 import { IPPacket } from "src/entities/ip/packets";
 
 export class PacketDroppedEvent extends PacketEvent {
@@ -23,7 +23,7 @@ export class PacketDroppedEvent extends PacketEvent {
     const link = {
       label: "View Packet",
       onClick: () => {
-        store.dispatch(openModal("packet", packet));
+        store.dispatch(openPacketModal(packet));
       },
     };
     super(packet.body, [link], callback);

@@ -15,8 +15,12 @@ import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
 import { emitEvent } from "../../../action_creators";
 import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
-import { getIpPacketDropReason } from "./utils";
+import {
+  getIpPacketDropReason,
+  getNeighborTableEventDescription,
+} from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
+import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -119,6 +123,27 @@ export class OSPFInterface {
     }
   };
 
+  private addToNeighborTable = (
+    routerId: IPv4Address,
+    ipSrc: IPv4Address,
+    interfaceId: string
+  ) => {
+    this.neighborTable.set(
+      routerId.ip,
+      new NeighborTableRow(routerId, State.Down, ipSrc, interfaceId)
+    );
+    emitEvent({
+      eventName: "neighborTableEvent",
+      event: new NeighborTableEvent(
+        Date.now(),
+        this.router,
+        routerId.ip,
+        "added",
+        getNeighborTableEventDescription("added")
+      ),
+    })(store.dispatch);
+  };
+
   helloPacketHandler = (
     ipPacket: IPPacket,
     ipSrc: IPv4Address,
@@ -134,10 +159,7 @@ export class OSPFInterface {
     }
     // Router ID is derived from the router ID contained in the OSPF Header.
     if (!neighborTable.has(routerId.ip)) {
-      neighborTable.set(
-        routerId.ip,
-        new NeighborTableRow(routerId, State.Down, ipSrc, interfaceId)
-      );
+      this.addToNeighborTable(routerId, ipSrc, interfaceId);
     }
     this.neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
     const presentInNeighborList = neighborList.has(this.router.id.toString());
