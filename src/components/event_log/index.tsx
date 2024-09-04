@@ -1,15 +1,59 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import styles from "./styles.module.css";
 import { NetworkEventBase } from "../../entities/network_event/base";
+import { bindActionCreators, Dispatch } from "redux";
+import { setEventLogKeepCount } from "src/action_creators";
+import { BiSearch } from "react-icons/bi";
 
 type ReduxProps = ConnectedProps<typeof connector>;
 const EventLogComponent: React.FC<ReduxProps> = (props) => {
-  const { eventLog } = props;
+  const { eventLog, keepCount, setEventLogKeepCount } = props;
+
+  const ControlPanel = useMemo(() => {
+    const changeHandler: React.ChangeEventHandler<HTMLSelectElement> = (e) => {
+      const { target } = e;
+      const { value } = target;
+      const keep = parseInt(value);
+      if (isNaN(keep)) {
+        return;
+      }
+      setEventLogKeepCount(keep);
+    };
+    return (
+      <div id={styles.control_panel}>
+        <div id={styles.search_box}>
+          <label htmlFor={styles.search_input}>
+            <BiSearch size={24} />
+          </label>
+          <input
+            id={styles.search_input}
+            placeholder="Search through the logs..."
+          />
+        </div>
+        <div id={styles.log_size_selector_container}>
+          <label htmlFor={styles.log_size_selector}>Keep the first:</label>
+          <select id={styles.log_size_selector} onChange={changeHandler}>
+            <option value={25} selected={keepCount === 25}>
+              25 Logs
+            </option>
+            <option value={50} selected={keepCount === 50}>
+              50 Logs
+            </option>
+            <option value={100} selected={keepCount === 100}>
+              100 Logs
+            </option>
+          </select>
+        </div>
+      </div>
+    );
+  }, [keepCount, setEventLogKeepCount]);
+
   return (
     <div id={styles.container}>
       <h2 id={styles.title}>Event Log</h2>
+      {ControlPanel}
       <ul id={styles.log_list}>
         {eventLog.map((event) => (
           <Event event={event} key={event.id} />
@@ -45,11 +89,19 @@ const Event: React.FC<{ event: NetworkEventBase }> = (props) => {
 
 const mapStateToProps = (state: IRootReducer) => {
   const { eventLog } = state;
+  const { logs, keepCount } = eventLog;
   return {
-    eventLog,
+    eventLog: logs,
+    keepCount,
   };
 };
 
-const connector = connect(mapStateToProps);
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return {
+    setEventLogKeepCount: bindActionCreators(setEventLogKeepCount, dispatch),
+  };
+};
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
 
 export const EventLog = connector(EventLogComponent);
