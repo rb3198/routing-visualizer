@@ -2,16 +2,32 @@ import { Reducer } from "redux";
 import { EventLogAction } from "../types/actions";
 import { NetworkEventBase } from "../entities/network_event/base";
 
-type EventLogState = NetworkEventBase[];
+type EventLogState = {
+  logs: NetworkEventBase[];
+  keepCount: number;
+};
 
 export const eventLogReducer: Reducer<EventLogState, EventLogAction> = (
-  state = [],
+  state = {
+    logs: [],
+    keepCount: 25,
+  },
   action
 ) => {
   const { type, data } = action;
+  const { logs, keepCount } = state;
   switch (type) {
     case "ADD_LOG":
-      return [data, ...state];
+      const newLogs = [data, ...logs].slice(0, keepCount);
+      return {
+        ...state,
+        logs: newLogs,
+      };
+    case "SET_KEEP_COUNT":
+      return {
+        ...state,
+        keepCount: data,
+      };
     default:
       return state;
   }
