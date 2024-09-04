@@ -118,3 +118,12 @@ export const closeModal: ActionCreator<ModalAction> = () => {
     type: "CLOSE_MODAL",
   };
 };
+
+export const setEventLogKeepCount: ActionCreator<EventLogAction> = (
+  keepCount: number
+) => {
+  return {
+    type: "SET_KEEP_COUNT",
+    data: keepCount,
+  };
+};

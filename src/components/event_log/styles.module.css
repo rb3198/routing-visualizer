@@ -7,6 +7,42 @@
     max-height: 92.5vh;
 }
 
+#control_panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25vw 1vw;
+    margin-bottom: 2vh;
+}
+
+#search_box {
+    box-shadow: 0 0 5px 1px #ccc;
+    border: none;
+    height: 2vw;
+    border-radius: 6px;
+    width: 50%;
+    display: flex;
+}
+
+#search_box label {
+    display: flex;
+    flex-grow: 0.3;
+    justify-content: center;
+    align-items: center;
+}
+
+#search_input {
+    height: 100%;
+    border: none;
+    display: flex;
+    flex-grow: 1;
+    border-radius: 6px;
+}
+
+#search_input:focus {
+    outline: 1px solid #ccc;
+}
+
 #title {
     position: sticky;
     text-align: center;
@@ -37,4 +73,19 @@
     cursor: pointer;
     color: #324ca8;
     font-weight: 600;
+}
+
+
+#log_size_selector {
+    height: 2vw;
+    box-shadow: 0 0 5px 1px #ccc;
+    border: none;
+    border-radius: 6px;
+    width: 5vw;
+}
+
+#log_size_selector_container label{
+    font-size: .618vw;
+    color: #aaa;
+    margin-right: .5vw;
 }
