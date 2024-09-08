@@ -28,9 +28,8 @@ import { AnimationToolbar } from "../animation_toolbar";
 import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
-import { Modal } from "../modals";
-import { NeighborTableRow } from "src/entities/ospf/tables";
-import { NeighborTable } from "../modals/neighbor_table/table";
+import { bindActionCreators, Dispatch } from "redux";
+import { setLiveNeighborTable } from "src/action_creators";
 interface ASManagerProps {
   gridRect: GridCell[][];
   defaultAsSize: number;
@@ -52,12 +51,6 @@ type ConnectionPickerState = PickerState & {
   }[];
 };
 
-type NeighborTableModalState = {
-  visible: boolean;
-  routerId?: IPv4Address;
-  table?: Record<string, NeighborTableRow>;
-};
-
 const defaultPickerState = {
   visible: false,
   position: {
@@ -72,7 +65,7 @@ type ReduxProps = ConnectedProps<typeof connector>;
 export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   props
 ) => {
-  const { gridRect, defaultAsSize } = props;
+  const { gridRect, defaultAsSize, setLiveNeighborTable } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
   const asLayerHoverLocation = useRef<Point2D>();
   const asTree = useRef<AutonomousSystemTree>(new AutonomousSystemTree());
@@ -99,10 +92,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   >([]);
   const [selectedRouter, setSelectedRouter] = useState<Router>();
   const [simulationPlaying, setSimulationPlaying] = useState(false);
-  const [neighborTableModal, setNeighborTableModal] =
-    useState<NeighborTableModalState>({
-      visible: false,
-    });
   const notificationTooltipContext = useContext(NotificationTooltipContext);
   const { open: openNotificationTooltip } = notificationTooltipContext || {};
   const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
@@ -504,32 +493,17 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     setSimulationPlaying(false);
   }, []);
 
-  const openNeighborTableModal = useCallback((router: Router) => {
-    const table: Record<string, NeighborTableRow> = {};
-    for (const [neighborId, row] of router.ospf.neighborTable) {
-      table[neighborId] = row;
-    }
-    setNeighborTableModal({
-      visible: true,
-      routerId: router.id,
-      table,
-    });
-    setConnectionPicker((prevState) => ({
-      ...prevState,
-      visible: false,
-    }));
-  }, []);
-  const closeNeighborTableModal = useCallback(() => {
-    setNeighborTableModal({
-      visible: false,
-    });
-  }, []);
+  const openNeighborTableSnapshot = useCallback(
+    (router: Router) => {
+      setLiveNeighborTable(router.id, router.ospf.neighborTable);
+      setConnectionPicker((prevState) => ({
+        ...prevState,
+        visible: false,
+      }));
+    },
+    [setLiveNeighborTable]
+  );
 
-  const {
-    visible: neighborTableVisible,
-    routerId: activeRouterId,
-    table: activeNeighborTable,
-  } = neighborTableModal;
   return (
     <>
       <canvas
@@ -563,7 +537,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       />
       <RouterMenu
         {...connectionPicker}
-        openNeighborTable={openNeighborTableModal}
+        openNeighborTable={openNeighborTableSnapshot}
         controlsDisabled={!simulationPlaying}
         pickerRef={connectionPickerRef}
         addRouterConnection={connectRouters}
@@ -574,19 +548,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         pauseSimulation={pauseSimulation}
         playing={simulationPlaying}
       />
-      <Modal
-        visible={neighborTableVisible}
-        close={closeNeighborTableModal}
-        title={activeRouterId?.toString() ?? ""}
-      >
-        {activeNeighborTable && (
-          <NeighborTable
-            activeCol="none"
-            neighborTable={activeNeighborTable}
-            setActiveCol={() => {}}
-          />
-        )}
-      </Modal>
     </>
   );
 };
@@ -598,6 +559,12 @@ const mapStateToProps = (state: IRootReducer) => {
   };
 };
 
-const connector = connect(mapStateToProps);
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return {
+    setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
+  };
+};
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
 
 export const ASManager = connector(ASManagerComponent);

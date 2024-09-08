@@ -1,3 +1,14 @@
+#container {
+    display: flex;
+}
+
+#main {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+}
 #description {
     margin-top: 1vw;
     display: flex;
@@ -24,4 +35,16 @@
 
 #description li p {
     display: inline;
+}
+
+#event_log_container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: .5;
+    flex-basis: 0;
+}
+
+.event_log {
+    height: 100%;
+    overflow-y: scroll;
 }
