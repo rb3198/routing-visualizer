@@ -13,7 +13,7 @@ import { IPLinkInterface } from "../../ip/link_interface";
 import { BACKBONE_AREA_ID, VERSION } from "../../ospf/constants";
 import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
-import { emitEvent } from "../../../action_creators";
+import { emitEvent, setLiveNeighborTable } from "../../../action_creators";
 import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
 import {
   getIpPacketDropReason,
@@ -25,11 +25,11 @@ import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_ev
 export class OSPFInterface {
   config: OSPFConfig;
   router: Router;
-  neighborTable: Map<string, NeighborTableRow>;
+  neighborTable: Record<string, NeighborTableRow>;
   routingTable: Map<string, RoutingTableRow>;
   constructor(router: Router, config: OSPFConfig) {
     this.router = router;
-    this.neighborTable = new Map();
+    this.neighborTable = {};
     this.routingTable = new Map();
     this.config = config;
   }
@@ -107,7 +107,7 @@ export class OSPFInterface {
       }
       return this.helloPacketHandler(packet, ipSrc, interfaceId, ospfPacket);
     }
-    if (!this.neighborTable.has(packetSource.toString())) {
+    if (!this.neighborTable[packetSource.toString()]) {
       console.log(
         `Dropping packet with ID ${ipPacketId} since the source is not in the neighbor list of router ${routerId.toString()}`
       );
@@ -123,15 +123,34 @@ export class OSPFInterface {
     }
   };
 
+  setNeighbor = (neighbor: NeighborTableRow) => {
+    const { modalState } = store.getState();
+    const { active, data } = modalState;
+    this.neighborTable = {
+      ...this.neighborTable,
+      [neighbor.routerId.toString()]: neighbor,
+    };
+    if (
+      active === "neighbor_table_live" &&
+      data.routerId.equals(this.router.id)
+    ) {
+      // Current Router's Neighbor Table is the one being shown live
+      store.dispatch(setLiveNeighborTable(this.router.id, this.neighborTable));
+    }
+  };
+
   private addToNeighborTable = (
     routerId: IPv4Address,
     ipSrc: IPv4Address,
     interfaceId: string
   ) => {
-    this.neighborTable.set(
-      routerId.ip,
-      new NeighborTableRow(routerId, State.Down, ipSrc, interfaceId)
+    const neighbor = new NeighborTableRow(
+      routerId,
+      State.Down,
+      ipSrc,
+      interfaceId
     );
+    this.setNeighbor(neighbor);
     emitEvent({
       eventName: "neighborTableEvent",
       event: new NeighborTableEvent(
@@ -158,7 +177,7 @@ export class OSPFInterface {
       return this.dropPacket(ipPacket, "Hello packet config mismatch.");
     }
     // Router ID is derived from the router ID contained in the OSPF Header.
-    if (!neighborTable.has(routerId.ip)) {
+    if (!neighborTable[routerId.ip]) {
       this.addToNeighborTable(routerId, ipSrc, interfaceId);
     }
     this.neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
@@ -198,7 +217,7 @@ export class OSPFInterface {
 
   neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
     const { neighborTable } = this;
-    const neighbor = neighborTable.get(neighborId);
+    const neighbor = neighborTable[neighborId];
     if (!neighbor) {
       console.warn(
         `Neighbor state machine called with neighbor ID ${neighborId}, which was not found in the neighbor table.`
@@ -224,7 +243,7 @@ export class OSPFInterface {
     const { areaId, helloInterval, deadInterval } = config;
     const { id: routerId } = router;
     const [, , , , subnetMask] = routerId.bytes;
-    const neighborList = [...neighborTable.values()].map(
+    const neighborList = Object.values(neighborTable).map(
       (neighbor) => neighbor.routerId
     );
     const helloPacket = new HelloPacket(

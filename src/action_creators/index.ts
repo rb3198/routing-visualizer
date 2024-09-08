@@ -8,6 +8,8 @@ import { PacketDroppedEvent } from "../entities/network_event/packet_events/drop
 import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
 import { IPPacket } from "../entities/ip/packets";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
+import { NeighborTableRow } from "src/entities/ospf/tables";
+import { IPv4Address } from "src/entities/ip/ipv4_address";
 
 type VizArgs = {
   color: string;
@@ -103,16 +105,29 @@ export const openPacketModal: ActionCreator<ModalAction> = (data: IPPacket) => {
   };
 };
 
-export const openNeighborTableModal: ActionCreator<ModalAction> = (
+export const openNeighborTableSnapshot: ActionCreator<ModalAction> = (
   data: NeighborTableEvent
 ) => {
   return {
     type: "OPEN_MODAL",
-    active: "neighbor_table",
+    active: "neighbor_table_snapshot",
     data,
   };
 };
 
+export const setLiveNeighborTable: ActionCreator<ModalAction> = (
+  routerId: IPv4Address,
+  neighborTable: Record<string, NeighborTableRow>
+) => {
+  return {
+    type: "OPEN_MODAL",
+    active: "neighbor_table_live",
+    data: {
+      routerId,
+      neighborTable,
+    },
+  };
+};
 export const closeModal: ActionCreator<ModalAction> = () => {
   return {
     type: "CLOSE_MODAL",

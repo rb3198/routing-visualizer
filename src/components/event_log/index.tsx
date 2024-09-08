@@ -6,10 +6,29 @@ import { NetworkEventBase } from "../../entities/network_event/base";
 import { bindActionCreators, Dispatch } from "redux";
 import { setEventLogKeepCount } from "src/action_creators";
 import { BiSearch } from "react-icons/bi";
+import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
+
+export type EventLogProps = {
+  filter?: {
+    type: "neighbor"; // Add new types if required here.
+    routerId?: string;
+  };
+  showControlPanel?: boolean;
+  classes?: string;
+};
 
 type ReduxProps = ConnectedProps<typeof connector>;
-const EventLogComponent: React.FC<ReduxProps> = (props) => {
-  const { eventLog, keepCount, setEventLogKeepCount } = props;
+const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
+  const {
+    eventLog,
+    keepCount,
+    filter,
+    showControlPanel,
+    classes,
+    setEventLogKeepCount,
+  } = props;
+
+  const { type, routerId } = filter || {};
 
   const ControlPanel = useMemo(() => {
     const changeHandler: React.ChangeEventHandler<HTMLSelectElement> = (e) => {
@@ -51,13 +70,31 @@ const EventLogComponent: React.FC<ReduxProps> = (props) => {
   }, [keepCount, setEventLogKeepCount]);
 
   return (
-    <div id={styles.container}>
-      <h2 id={styles.title}>Event Log</h2>
-      {ControlPanel}
+    <div className={classes || ""}>
+      <h2 id={styles.title}>Recent Events</h2>
+      {(showControlPanel && ControlPanel) || <></>}
       <ul id={styles.log_list}>
-        {eventLog.map((event) => (
-          <Event event={event} key={event.id} />
-        ))}
+        {eventLog
+          .filter((event) => {
+            let isValid = true;
+            switch (type) {
+              case "neighbor":
+                isValid &&= event instanceof NeighborTableEvent;
+                if (!isValid) break;
+                if (routerId) {
+                  isValid &&=
+                    (event as NeighborTableEvent).routerId.toString() ===
+                    routerId;
+                }
+                break;
+              default:
+                break;
+            }
+            return isValid;
+          })
+          .map((event) => (
+            <Event event={event} key={event.id} />
+          ))}
       </ul>
     </div>
   );

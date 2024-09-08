@@ -1,6 +1,7 @@
 #table {
     table-layout: fixed;
-    width: 100%;
+    max-width: 100%;
+    width: min-content;
     display: block;
     border-collapse: collapse;
     overflow-x: scroll;
@@ -21,6 +22,7 @@
     background-color: white;
     border-bottom: 1px solid #ddd;
     border-right: 1px solid #ddd;
+    overflow: hidden;
 }
 
 #table tr:last-of-type td {
@@ -71,5 +73,45 @@
     100% {
         opacity: 1;
         background-color: white;
+    }
+}
+
+.in {
+    animation: in 1s ease-in normal forwards;
+}
+
+.out {
+    animation: out .5s ease-out forwards;
+}
+
+@keyframes out {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+        color: #851515;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(100%);
+        color: #851515;
+    }
+}
+
+@keyframes in {
+    0% {
+        opacity: 0;
+        transform: translateY(-100%);
+        color: #a6d1a8;
+    }
+
+    99% {
+        opacity: .99;
+        color: #a6d1a8;
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

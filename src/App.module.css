@@ -1,0 +1,8 @@
+.event_log {
+    width: 25vw;
+    position: absolute;
+    left: 75vw;
+    overflow-y: scroll;
+    min-height: 92.5vh;
+    max-height: 92.5vh;
+}

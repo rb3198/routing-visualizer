@@ -14,7 +14,7 @@ import { mapCoordsToGridCell, onCanvasLayout } from "../../utils/ui";
 import { Point2D } from "../../types/geometry";
 import { getASPosition, getPickerPosition } from "./utils";
 import { ComponentPicker, PickerOption } from "../picker";
-import { ConnectionPicker } from "../connection_picker";
+import { RouterMenu } from "../router_menu";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
 import { IPv4Address } from "../../entities/ip/ipv4_address";
@@ -28,6 +28,8 @@ import { AnimationToolbar } from "../animation_toolbar";
 import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
+import { bindActionCreators, Dispatch } from "redux";
+import { setLiveNeighborTable } from "src/action_creators";
 interface ASManagerProps {
   gridRect: GridCell[][];
   defaultAsSize: number;
@@ -42,7 +44,7 @@ type PickerState = {
   };
 };
 
-type ConnectionPickerState = PickerState & {
+type RouterMenuState = PickerState & {
   connectionOptions: {
     name: string;
     connectionOptions: [string, Router][];
@@ -63,7 +65,7 @@ type ReduxProps = ConnectedProps<typeof connector>;
 export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   props
 ) => {
-  const { gridRect, defaultAsSize } = props;
+  const { gridRect, defaultAsSize, setLiveNeighborTable } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
   const asLayerHoverLocation = useRef<Point2D>();
   const asTree = useRef<AutonomousSystemTree>(new AutonomousSystemTree());
@@ -74,12 +76,11 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   const routerConnectionLayerRef = useRef<HTMLCanvasElement>(null);
   const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
-  const connectionPickerRef = useRef<HTMLDivElement>(null);
-  const [connectionPicker, setConnectionPicker] =
-    useState<ConnectionPickerState>({
-      ...defaultPickerState,
-      connectionOptions: [],
-    });
+  const routerMenuRef = useRef<HTMLDivElement>(null);
+  const [routerMenu, setRouterMenu] = useState<RouterMenuState>({
+    ...defaultPickerState,
+    connectionOptions: [],
+  });
   const [componentPicker, setComponentPicker] =
     useState<PickerState>(defaultPickerState);
   const [componentOptions, setComponentOptions] = useState<
@@ -97,7 +98,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
 
   const { position: componentPickerPosition, visible: componentPickerVisible } =
     componentPicker;
-  const { visible: connectionPickerVisible } = connectionPicker;
+  const { visible: routerMenuVisible } = routerMenu;
 
   const openComponentPicker = useCallback(
     (left: number, top?: number, bottom?: number) => {
@@ -110,7 +111,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     setComponentPicker({ visible: false, position: { left: -200, top: -200 } });
   }, []);
 
-  const openConnectionPicker = useCallback(
+  const openRouterMenu = useCallback(
     (left: number, top?: number, bottom?: number, selectedRouter?: Router) => {
       if (!selectedRouter) {
         return;
@@ -149,22 +150,17 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
           };
         })
         .filter(({ connectionOptions }) => connectionOptions.length > 0);
-      if (!filteredConnectionOptions.length) {
-        openNotificationTooltip &&
-          openNotificationTooltip("No more connection options available.");
-        return;
-      }
-      setConnectionPicker({
+      setRouterMenu({
         visible: true,
         position: { top, left, bottom },
         connectionOptions: filteredConnectionOptions,
       });
     },
-    [connectionOptions, openNotificationTooltip]
+    [connectionOptions]
   );
 
-  const closeConnectionPicker = useCallback(() => {
-    setConnectionPicker((prevState) => ({
+  const closeRouterMenu = useCallback(() => {
+    setRouterMenu((prevState) => ({
       visible: false,
       position: { left: -200, top: -200 },
       connectionOptions: prevState.connectionOptions,
@@ -298,7 +294,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         !asComponentLayerRef.current ||
         !gridRect.length ||
         componentPickerVisible ||
-        connectionPickerVisible
+        routerMenuVisible
       ) {
         return;
       }
@@ -362,7 +358,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     [
       gridRect,
       componentPickerVisible,
-      connectionPickerVisible,
+      routerMenuVisible,
       defaultAsSize,
       gridSizeX,
       gridSizeY,
@@ -382,10 +378,10 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         gridRect,
         iconLayerRef.current
       );
-      if (componentPickerVisible || connectionPickerVisible) {
+      if (componentPickerVisible || routerMenuVisible) {
         const ctx = iconLayerRef.current.getContext("2d");
         closeComponentPicker();
-        closeConnectionPicker();
+        closeRouterMenu();
         managePreviousHover(row, column);
         iconLayerHoverLocation.current = [column, row];
         ctx && cell && cell.drawAddIcon(ctx);
@@ -402,10 +398,10 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
             row,
             column,
             gridRect,
-            connectionPickerRef.current,
+            routerMenuRef.current,
             asLayerRef.current
           );
-          openConnectionPicker(left, top, bottom, selectedRouter);
+          openRouterMenu(left, top, bottom, selectedRouter);
         }
       }
       const {
@@ -427,10 +423,10 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     [
       gridRect,
       componentPickerVisible,
-      connectionPickerVisible,
+      routerMenuVisible,
       componentOptions,
-      openConnectionPicker,
-      closeConnectionPicker,
+      openRouterMenu,
+      closeRouterMenu,
       openComponentPicker,
       closeComponentPicker,
       managePreviousHover,
@@ -469,13 +465,12 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       const link = new IPLinkInterface(linkId, baseIp, [routerA, routerB]);
       linkInterfaceMap.current.set(linkId, link);
       link.draw(routerA, routerB);
-      closeConnectionPicker();
+      closeRouterMenu();
     },
-    [closeConnectionPicker]
+    [closeRouterMenu]
   );
 
   const startSimulation = useCallback(() => {
-    setSimulationPlaying(true);
     if (!linkInterfaceMap.current.size || !asTree.current.root) {
       openNotificationTooltip &&
         openNotificationTooltip(
@@ -483,6 +478,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         );
       return false;
     }
+    setSimulationPlaying(true);
     asTree.current.inOrderTraversal(asTree.current.root).forEach(([, as]) => {
       const { routerLocations } = as;
       for (const router of routerLocations.values()) {
@@ -495,6 +491,18 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   const pauseSimulation = useCallback(() => {
     setSimulationPlaying(false);
   }, []);
+
+  const openNeighborTableSnapshot = useCallback(
+    (router: Router) => {
+      setLiveNeighborTable(router.id, router.ospf.neighborTable);
+      setRouterMenu((prevState) => ({
+        ...prevState,
+        visible: false,
+      }));
+    },
+    [setLiveNeighborTable]
+  );
+
   return (
     <>
       <canvas
@@ -526,9 +534,11 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         position={componentPickerPosition}
         visible={componentPickerVisible}
       />
-      <ConnectionPicker
-        {...connectionPicker}
-        pickerRef={connectionPickerRef}
+      <RouterMenu
+        {...routerMenu}
+        openNeighborTable={openNeighborTableSnapshot}
+        controlsDisabled={!simulationPlaying}
+        pickerRef={routerMenuRef}
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
       />
@@ -548,6 +558,12 @@ const mapStateToProps = (state: IRootReducer) => {
   };
 };
 
-const connector = connect(mapStateToProps);
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return {
+    setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
+  };
+};
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
 
 export const ASManager = connector(ASManagerComponent);

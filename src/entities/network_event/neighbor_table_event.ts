@@ -1,4 +1,4 @@
-import { openNeighborTableModal } from "src/action_creators";
+import { openNeighborTableSnapshot } from "src/action_creators";
 import { Router } from "../router";
 import { NetworkEventBase } from "./base";
 import { NetworkEventType } from "./network_event_type";
@@ -26,10 +26,9 @@ export class NeighborTableEvent extends NetworkEventBase {
     this.timestamp = timestamp;
     this.routerId = router.id;
     this.neighborTable = {};
-    for (const [
-      neighborId,
-      neighborRow,
-    ] of router.ospf.neighborTable.entries()) {
+    for (const [neighborId, neighborRow] of Object.entries(
+      router.ospf.neighborTable
+    )) {
       this.neighborTable[neighborId] = { ...neighborRow };
     }
     this.affectedNeighborId = affectedNeighborId;
@@ -39,7 +38,7 @@ export class NeighborTableEvent extends NetworkEventBase {
       {
         label: "View Table Snapshot",
         onClick: () => {
-          store.dispatch(openNeighborTableModal(this));
+          store.dispatch(openNeighborTableSnapshot(this));
         },
       },
     ];
