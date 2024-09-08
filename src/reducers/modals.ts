@@ -2,6 +2,13 @@ import { Reducer } from "redux";
 import { IPPacket } from "../entities/ip/packets";
 import { ModalAction } from "../types/actions";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
+import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { NeighborTableRow } from "src/entities/ospf/tables";
+
+export type LiveNeighborTableState = {
+  routerId: IPv4Address;
+  neighborTable: Record<string, NeighborTableRow>;
+};
 
 export type ActiveModalState =
   | {
@@ -9,8 +16,12 @@ export type ActiveModalState =
       data: IPPacket;
     }
   | {
-      active: "neighbor_table";
+      active: "neighbor_table_snapshot";
       data: NeighborTableEvent;
+    }
+  | {
+      active: "neighbor_table_live";
+      data: LiveNeighborTableState;
     };
 
 export type ModalReducerState =
@@ -32,7 +43,7 @@ export const modalReducer: Reducer<ModalReducerState, ModalAction> = (
   switch (type) {
     case "OPEN_MODAL":
       const { data, active } = action;
-      if (active === "neighbor_table")
+      if (active === "neighbor_table_snapshot")
         return {
           active,
           data,
@@ -42,6 +53,17 @@ export const modalReducer: Reducer<ModalReducerState, ModalAction> = (
           active,
           data,
         };
+      if (active === "neighbor_table_live") {
+        return {
+          active,
+          data: {
+            routerId: data.routerId,
+            neighborTable: {
+              ...data.neighborTable,
+            },
+          },
+        };
+      }
       return {
         active: "none",
       };
