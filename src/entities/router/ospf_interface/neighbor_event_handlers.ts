@@ -24,11 +24,17 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
   if (neighbor.deadTimer) {
     clearTimeout(neighbor.deadTimer);
   }
-  neighbor.deadTimer = deadTimerFactory.call(this, neighbor, deadInterval);
+  const deadTimer = deadTimerFactory.call(this, neighbor, deadInterval);
+  let newState = state;
   // state transition to init if the router is in a `DOWN` state.
   if (state === State.Down) {
-    neighbor.state = State.Init;
+    newState = State.Init;
   }
+  this.setNeighbor({
+    ...neighbor,
+    deadTimer,
+    state: newState,
+  });
 };
 
 /**
@@ -40,10 +46,13 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
 const oneWayReceived: NeighborEventHandler = function (neighbor) {
   const { state } = neighbor;
   if (state >= State.TwoWay) {
-    neighbor.state = State.Init;
-    neighbor.linkStateRequestList = [];
-    neighbor.linkStateRetransmissionList = [];
-    neighbor.dbSummaryList = [];
+    this.setNeighbor({
+      ...neighbor,
+      state: State.Init,
+      linkStateRequestList: [],
+      linkStateRetransmissionList: [],
+      dbSummaryList: [],
+    });
   }
 };
 
@@ -58,11 +67,14 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
   const { rxmtInterval } = config;
   const { state } = neighbor;
   if (state === State.Init) {
-    neighbor.state = State.ExStart;
-    neighbor.rxmtTimer = setTimeout(
-      this.sendDDPacket.bind(this, neighbor),
-      rxmtInterval
-    );
+    this.setNeighbor({
+      ...neighbor,
+      state: State.ExStart,
+      rxmtTimer: setTimeout(
+        this.sendDDPacket.bind(this, neighbor),
+        rxmtInterval
+      ),
+    });
   }
 };
 
@@ -72,7 +84,10 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const negotiationDone: NeighborEventHandler = function (neighbor) {
-  neighbor.state = State.Exchange;
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Exchange,
+  });
   this.sendDDPacket(neighbor);
 };
 
@@ -85,7 +100,10 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
  */
 const exchangeDone: NeighborEventHandler = function (neighbor) {
   const { linkStateRequestList } = neighbor;
-  neighbor.state = linkStateRequestList.length ? State.Loading : State.Full;
+  this.setNeighbor({
+    ...neighbor,
+    state: linkStateRequestList.length ? State.Loading : State.Full,
+  });
   // TODO: Send LSA Request Packets to the neighbor.
 };
 
@@ -95,7 +113,10 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const loadingDone: NeighborEventHandler = function (neighbor) {
-  neighbor.state = State.Full;
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Full,
+  });
 };
 
 // AdjOK event handler is not required since this event will never be transmitted in our simulator.
@@ -112,14 +133,17 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
   const { rxmtInterval } = config;
   const { state } = neighbor;
   if (state >= State.Exchange) {
-    neighbor.state = State.ExStart;
-    neighbor.linkStateRequestList = [];
-    neighbor.dbSummaryList = [];
-    neighbor.linkStateRetransmissionList = [];
-    neighbor.rxmtTimer = setTimeout(
-      this.sendDDPacket.bind(this, neighbor),
-      rxmtInterval
-    );
+    this.setNeighbor({
+      ...neighbor,
+      state: State.ExStart,
+      linkStateRequestList: [],
+      dbSummaryList: [],
+      linkStateRetransmissionList: [],
+      rxmtTimer: setTimeout(
+        this.sendDDPacket.bind(this, neighbor),
+        rxmtInterval
+      ),
+    });
   }
 };
 
@@ -146,11 +170,14 @@ const badLsRequest: NeighborEventHandler = function (neighbor) {
 const killNeighbor: NeighborEventHandler = function (neighbor) {
   const { deadTimer } = neighbor;
   clearTimeout(deadTimer);
-  neighbor.state = State.Down;
-  neighbor.linkStateRequestList = [];
-  neighbor.linkStateRetransmissionList = [];
-  neighbor.dbSummaryList = [];
-  neighbor.deadTimer = undefined;
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Down,
+    linkStateRequestList: [],
+    linkStateRetransmissionList: [],
+    dbSummaryList: [],
+    deadTimer: undefined,
+  });
   this.onOspfNeighborDown();
 };
 
