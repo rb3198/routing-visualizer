@@ -1,7 +1,8 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import styles from "./styles.module.css";
-import { CiRouter } from "react-icons/ci";
+import { CiRouter, CiViewTable } from "react-icons/ci";
 import { Router } from "../../entities/router";
+import { PiPower } from "react-icons/pi";
 
 export interface ConnectionPickerProps {
   selectedRouter?: Router;
@@ -16,7 +17,13 @@ export interface ConnectionPickerProps {
     name: string;
     connectionOptions: [string, Router][];
   }[];
+  controlsDisabled?: boolean;
+  openNeighborTable: (router: Router) => unknown;
   addRouterConnection?: (routerA: Router, routerB: Router) => any;
+  /**
+   * Turns the router ON or OFF.
+   */
+  toggleRouterPower?: (router: Router) => unknown;
 }
 
 /**
@@ -24,15 +31,62 @@ export interface ConnectionPickerProps {
  * @param props
  * @returns
  */
-export const ConnectionPicker: React.FC<ConnectionPickerProps> = (props) => {
+export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
   const {
     visible,
     position,
     pickerRef,
     connectionOptions,
     selectedRouter,
+    controlsDisabled,
+    openNeighborTable,
     addRouterConnection,
+    toggleRouterPower,
   } = props;
+
+  const Controls = useMemo(() => {
+    const { turnedOn } = selectedRouter || {};
+    const onClick = () => {
+      toggleRouterPower && selectedRouter && toggleRouterPower(selectedRouter);
+    };
+    return (
+      <div
+        id={styles.controls_container}
+        onClick={onClick}
+        data-disabled={controlsDisabled}
+      >
+        <div id={styles.power_icon} data-turned-on={turnedOn}>
+          <PiPower />
+        </div>
+        Turn {turnedOn ? "Off" : "On"}
+      </div>
+    );
+  }, [selectedRouter, controlsDisabled, toggleRouterPower]);
+
+  const Tables = useMemo(() => {
+    const onNeighborTableClick = () => {
+      selectedRouter && openNeighborTable(selectedRouter);
+    };
+    return (
+      <>
+        <p className={styles.description}>View...</p>
+        <ul>
+          <li onClick={onNeighborTableClick}>
+            <div className={styles.iconContainer}>
+              <CiViewTable className={styles.icon} />
+            </div>
+            Neighbor Table
+          </li>
+          <li onClick={() => {}}>
+            <div className={styles.iconContainer}>
+              <CiViewTable className={styles.icon} />
+            </div>
+            Routing Table
+          </li>
+        </ul>
+      </>
+    );
+  }, [selectedRouter, openNeighborTable]);
   const { top, left, bottom } = position;
   return (
     <div
@@ -46,6 +100,8 @@ export const ConnectionPicker: React.FC<ConnectionPickerProps> = (props) => {
         bottom,
       }}
     >
+      {Controls}
+      {Tables}
       {(connectionOptions.length > 0 && (
         <>
           <p className={styles.description}>Connect to...</p>

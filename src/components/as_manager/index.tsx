@@ -14,7 +14,7 @@ import { mapCoordsToGridCell, onCanvasLayout } from "../../utils/ui";
 import { Point2D } from "../../types/geometry";
 import { getASPosition, getPickerPosition } from "./utils";
 import { ComponentPicker, PickerOption } from "../picker";
-import { ConnectionPicker } from "../connection_picker";
+import { RouterMenu } from "../router_menu";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
 import { IPv4Address } from "../../entities/ip/ipv4_address";
@@ -28,6 +28,9 @@ import { AnimationToolbar } from "../animation_toolbar";
 import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
+import { Modal } from "../modals";
+import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTable } from "../modals/neighbor_table/table";
 interface ASManagerProps {
   gridRect: GridCell[][];
   defaultAsSize: number;
@@ -47,6 +50,12 @@ type ConnectionPickerState = PickerState & {
     name: string;
     connectionOptions: [string, Router][];
   }[];
+};
+
+type NeighborTableModalState = {
+  visible: boolean;
+  routerId?: IPv4Address;
+  table?: Record<string, NeighborTableRow>;
 };
 
 const defaultPickerState = {
@@ -90,6 +99,10 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   >([]);
   const [selectedRouter, setSelectedRouter] = useState<Router>();
   const [simulationPlaying, setSimulationPlaying] = useState(false);
+  const [neighborTableModal, setNeighborTableModal] =
+    useState<NeighborTableModalState>({
+      visible: false,
+    });
   const notificationTooltipContext = useContext(NotificationTooltipContext);
   const { open: openNotificationTooltip } = notificationTooltipContext || {};
   const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
@@ -149,18 +162,13 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
           };
         })
         .filter(({ connectionOptions }) => connectionOptions.length > 0);
-      if (!filteredConnectionOptions.length) {
-        openNotificationTooltip &&
-          openNotificationTooltip("No more connection options available.");
-        return;
-      }
       setConnectionPicker({
         visible: true,
         position: { top, left, bottom },
         connectionOptions: filteredConnectionOptions,
       });
     },
-    [connectionOptions, openNotificationTooltip]
+    [connectionOptions]
   );
 
   const closeConnectionPicker = useCallback(() => {
@@ -475,7 +483,6 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   );
 
   const startSimulation = useCallback(() => {
-    setSimulationPlaying(true);
     if (!linkInterfaceMap.current.size || !asTree.current.root) {
       openNotificationTooltip &&
         openNotificationTooltip(
@@ -483,6 +490,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         );
       return false;
     }
+    setSimulationPlaying(true);
     asTree.current.inOrderTraversal(asTree.current.root).forEach(([, as]) => {
       const { routerLocations } = as;
       for (const router of routerLocations.values()) {
@@ -495,6 +503,33 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   const pauseSimulation = useCallback(() => {
     setSimulationPlaying(false);
   }, []);
+
+  const openNeighborTableModal = useCallback((router: Router) => {
+    const table: Record<string, NeighborTableRow> = {};
+    for (const [neighborId, row] of router.ospf.neighborTable) {
+      table[neighborId] = row;
+    }
+    setNeighborTableModal({
+      visible: true,
+      routerId: router.id,
+      table,
+    });
+    setConnectionPicker((prevState) => ({
+      ...prevState,
+      visible: false,
+    }));
+  }, []);
+  const closeNeighborTableModal = useCallback(() => {
+    setNeighborTableModal({
+      visible: false,
+    });
+  }, []);
+
+  const {
+    visible: neighborTableVisible,
+    routerId: activeRouterId,
+    table: activeNeighborTable,
+  } = neighborTableModal;
   return (
     <>
       <canvas
@@ -526,8 +561,10 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         position={componentPickerPosition}
         visible={componentPickerVisible}
       />
-      <ConnectionPicker
+      <RouterMenu
         {...connectionPicker}
+        openNeighborTable={openNeighborTableModal}
+        controlsDisabled={!simulationPlaying}
         pickerRef={connectionPickerRef}
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
@@ -537,6 +574,19 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         pauseSimulation={pauseSimulation}
         playing={simulationPlaying}
       />
+      <Modal
+        visible={neighborTableVisible}
+        close={closeNeighborTableModal}
+        title={activeRouterId?.toString() ?? ""}
+      >
+        {activeNeighborTable && (
+          <NeighborTable
+            activeCol="none"
+            neighborTable={activeNeighborTable}
+            setActiveCol={() => {}}
+          />
+        )}
+      </Modal>
     </>
   );
 };
