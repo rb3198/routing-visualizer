@@ -49,7 +49,7 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
       container.parentNode?.removeChild(container);
     });
     setDescHeight(maxHeight);
-  }, [type]);
+  }, [type, modalRef]);
 
   const Description = useMemo(() => {
     const desc = descriptions[activeCol];

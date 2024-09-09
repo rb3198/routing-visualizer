@@ -77,7 +77,7 @@
 }
 
 .in {
-    animation: in 1s ease-in normal forwards;
+    animation: in .5s ease-in normal forwards;
 }
 
 .out {
