@@ -7,7 +7,9 @@ import { descriptions } from "../../neighbor_table/descriptions";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { EventLog } from "src/components/event_log";
 
-export type NeighborTableModalBodyProps =
+export type NeighborTableModalBodyProps = {
+  modalRef: React.RefObject<HTMLDivElement>;
+} & (
   | {
       type: "live";
       routerId: IPv4Address;
@@ -16,12 +18,13 @@ export type NeighborTableModalBodyProps =
   | {
       type: "snap";
       event: NeighborTableEvent;
-    };
+    }
+);
 
 export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
   props
 ) => {
-  const { type } = props;
+  const { type, modalRef } = props;
   const mainRef = useRef<HTMLDivElement>(null);
   const [activeCol, setActiveCol] = useState<keyof NeighborTableRow | "none">(
     "none"
@@ -30,6 +33,9 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
 
   useLayoutEffect(() => {
     let maxHeight = -1;
+    if (type === "live") {
+      modalRef.current?.classList.add(styles.fixed_modal);
+    }
     Object.values(descriptions).forEach((description) => {
       const container = document.createElement("div");
       container.classList.add(styles.description);
@@ -43,7 +49,7 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
       container.parentNode?.removeChild(container);
     });
     setDescHeight(maxHeight);
-  }, []);
+  }, [type]);
 
   const Description = useMemo(() => {
     const desc = descriptions[activeCol];
@@ -64,8 +70,7 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
     switch (type) {
       case "snap":
         const { event } = props;
-        const { neighborTable, affectedNeighborId, changeType, message } =
-          event;
+        const { message } = event;
         return (
           <>
             <div
@@ -73,12 +78,9 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
               dangerouslySetInnerHTML={{ __html: message }}
             ></div>
             <NeighborTable
-              neighborTable={neighborTable}
+              type="snap"
+              event={event}
               activeCol={activeCol}
-              affectedNeighbor={{
-                id: affectedNeighborId,
-                type: changeType,
-              }}
               setActiveCol={setActiveCol}
             />
           </>
@@ -87,6 +89,7 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
         const { neighborTable: liveNeighborTable } = props;
         return (
           <NeighborTable
+            type="live"
             neighborTable={liveNeighborTable}
             activeCol={activeCol}
             setActiveCol={setActiveCol}
