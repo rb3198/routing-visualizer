@@ -24,7 +24,8 @@
 
 #container.visible, #backdrop.visible {
     opacity: 1;
-    display: block;
+    display: flex;
+    flex-direction: column;
 }
 
 #title {
@@ -43,4 +44,8 @@
 #body {
     text-align: justify;
     position: relative;
+    display: flex;
+    flex-grow: 1;
+    min-height: 0;
+    flex-direction: column;
 }

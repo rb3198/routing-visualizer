@@ -1,4 +1,3 @@
-import { NeighborTableEventType } from "src/entities/network_event/neighbor_table_event";
 import { OSPFInterface } from ".";
 
 export const getIpPacketDropReason = function (
@@ -23,16 +22,4 @@ export const getIpPacketDropReason = function (
       `;
   }
   return reason;
-};
-
-export const getNeighborTableEventDescription = (
-  type: NeighborTableEventType
-) => {
-  switch (type) {
-    case "added":
-      return `Neighbor added since its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
-      It belonged to the same area or the backbone area (Area 0)`;
-    default:
-      return "";
-  }
 };

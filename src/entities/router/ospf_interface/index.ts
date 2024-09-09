@@ -15,12 +15,12 @@ import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
 import { emitEvent, setLiveNeighborTable } from "../../../action_creators";
 import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
-import {
-  getIpPacketDropReason,
-  getNeighborTableEventDescription,
-} from "./utils";
+import { getIpPacketDropReason } from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
+import {
+  NeighborTableEvent,
+  NeighborTableEventType,
+} from "src/entities/network_event/neighbor_table_event";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -123,13 +123,32 @@ export class OSPFInterface {
     }
   };
 
-  setNeighbor = (neighbor: NeighborTableRow) => {
+  setNeighbor = (neighbor: NeighborTableRow, description: string) => {
     const { modalState } = store.getState();
     const { active, data } = modalState;
+    const prevTable = {
+      ...this.neighborTable,
+    };
+    const eventType: NeighborTableEventType = prevTable[
+      neighbor.routerId.toString()
+    ]
+      ? "column_updated"
+      : "added";
     this.neighborTable = {
       ...this.neighborTable,
       [neighbor.routerId.toString()]: neighbor,
     };
+    emitEvent({
+      eventName: "neighborTableEvent",
+      event: new NeighborTableEvent(
+        Date.now(),
+        prevTable,
+        this.router,
+        neighbor.routerId.toString(),
+        eventType,
+        description
+      ),
+    })(store.dispatch);
     if (
       active === "neighbor_table_live" &&
       data.routerId.equals(this.router.id)
@@ -150,17 +169,10 @@ export class OSPFInterface {
       ipSrc,
       interfaceId
     );
-    this.setNeighbor(neighbor);
-    emitEvent({
-      eventName: "neighborTableEvent",
-      event: new NeighborTableEvent(
-        Date.now(),
-        this.router,
-        routerId.ip,
-        "added",
-        getNeighborTableEventDescription("added")
-      ),
-    })(store.dispatch);
+    const eventDesc = `Router ${routerId} <i>added to</i> the OSPF Neighbor Table since
+    its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
+    It belonged to the same area or the backbone area (Area 0)`;
+    this.setNeighbor(neighbor, eventDesc);
   };
 
   helloPacketHandler = (

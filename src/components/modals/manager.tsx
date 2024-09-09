@@ -55,6 +55,7 @@ const Manager: React.FC<ReduxProps> = (props) => {
           <NeighborTableModalBody
             type="snap"
             event={data as NeighborTableEvent}
+            modalRef={modalRef}
           />
         );
       case "neighbor_table_live":
@@ -64,6 +65,7 @@ const Manager: React.FC<ReduxProps> = (props) => {
             type="live"
             neighborTable={neighborTable}
             routerId={routerId}
+            modalRef={modalRef}
           />
         );
       default:

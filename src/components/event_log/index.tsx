@@ -15,6 +15,7 @@ export type EventLogProps = {
   };
   showControlPanel?: boolean;
   classes?: string;
+  hideLinks?: boolean;
 };
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -25,6 +26,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     filter,
     showControlPanel,
     classes,
+    hideLinks,
     setEventLogKeepCount,
   } = props;
 
@@ -52,16 +54,16 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
           />
         </div>
         <div id={styles.log_size_selector_container}>
-          <label htmlFor={styles.log_size_selector}>Keep the first:</label>
+          <label htmlFor={styles.log_size_selector}>Keep the last:</label>
           <select id={styles.log_size_selector} onChange={changeHandler}>
-            <option value={25} selected={keepCount === 25}>
-              25 Logs
-            </option>
             <option value={50} selected={keepCount === 50}>
               50 Logs
             </option>
             <option value={100} selected={keepCount === 100}>
               100 Logs
+            </option>
+            <option value={200} selected={keepCount === 200}>
+              200 Logs
             </option>
           </select>
         </div>
@@ -93,15 +95,17 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
             return isValid;
           })
           .map((event) => (
-            <Event event={event} key={event.id} />
+            <Event event={event} key={event.id} hideLinks={hideLinks} />
           ))}
       </ul>
     </div>
   );
 };
 
-const Event: React.FC<{ event: NetworkEventBase }> = (props) => {
-  const { event } = props;
+const Event: React.FC<{ event: NetworkEventBase; hideLinks?: boolean }> = (
+  props
+) => {
+  const { event, hideLinks } = props;
   const { message, links, id } = event;
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -111,6 +115,7 @@ const Event: React.FC<{ event: NetworkEventBase }> = (props) => {
     <li className={`${styles.event} ${(visible && styles.visible) || ""}`}>
       <p dangerouslySetInnerHTML={{ __html: message }}></p>
       {links.length > 0 &&
+        !hideLinks &&
         links.map((link, idx) => (
           <span
             key={`event_${id}_l${idx}`}
