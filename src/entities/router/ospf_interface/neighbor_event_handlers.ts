@@ -19,14 +19,14 @@ type NeighborEventHandler = (
 const helloReceived: NeighborEventHandler = function (neighbor) {
   const { config } = this;
   const { deadInterval } = config;
-  const { state } = neighbor;
-  let desc = "";
+  const { state, routerId: neighborId } = neighbor;
+  let desc = `Received a Hello Packet from neighbor <b>${neighborId}</b>.<br>`;
   // action for all states - Clear dead timer.
   if (neighbor.deadTimer) {
     clearTimeout(neighbor.deadTimer);
   }
   const deadTimer = deadTimerFactory.call(this, neighbor, deadInterval);
-  desc += "Dead Timer of the neighbor reset on HelloReceived";
+  desc += "Dead Timer of the neighbor reset on <i>HelloReceived</i>.<br>";
   let newState = state;
   // state transition to init if the router is in a `DOWN` state.
   if (state === State.Down) {
@@ -91,7 +91,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
         ),
       },
       `
-    <i>TwoWayReceived</i> event triggered since the Router found itself in ${neighbor.routerId}'s hello packet.
+    <i>TwoWayReceived</i> event triggered since the Router found itself in <b>${neighborId}</b>'s hello packet.
     <ul>
       <li>${neighborId}'s state upgraded from INIT to EX-START.</li>
       <li>The router will now negotiate the Master/Slave relationship and
@@ -153,7 +153,7 @@ const loadingDone: NeighborEventHandler = function (neighbor) {
       ...neighbor,
       state: State.Full,
     },
-    "Loading complete. Entering the FULL state."
+    `Loading complete wrt neighbor ${neighbor.routerId}. Entering the FULL state.`
   );
 };
 
