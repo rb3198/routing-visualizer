@@ -10,7 +10,7 @@ type EventLogState = {
 export const eventLogReducer: Reducer<EventLogState, EventLogAction> = (
   state = {
     logs: [],
-    keepCount: 25,
+    keepCount: 50,
   },
   action
 ) => {
