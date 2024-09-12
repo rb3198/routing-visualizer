@@ -11,7 +11,7 @@ import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_ev
 import { NeighborTableRow } from "src/entities/ospf/tables";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 
-type VizArgs = {
+export type VizArgs = {
   color: string;
   duration: number;
   context?: CanvasRenderingContext2D | null;
