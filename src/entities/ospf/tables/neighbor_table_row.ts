@@ -1,6 +1,7 @@
 import { IPv4Address } from "../../ip/ipv4_address";
 import { State } from "../enum";
 import { LSAHeader } from "../lsa";
+import { DDPacketSummary } from "../summaries/dd_packet_summary";
 
 export class NeighborTableRow {
   /**
@@ -57,6 +58,8 @@ export class NeighborTableRow {
    */
   dbSummaryList: any[]; // TODO
 
+  lastReceivedDdPacket?: DDPacketSummary;
+
   /**
    * The list of LSAs that need to be received from this neighbor in order to synchronize the two neighbors' link-state databases.
    *
@@ -76,7 +79,7 @@ export class NeighborTableRow {
     this.state = state;
     this.address = address;
     this.interfaceId = interfaceId;
-    this.master = master ?? false;
+    this.master = master ?? true;
     this.linkStateRequestList = [];
     this.dbSummaryList = [];
     this.linkStateRetransmissionList = [];
