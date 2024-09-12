@@ -21,6 +21,7 @@ import {
   NeighborTableEvent,
   NeighborTableEventType,
 } from "src/entities/network_event/neighbor_table_event";
+import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -35,11 +36,6 @@ export class OSPFInterface {
   }
 
   dropPacket = (ipPacket: IPPacket, reason: string) => {
-    const { header } = ipPacket;
-    const { id } = header;
-    console.log(
-      `Packet with ID ${id} dropped by router ${this.router.id.toString()}`
-    );
     const event = new PacketDroppedEvent(this.router, ipPacket, reason);
     emitEvent({
       eventName: "packetDropped",
@@ -80,6 +76,24 @@ export class OSPFInterface {
     return { ok, reason };
   };
 
+  /**
+   * Checks if the router should process the hello packet.
+   *
+   * A hello packet should be processed only if all the network params match.
+   * @param packet
+   */
+  private shouldProcessHelloPacket = (packet: HelloPacket) => {
+    const { config, router } = this;
+    const { body } = packet;
+    const { helloInterval, deadInterval, networkMask } = body;
+    const [, , , , routerMask] = router.id.bytes;
+    return (
+      helloInterval === config.helloInterval &&
+      deadInterval === config.deadInterval &&
+      networkMask === routerMask
+    );
+  };
+
   receivePacket = (
     interfaceId: string,
     ipSrc: IPv4Address,
@@ -118,6 +132,12 @@ export class OSPFInterface {
     }
     switch (packetType) {
       // Add code to handle other types of packets here.
+      case PacketType.DD:
+        return this.ddPacketHandler(
+          packet,
+          ospfPacket as DDPacket,
+          interfaceId
+        );
       default:
         break;
     }
@@ -209,22 +229,140 @@ export class OSPFInterface {
     */
   };
 
-  /**
-   * Checks if the router should process the hello packet.
-   *
-   * A hello packet should be processed only if all the network params match.
-   * @param packet
-   */
-  private shouldProcessHelloPacket = (packet: HelloPacket) => {
-    const { config, router } = this;
+  private isNeighborMasterOrSlave = (ddPacket: DDPacket) => {
+    const { header, body } = ddPacket;
+    const { routerId: neighborId } = header;
+    const { init, master, m, lsaList, ddSeqNumber } = body;
+    const neighbor = this.neighborTable[neighborId.toString()];
+    if (!neighbor) {
+      console.warn(
+        "Checking Master / Slave config of a router which is not the neighbor of ",
+        this.router.id
+      );
+      return { isNeighborMaster: false, isNeighborSlave: false };
+    }
+    const isNeighborMaster =
+      init &&
+      master &&
+      m &&
+      !lsaList.length &&
+      neighborId.compare(this.router.id) > 0;
+    const isNeighborSlave =
+      !init &&
+      !master &&
+      ddSeqNumber === neighbor.ddSeqNumber &&
+      neighborId.compare(this.router.id) < 0;
+    return { isNeighborMaster, isNeighborSlave };
+  };
+
+  private shouldProcessDdPacket = (
+    packet: DDPacket,
+    lastReceived?: DDPacketSummary
+  ) => {
+    if (!lastReceived) {
+      return true;
+    }
     const { body } = packet;
-    const { helloInterval, deadInterval, networkMask } = body;
-    const [, , , , routerMask] = router.id.bytes;
-    return (
-      helloInterval === config.helloInterval &&
-      deadInterval === config.deadInterval &&
-      networkMask === routerMask
-    );
+    const { init, ddSeqNumber, m, master } = body;
+    const identical =
+      init === lastReceived.init &&
+      ddSeqNumber === lastReceived.ddSeqNumber &&
+      m === lastReceived.m &&
+      master === lastReceived.master;
+    return !identical;
+  };
+
+  ddPacketHandler = (
+    ipPacket: IPPacket,
+    packet: DDPacket,
+    interfaceId: string
+  ) => {
+    const { header, body } = packet;
+    const { routerId } = header;
+    const { init, ddSeqNumber, m, master } = body;
+    const neighbor = this.neighborTable[routerId.toString()];
+    if (!neighbor) {
+      console.warn(
+        "DD Packet received from a router which is not the neighbor of ",
+        this.router.id
+      );
+      return;
+    }
+    const {
+      state,
+      routerId: neighborId,
+      rxmtTimer,
+      lastReceivedDdPacket,
+    } = neighbor;
+    let packetAccepted = false;
+    if (!this.shouldProcessDdPacket(packet, lastReceivedDdPacket)) {
+      this.dropPacket(
+        ipPacket,
+        `The DD Packet was detected to be a duplicate.
+        <ul>
+          <li>The DD Sequence Number of the packet was the same as the last recorded DD packet sent by the neighbor</li>
+          <li>The <i>Init</i>, <i>More</i>, and <i>Master</i> bits all matched with the last recorded DD Packet sent by
+          the neighbor </li>
+        </ul>
+        `
+      );
+    }
+    switch (state) {
+      case State.Down:
+        return this.dropPacket(
+          ipPacket,
+          "Received a DD packet from a neighbor which was in the DOWN state."
+        );
+      case State.Init:
+        this.neighborStateMachine(
+          neighborId.toString(),
+          NeighborSMEvent.TwoWayReceived
+        );
+        return;
+      case State.ExStart:
+        const { isNeighborMaster, isNeighborSlave } =
+          this.isNeighborMasterOrSlave(packet);
+        if (isNeighborMaster || isNeighborSlave) {
+          packetAccepted = true;
+          clearInterval(rxmtTimer);
+          this.neighborTable = {
+            ...this.neighborTable,
+            [neighbor.routerId.toString()]: {
+              ...neighbor,
+              master: !isNeighborMaster,
+              ddSeqNumber: isNeighborMaster
+                ? body.ddSeqNumber
+                : neighbor.ddSeqNumber,
+            },
+          };
+          this.neighborStateMachine(
+            neighbor.routerId.toString(),
+            NeighborSMEvent.NegotiationDone
+          );
+        }
+        break;
+      case State.Exchange:
+        // TODO
+        break;
+      default:
+        break;
+    }
+    if (packetAccepted) {
+      // The DD Packet has been accepted and processed. Save it in the neighbor table.
+      const neighbor = this.neighborTable[neighborId.toString()];
+      this.setNeighbor(
+        {
+          ...neighbor,
+          lastReceivedDdPacket: new DDPacketSummary({
+            init,
+            ddSeqNumber,
+            m,
+            master,
+          }),
+        },
+        `The new DD packet sent by the neighbor ${neighborId} was recorded in the table's "Last DD Packet"`
+      );
+    }
   };
 
   neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
@@ -250,9 +388,17 @@ export class OSPFInterface {
     */
   };
 
+  private getAreaId = (ipInterface?: IPLinkInterface) => {
+    const { areaId } = this.config;
+    return ipInterface?.getOppositeRouter(this.router).ospf.config.areaId ===
+      BACKBONE_AREA_ID
+      ? BACKBONE_AREA_ID
+      : areaId;
+  };
+
   sendHelloPacket = (ipInterface: IPLinkInterface) => {
     const { router, config, neighborTable } = this;
-    const { areaId, helloInterval, deadInterval } = config;
+    const { helloInterval, deadInterval } = config;
     const { id: routerId } = router;
     const [, , , , subnetMask] = routerId.bytes;
     const neighborList = Object.values(neighborTable).map(
@@ -260,10 +406,7 @@ export class OSPFInterface {
     );
     const helloPacket = new HelloPacket(
       router.id,
-      ipInterface.getOppositeRouter(this.router).ospf.config.areaId ===
-      BACKBONE_AREA_ID
-        ? BACKBONE_AREA_ID
-        : areaId,
+      this.getAreaId(ipInterface),
       subnetMask ?? 0,
       helloInterval,
       deadInterval,
@@ -278,17 +421,30 @@ export class OSPFInterface {
     );
   };
 
-  sendDDPacket = (neighbor: NeighborTableRow) => {
-    const { config, router } = this;
-    const { areaId } = config;
-    const { state, interfaceId, address, ddSeqNumber } = neighbor;
+  sendDDPacket = (neighborId: IPv4Address) => {
+    const { router, neighborTable } = this;
+    const neighbor = neighborTable[neighborId.toString()];
+    if (!neighbor) {
+      console.warn("Didn't find the neighbor to send DD Packet to.");
+      return;
+    }
+    const { state, interfaceId, address } = neighbor;
+    if (state < State.ExStart) {
+      console.warn(
+        "Should not be sending DD packets in states less than ExStart."
+      );
+      return;
+    }
     const { ipInterfaces } = router;
     const { ipInterface } = ipInterfaces.get(interfaceId) ?? {};
     if (state === State.ExStart) {
+      if (!neighbor.ddSeqNumber) {
+        neighbor.ddSeqNumber = Date.now();
+      }
       const ddPacket = new DDPacket(
         this.router.id,
-        areaId,
-        ddSeqNumber ? ddSeqNumber + 1 : Date.now(),
+        this.getAreaId(ipInterface),
+        neighbor.ddSeqNumber,
         true,
         true,
         true,
@@ -298,11 +454,27 @@ export class OSPFInterface {
         router,
         address,
         IPProtocolNumber.ospf,
-        ddPacket
+        ddPacket,
+        Colors.dd
+      );
+    } else {
+      const { ddSeqNumber, master } = neighbor;
+      const ddPacket = new DDPacket(
+        this.router.id,
+        this.getAreaId(ipInterface),
+        master ? ddSeqNumber ?? 0 + 1 : ddSeqNumber,
+        false,
+        false, // TODO: Base it on number of items in LSA Header List
+        master,
+        [] // TODO: Send complete DD packets in Exchange state.
+      );
+      ipInterface?.sendMessage(
+        router,
+        address,
+        IPProtocolNumber.ospf,
+        ddPacket,
+        Colors.dd
       );
     }
-    /*
-    TODO: Send complete DD packets in Exchange state.
-    */
   };
 }

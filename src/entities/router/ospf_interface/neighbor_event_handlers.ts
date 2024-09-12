@@ -85,8 +85,8 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
       {
         ...neighbor,
         state: State.ExStart,
-        rxmtTimer: setTimeout(
-          this.sendDDPacket.bind(this, neighbor),
+        rxmtTimer: setInterval(
+          this.sendDDPacket.bind(this, neighborId),
           rxmtInterval
         ),
       },
@@ -99,6 +99,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
     </ul>
     `
     );
+    this.sendDDPacket(neighborId);
   }
 };
 
@@ -108,15 +109,23 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const negotiationDone: NeighborEventHandler = function (neighbor) {
+  const { master } = neighbor;
   this.setNeighbor(
     {
       ...neighbor,
       state: State.Exchange,
     },
-    `Negotiation between the router and ${neighbor.routerId} for Master / Slave is complete.
-  ${neighbor.routerId} is now promoted to the EXCHANGE state.`
+    `<b>Negotiation between the router and ${
+      neighbor.routerId
+    } for Master / Slave is complete</b>.
+  ${
+    neighbor.routerId
+  } is now promoted to the EXCHANGE state. The router is the <b>${
+      master ? "Master" : "Slave"
+    }</b>
+  in this relation.`
   );
-  this.sendDDPacket(neighbor);
+  this.sendDDPacket(neighbor.routerId);
 };
 
 /**
@@ -178,8 +187,8 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
         linkStateRequestList: [],
         dbSummaryList: [],
         linkStateRetransmissionList: [],
-        rxmtTimer: setTimeout(
-          this.sendDDPacket.bind(this, neighbor),
+        rxmtTimer: setInterval(
+          this.sendDDPacket.bind(this, neighbor.routerId),
           rxmtInterval
         ),
       },
