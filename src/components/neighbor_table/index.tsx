@@ -13,6 +13,7 @@ import styles from "./styles.module.css";
 import { getKey } from "src/utils/common";
 import { State } from "src/entities/ospf/enum";
 import { columnNames } from "./descriptions";
+import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
 
 const getValue = (
   neighborTable: Record<string, NeighborTableRow>,
@@ -33,6 +34,8 @@ const getValue = (
           ? "Master"
           : "Slave"
         : "Not Negotiated";
+    case "ddSeqNumber":
+      return state > State.ExStart ? row[key]?.toString() : "Not Negotiated";
     case "dbSummaryList":
     case "linkStateRequestList":
     case "linkStateRetransmissionList":
@@ -41,6 +44,31 @@ const getValue = (
     case "deadTimer":
     case "rxmtTimer":
       return typeof row[key] === "undefined" ? "Not Set" : "Timer Set";
+    case "lastReceivedDdPacket":
+      const lastDdPacket = row[key];
+      if (lastDdPacket instanceof DDPacketSummary) {
+        const { ddSeqNumber, init, m, master } = lastDdPacket;
+        return `
+        <table class=${styles.nested_table}>
+        <tr>
+          <th>Sequence Number:</th>
+          <td>${ddSeqNumber}</td>
+        </tr>
+        <tr>
+          <th>Init?:</th>
+          <td>${init}</td>
+        </tr>
+        <tr>
+          <th>More?:</th>
+          <td>${m}</td>
+        </tr>
+        <tr>
+          <th>Master?:</th>
+          <td>${master}</td>
+        </tr>
+        </table>`;
+      }
+      return "None";
     default:
       return typeof row[key] === "undefined" ? "Not Set" : row[key]?.toString();
   }
@@ -113,9 +141,10 @@ const TC: React.FC<PropsWithChildren<TableCellProps>> = (props) => {
     <th {...elProps}>{children}</th>
   ) : (
     <td {...elProps}>
-      <div className={stale ? styles.out : wasStale.current ? styles.in : ""}>
-        {prevValue}
-      </div>
+      <div
+        className={stale ? styles.out : wasStale.current ? styles.in : ""}
+        dangerouslySetInnerHTML={{ __html: prevValue?.toString() ?? "" }}
+      ></div>
     </td>
   );
 };
