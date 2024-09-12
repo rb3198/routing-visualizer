@@ -31,6 +31,7 @@ export const columnNames: Record<keyof NeighborTableRow, string> = {
   address: "IP Address",
   interfaceId: "",
   ddSeqNumber: "DD Sequence #",
+  lastReceivedDdPacket: "Last Received DD Packet",
   master: "Master / Slave",
   deadTimer: "Inactivity Timer",
   rxmtTimer: "",
@@ -106,5 +107,16 @@ export const descriptions: Record<keyof NeighborTableRow | "none", string> = {
             <li> <b>The list is then sent to the neighbor in Link State Request packets</b>.
             <li> The list is depleted as appropriate Link State Update packets are received.</li>
       </ul>`,
+  lastReceivedDdPacket: `
+        <p>
+        The initialize(I), more (M) and master(MS) bits, Options field <i>(Not Simulated)</i>,
+        and DD sequence number contained in the last Database
+        Description packet received from the neighbor. 
+        <b>Used to determine
+        whether the next Database Description packet received from the
+        neighbor is a duplicate.
+        </b>
+        </p>
+  `,
   none: "Hover over any column to learn about it.",
 };

@@ -1,4 +1,4 @@
-import { emitEvent } from "../../action_creators";
+import { emitEvent, VizArgs } from "../../action_creators";
 import { IPAddresses } from "../../constants/ip_addresses";
 import { store } from "../../store";
 import { MessageHandler } from "../../types/common/message_handler";
@@ -17,6 +17,23 @@ const getPacketSentEvent = (
   interfaceId: string
 ) => {
   return new PacketSentEvent(src, dest, ipPacket, interfaceId);
+};
+
+const sendPacketToDest = async (
+  src: Router,
+  dest: Router,
+  ipPacket: IPPacket,
+  interfaceId: string,
+  viz: VizArgs
+) => {
+  const event = getPacketSentEvent(src, dest, ipPacket, interfaceId);
+  const e = emitEvent({
+    event,
+    eventName: "packetSent",
+    viz,
+  });
+  await e(store.dispatch);
+  dest.receiveIPPacket(interfaceId, ipPacket);
 };
 
 export const ospfMessageHandler: MessageHandler = async function (
@@ -40,7 +57,7 @@ export const ospfMessageHandler: MessageHandler = async function (
   if (!sourceRouter) {
     return;
   }
-  const { ip: dest } = destination;
+  const { ip: destIp } = destination;
   const ipHeader = new IPHeader(
     Date.now(),
     IPProtocolNumber.ospf,
@@ -52,31 +69,25 @@ export const ospfMessageHandler: MessageHandler = async function (
     for (const dest of Array.from(listeners.values()).sort((a, b) =>
       a === sourceRouter ? -1 : 0
     )) {
-      const event = getPacketSentEvent(
-        sourceRouter,
-        dest,
-        ipPacket,
-        interfaceId
-      );
-      const e = emitEvent({
-        event,
-        eventName: "packetSent",
-        viz: {
-          color,
-          context,
-          duration,
-        },
+      await sendPacketToDest(sourceRouter, dest, ipPacket, interfaceId, {
+        color,
+        context,
+        duration,
       });
-      await e(store.dispatch);
-      dest.receiveIPPacket(interfaceId, ipPacket);
     }
     return;
   }
-  if (!listeners.hasKey(dest)) {
+  const dest = listeners.get(destIp);
+  if (!dest) {
     console.error(
-      "Unexpected sendMessage call on Link Interface. Does not connect the said IP address. Destination is not a broadcast address."
+      `Unexpected sendMessage call on Link Interface. Does not connect the said IP address.
+      Destination is not a broadcast address.`
     );
     return;
   }
-  listeners.get(destination.ip)?.receiveIPPacket(interfaceId, ipPacket);
+  await sendPacketToDest(sourceRouter, dest, ipPacket, interfaceId, {
+    color,
+    context,
+    duration,
+  });
 };

@@ -38,6 +38,15 @@
     cursor: pointer;
 }
 
+.nested_table {
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.nested_table td, .nested_table th {
+    border: 1px solid #aaa !important;
+}
+
 .fixed {
     position: sticky;
     left: 0;
