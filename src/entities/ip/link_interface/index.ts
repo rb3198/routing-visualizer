@@ -19,11 +19,19 @@ export class IPLinkInterface {
   id: string;
   routers: TwoWayMap<string, Router>;
   baseIp: IPv4Address;
+  cost: number;
   constructor(id: string, baseIp: IPv4Address, routers: [Router, Router]) {
     this.id = id;
     this.baseIp = baseIp;
     this.routers = new TwoWayMap();
     this.assignIps(routers);
+    const [routerA, routerB] = routers;
+    const { location: locA } = routerA;
+    const [aX, aY] = locA;
+    const { location: locB } = routerB;
+    const [bX, bY] = locB;
+    const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
+    this.cost = parseInt(distance.toFixed(2));
   }
 
   private assignIps = (routers: [Router, Router]) => {
@@ -111,12 +119,9 @@ export class IPLinkInterface {
       return;
     }
     const { location: locA } = routerA;
-    const [aX, aY] = locA;
     const { location: locB } = routerB;
-    const [bX, bY] = locB;
     const { theta } = getSlopeAngleDist2D(locA, locB);
     context.save();
-    const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
     context.strokeStyle = "black";
     context.fillStyle = "black";
     context.beginPath();
@@ -133,7 +138,7 @@ export class IPLinkInterface {
       textY = (startY + endY) / 2;
     context.translate(textX, textY);
     context.rotate(theta);
-    context.fillText(distance.toFixed(2), 0, -5);
+    context.fillText(this.cost.toString(), 0, -5);
     context.stroke();
     context.fill();
     context.closePath();

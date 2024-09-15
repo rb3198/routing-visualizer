@@ -22,7 +22,7 @@ export class NeighborTableRow {
   ddSeqNumber?: number;
 
   /**
-   * If `true`, the neighbor is the master. Else, the neighbor is the slave.
+   * If `true`, the router is the master. Else, the router is the slave.
    */
   master: boolean;
 
