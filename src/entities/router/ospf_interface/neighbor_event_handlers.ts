@@ -137,14 +137,14 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
  */
 const exchangeDone: NeighborEventHandler = function (neighbor) {
   const { linkStateRequestList, routerId: neighborId } = neighbor;
-  const exchangeDone = !linkStateRequestList.length;
-  const desc = exchangeDone
+  const loadingDone = !linkStateRequestList.length;
+  const desc = loadingDone
     ? `Exchange between the router and ${neighborId} is complete. Entering the FULL (final) state!`
     : `The router received some link state requests from ${neighborId}. The router is completing the requests.`;
   this.setNeighbor(
     {
       ...neighbor,
-      state: exchangeDone ? State.Full : State.Loading,
+      state: loadingDone ? State.Full : State.Loading,
     },
     desc
   );
