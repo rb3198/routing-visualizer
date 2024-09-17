@@ -8,6 +8,8 @@ export class NeighborTableRow {
    * Primary ID of the neighbor. Derived from the Router ID contained in the received OSPF Header.
    */
   routerId: IPv4Address;
+
+  areaId: number;
   state: State;
   /**
    * Address of the neighbor on the IP interface.
@@ -70,12 +72,14 @@ export class NeighborTableRow {
 
   constructor(
     routerId: IPv4Address,
+    areaId: number,
     state: State,
     address: IPv4Address,
     interfaceId: string,
     master?: boolean
   ) {
     this.routerId = routerId;
+    this.areaId = areaId;
     this.state = state;
     this.address = address;
     this.interfaceId = interfaceId;

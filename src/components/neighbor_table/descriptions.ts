@@ -27,6 +27,7 @@ const stateDescriptions: Record<State, string> = {
 
 export const columnNames: Record<keyof NeighborTableRow, string> = {
   routerId: "Neighbor ID",
+  areaId: "",
   state: "State",
   address: "IP Address",
   interfaceId: "",
@@ -54,6 +55,7 @@ export const descriptions: Record<keyof NeighborTableRow | "none", string> = {
       <li>Learned when Hello packets are received from the neighbor.</li>
       </ul>
       </p>`,
+  areaId: "",
   state: `
       <p>The State of the Neighbor. Indicates the <b>functional level</b> of the neighbor conversation.</p>
       <p>A short description of each of the possible states is as follows:</p>

@@ -196,6 +196,7 @@ export class OSPFInterface {
   ) => {
     const neighbor = new NeighborTableRow(
       routerId,
+      areaId,
       State.Down,
       ipSrc,
       interfaceId
