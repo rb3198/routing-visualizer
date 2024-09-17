@@ -18,13 +18,18 @@ import { store } from "../../../store";
 export class IPLinkInterface {
   id: string;
   routers: TwoWayMap<string, Router>;
-  baseIp: IPv4Address;
   cost: number;
-  constructor(id: string, baseIp: IPv4Address, routers: [Router, Router]) {
+  ipMsb: number;
+  constructor(
+    id: string,
+    ipMsb: number,
+    b3Init: number,
+    routers: [Router, Router]
+  ) {
     this.id = id;
-    this.baseIp = baseIp;
+    this.ipMsb = ipMsb;
     this.routers = new TwoWayMap();
-    this.assignIps(routers);
+    this.assignIps(routers, b3Init);
     const [routerA, routerB] = routers;
     const { location: locA } = routerA;
     const [aX, aY] = locA;
@@ -34,29 +39,34 @@ export class IPLinkInterface {
     this.cost = parseInt(distance.toFixed(2));
   }
 
-  private assignIps = (routers: [Router, Router]) => {
-    const [byte1, byte2, byte3] = this.baseIp.bytes;
-    let b3 = byte3;
+  private assignIps = (routers: [Router, Router], b3Init: number) => {
+    let b3 = b3Init * 2;
     let backboneRouterPresent = false;
     if (routers && routers.length > 0) {
       routers.forEach((router) => {
         const { ospf } = router;
         const { config } = ospf;
         const { areaId } = config;
-        const interfaceIp = new IPv4Address(byte1, byte2, ++b3, 0, 24);
-        this.routers.set(interfaceIp.toString(), router);
         backboneRouterPresent =
           backboneRouterPresent || areaId === BACKBONE_AREA_ID;
       });
       routers.forEach((router) => {
-        router.addInterface(this);
         const { ospf } = router;
         const { config } = ospf;
         const { areaId, connectedToBackbone } = config;
         config.connectedToBackbone =
           areaId !== BACKBONE_AREA_ID &&
           (connectedToBackbone || backboneRouterPresent);
+        const interfaceIp = new IPv4Address(
+          this.ipMsb,
+          (backboneRouterPresent ? 0 : areaId) + 1,
+          b3++,
+          0,
+          16
+        );
+        this.routers.set(interfaceIp.toString(), router);
       });
+      routers.forEach((router) => router.addInterface(this));
     }
   };
 
