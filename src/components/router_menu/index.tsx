@@ -47,7 +47,10 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
   const Controls = useMemo(() => {
     const { turnedOn } = selectedRouter || {};
     const onClick = () => {
-      toggleRouterPower && selectedRouter && toggleRouterPower(selectedRouter);
+      !controlsDisabled &&
+        toggleRouterPower &&
+        selectedRouter &&
+        toggleRouterPower(selectedRouter);
     };
     return (
       <div

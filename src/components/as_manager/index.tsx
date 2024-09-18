@@ -502,6 +502,18 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     [setLiveNeighborTable]
   );
 
+  const toggleRouterPower = useCallback(() => {
+    if (!selectedRouter) {
+      return;
+    }
+    const { turnedOn, turnOff, turnOn } = selectedRouter;
+    if (turnedOn) {
+      setSelectedRouter(turnOff());
+    } else {
+      setSelectedRouter(turnOn());
+    }
+  }, [selectedRouter]);
+
   return (
     <>
       <canvas
@@ -540,6 +552,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         pickerRef={routerMenuRef}
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
+        toggleRouterPower={toggleRouterPower}
       />
       <AnimationToolbar
         startSimulation={startSimulation}
