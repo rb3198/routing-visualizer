@@ -15,32 +15,30 @@ import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
 import { emitEvent, setLiveNeighborTable } from "../../../action_creators";
 import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
-import {
-  getIpPacketDropReason,
-  getLsDbKey,
-  validateExchangeDDPacket,
-} from "./utils";
+import { getIpPacketDropReason, validateExchangeDDPacket } from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
 import {
   NeighborTableEvent,
   NeighborTableEventType,
 } from "src/entities/network_event/neighbor_table_event";
 import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
-import { LSA, LSAHeader } from "src/entities/ospf/lsa";
+import { LSAHeader } from "src/entities/ospf/lsa";
+import {
+  LSRequest,
+  LSRequestPacket,
+} from "src/entities/ospf/packets/ls_request";
+import { LsDb } from "./ls_db";
 
 export class OSPFInterface {
   config: OSPFConfig;
   router: Router;
   neighborTable: Record<string, NeighborTableRow>;
-  /**
-   * A Map of Area ID --> List of LSAs received from routers belonging to that area.
-   */
-  lsDb: Record<number, Record<string, LSA>>;
+  lsDb: LsDb;
   routingTable: Map<string, RoutingTableRow>;
   constructor(router: Router, config: OSPFConfig) {
     this.router = router;
     this.neighborTable = {};
-    this.lsDb = {};
+    this.lsDb = new LsDb(router);
     this.routingTable = new Map();
     this.config = config;
   }
@@ -201,10 +199,7 @@ export class OSPFInterface {
       ipSrc,
       interfaceId
     );
-    this.lsDb = {
-      ...this.lsDb,
-      [areaId]: {},
-    };
+    this.lsDb.originateRouterLsa(areaId);
     const eventDesc = `Router ${routerId} <i>added to</i> the OSPF Neighbor Table since
     its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
     It belonged to the same area or the backbone area (Area 0)`;
@@ -439,16 +434,23 @@ export class OSPFInterface {
     }
     const { linkStateRequestList } = neighbor;
     lsaHeaders.forEach((header) => {
-      const lsaId = getLsDbKey(header);
-      if (!this.lsDb[areaId][lsaId]) {
+      const lsa = this.lsDb.getLsa(areaId, header);
+      let requestLsa = false;
+      if (lsa) {
+        // LSA Exists, compare which one is newer.
+        requestLsa = header.compareAge(lsa) > 0;
+      } else {
         // This is a new LSA.
+        requestLsa = true;
+      }
+      if (requestLsa) {
         this.setNeighbor(
           {
             ...neighbor,
             linkStateRequestList: [...linkStateRequestList, header],
           },
           `
-        Router spotted a new LSA in the area. Updated the Link State Request List for neighbor <b>${neighborId}</b>
+        Router spotted a new / updated LSA in the area. Updated the Link State Request List for neighbor <b>${neighborId}</b>
         `
         );
       }
@@ -518,7 +520,7 @@ export class OSPFInterface {
       console.warn("Didn't find the neighbor to send DD Packet to.");
       return;
     }
-    const { state, interfaceId, address } = neighbor;
+    const { state, interfaceId, address, areaId } = neighbor;
     if (state < State.ExStart) {
       console.warn(
         "Should not be sending DD packets in states less than ExStart."
@@ -533,7 +535,7 @@ export class OSPFInterface {
       }
       const ddPacket = new DDPacket(
         this.router.id,
-        this.getAreaId(ipInterface),
+        areaId,
         neighbor.ddSeqNumber,
         true,
         true,
@@ -549,14 +551,17 @@ export class OSPFInterface {
       );
     } else {
       const { ddSeqNumber, master } = neighbor;
+      const lsaHeaders = this.lsDb
+        .getAreaLsaList(areaId)
+        .map((lsa) => lsa.header);
       const ddPacket = new DDPacket(
         this.router.id,
-        this.getAreaId(ipInterface),
+        areaId,
         ddSeqNumber,
         false,
-        false, // TODO: Base it on number of items in LSA Header List
+        false,
         master,
-        [] // TODO: Send complete DD packets in Exchange state.
+        lsaHeaders
       );
       ipInterface?.sendMessage(
         router,
@@ -566,5 +571,35 @@ export class OSPFInterface {
         Colors.dd
       );
     }
+  };
+
+  requestLSAs = (neighborId: IPv4Address) => {
+    const { areaId } = this.config;
+    const neighbor = this.neighborTable[neighborId.toString()];
+    if (
+      !neighbor ||
+      !neighbor.linkStateRequestList.length ||
+      neighbor.state !== State.Loading
+    ) {
+      return;
+    }
+    const { linkStateRequestList, interfaceId, address } = neighbor;
+    const { ipInterfaces } = this.router;
+    const { ipInterface } = ipInterfaces.get(interfaceId) || {};
+    const requests = linkStateRequestList.map((header) =>
+      LSRequest.fromLSAHeader(header)
+    );
+    const lsRequestPacket = new LSRequestPacket(
+      this.router.id,
+      areaId,
+      requests
+    );
+    ipInterface?.sendMessage(
+      this.router,
+      address,
+      IPProtocolNumber.ospf,
+      lsRequestPacket,
+      Colors.lsRequest
+    );
   };
 }
