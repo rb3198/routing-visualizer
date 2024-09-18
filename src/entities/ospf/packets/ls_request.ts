@@ -3,6 +3,7 @@ import { VERSION } from "../constants";
 import { LSType, PacketType } from "../enum";
 import { OSPFHeader } from "./header";
 import { OSPFPacket } from "./packet_base";
+import { LSAHeader } from "../lsa";
 
 export class LSRequest {
   lsType: LSType;
@@ -17,6 +18,11 @@ export class LSRequest {
     this.linkStateId = linkStateId;
     this.advertisingRouter = advertisingRouter;
   }
+
+  static fromLSAHeader = (header: LSAHeader) => {
+    const { lsType, advertisingRouter, linkStateId } = header;
+    return new LSRequest(lsType, linkStateId, advertisingRouter);
+  };
 }
 
 export class LSRequestPacket extends OSPFPacket {
