@@ -1,4 +1,3 @@
-import { LSAHeader } from "src/entities/ospf/lsa";
 import { OSPFInterface } from ".";
 import { DDPacket } from "src/entities/ospf/packets";
 import { State } from "src/entities/ospf/enum";
@@ -56,13 +55,3 @@ export function validateExchangeDDPacket(
   }
   return true;
 }
-
-/**
- * Given an LSA, figures out its unique identity
- * @param header
- * @returns
- */
-export const getLsDbKey = (header: LSAHeader) => {
-  const { lsType, linkStateId, advertisingRouter } = header;
-  return `${lsType}_${linkStateId}_${advertisingRouter}`;
-};
