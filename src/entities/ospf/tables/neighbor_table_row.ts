@@ -63,10 +63,8 @@ export class NeighborTableRow {
   lastReceivedDdPacket?: DDPacketSummary;
 
   /**
-   * The list of LSAs that need to be received from this neighbor in order to synchronize the two neighbors' link-state databases.
-   *
-   * This list is created as Database Description packets are received, and is then sent to the neighbor in Link State Request packets.
-   * The list is depleted as appropriate Link State Update packets are received.
+   * The list of LSAs that have been flooded but not acknowledged on this adjacency.
+   * These will be retransmitted at intervals until they are acknowledged, or until the adjacency is destroyed.
    */
   linkStateRetransmissionList: any[]; // TODO
 
