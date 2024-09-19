@@ -192,6 +192,81 @@ export class OSPFInterface {
     }
   };
 
+  /**
+   * - Clears the previous interval-based timer to send LS Update packets, if any.
+   * - Transmits the list to the neighbor and sets a new interval timer to retransmit if not empty.
+   * - Should be called when transmitting the packets in response to LS Request packets, OR
+   * Flooding a newly received / originated LSA.
+   * @param neighbor
+   * @param list
+   */
+  setNeighborLsRetransmissionList = (
+    neighbor: NeighborTableRow,
+    list: LSA[]
+  ) => {
+    const { rxmtInterval } = this.config;
+    const { routerId: neighborId, lsRetransmissionRxmtTimer } = neighbor;
+    let desc = `No more link state updates to retransmit to neighbor <b>${neighborId}</b>. Retransmission Timer reset.`;
+    clearInterval(lsRetransmissionRxmtTimer); // Clear the previous timer.
+    let newLsRetransmissionRxmtTimer = undefined;
+    if (list.length) {
+      desc = `The Link State Retransmission List has been updated for neighbor <b>${neighborId}</b>, since the router just flooded
+      Link State Updates to the neighbor. This list will be re-transmitted in case ACK is not received from the neighbor within 
+      <i>rxmtInterval</i> seconds`;
+      newLsRetransmissionRxmtTimer = setInterval(() => {
+        // emitEvent() TODO saying "LS Retransmission Timer for neighbor triggered."
+        this.sendLSUpdatePacket(neighborId);
+      }, rxmtInterval);
+      setTimeout(this.sendLSUpdatePacket.bind(this, neighborId));
+    }
+    this.setNeighbor(
+      {
+        ...neighbor,
+        linkStateRetransmissionList: list,
+        lsRetransmissionRxmtTimer: newLsRetransmissionRxmtTimer,
+      },
+      desc
+    );
+  };
+
+  /**
+   * - Clears the previous interval-based timer to send LS Request packets, if any.
+   * - If the new list is empty, does not set a new timer, and emits an event saying all 'LS Requests satisfied'
+   * Else, sets the list and a new timer to request again.
+   * - Called by LS Update packet handler in states >= `Loading`, or DD packet handler when state < `Loading`.
+   * @param neighbor
+   * @param list
+   */
+  setNeighborLsRequestList = (
+    neighbor: NeighborTableRow,
+    list: LSAHeader[]
+  ) => {
+    const { lsRequestRxmtTimer, routerId: neighborId } = neighbor;
+    const { rxmtInterval } = this.config;
+    clearInterval(lsRequestRxmtTimer);
+    let newTimer = undefined;
+    let desc = `Router received all the required Link State Adverts required from neighbor ${neighborId}.
+    Hence, the router is clearing the Link State Request List.`;
+    if (list.length) {
+      newTimer = setInterval(
+        this.sendLSRequestPacket.bind(this, neighborId),
+        rxmtInterval
+      );
+      desc = `
+        Router spotted a new / updated LSA in the area. Updated the Link State Request List for neighbor <b>${neighborId}</b>
+        `;
+      setTimeout(this.sendLSRequestPacket.bind(this, neighborId));
+    }
+    this.setNeighbor(
+      {
+        ...neighbor,
+        lsRequestRxmtTimer: newTimer,
+        linkStateRequestList: list,
+      },
+      desc
+    );
+  };
+
   private addToNeighborTable = (
     routerId: IPv4Address,
     areaId: number,
@@ -439,6 +514,7 @@ export class OSPFInterface {
       return;
     }
     const { linkStateRequestList } = neighbor;
+    const copy = [...linkStateRequestList];
     lsaHeaders.forEach((header) => {
       const lsa = this.lsDb.getLsa(areaId, header);
       let requestLsa = false;
@@ -450,25 +526,20 @@ export class OSPFInterface {
         requestLsa = true;
       }
       if (requestLsa) {
-        this.setNeighbor(
-          {
-            ...neighbor,
-            linkStateRequestList: [...linkStateRequestList, header],
-          },
-          `
-        Router spotted a new / updated LSA in the area. Updated the Link State Request List for neighbor <b>${neighborId}</b>
-        `
-        );
+        copy.push(header);
       }
     });
+    if (copy.length !== linkStateRequestList.length) {
+      this.setNeighborLsRequestList(neighbor, copy);
+    }
   };
 
   lsRequestPacketHandler = (ipPacket: IPPacket, packet: LSRequestPacket) => {
-    const { ipInterfaces, id: routerId } = this.router;
+    const { ipInterfaces } = this.router;
     const { header, body: lsRequests } = packet;
     const { areaId, routerId: neighborId } = header;
     const neighbor = this.neighborTable[neighborId.toString()];
-    const { state, interfaceId, address } = neighbor || {};
+    const { state, interfaceId } = neighbor || {};
     const { ipInterface } = ipInterfaces.get(interfaceId) || {};
     if (!neighbor || state < State.Exchange || !ipInterface) {
       return; // TODO: Emit Event
@@ -492,15 +563,7 @@ export class OSPFInterface {
         },
       });
     });
-    // TODO: Set timer
-    lsaResponseList.length &&
-      ipInterface.sendMessage(
-        this.router,
-        address,
-        IPProtocolNumber.ospf,
-        new LSUpdatePacket(routerId, areaId, lsaResponseList),
-        Colors.lsUpdate
-      );
+    this.setNeighborLsRetransmissionList(neighbor, lsaResponseList);
     if (isBadLsReq) {
       this.neighborStateMachine(
         neighborId.toString(),
@@ -625,7 +688,26 @@ export class OSPFInterface {
     }
   };
 
-  requestLSAs = (neighborId: IPv4Address) => {
+  sendLSUpdatePacket = (neighborId: IPv4Address) => {
+    const neighbor = this.neighborTable[neighborId.toString()];
+    const { id: routerId, ipInterfaces } = this.router;
+    if (!neighbor) {
+      console.warn("sendLSUpdate called for a neighbor which doesn't exist!");
+      return;
+    }
+    const { interfaceId, address, areaId, linkStateRetransmissionList } =
+      neighbor;
+    const { ipInterface } = ipInterfaces.get(interfaceId) || {};
+    ipInterface?.sendMessage(
+      this.router,
+      address,
+      IPProtocolNumber.ospf,
+      new LSUpdatePacket(routerId, areaId, linkStateRetransmissionList),
+      Colors.lsUpdate
+    );
+  };
+
+  sendLSRequestPacket = (neighborId: IPv4Address) => {
     const neighbor = this.neighborTable[neighborId.toString()];
     if (
       !neighbor ||

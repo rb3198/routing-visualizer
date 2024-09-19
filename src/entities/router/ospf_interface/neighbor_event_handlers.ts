@@ -153,13 +153,13 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
       ...neighbor,
       state: State.Loading,
       lsRequestRxmtTimer: setInterval(
-        () => this.requestLSAs(neighborId),
+        () => this.sendLSRequestPacket(neighborId),
         rxmtInterval
       ),
     },
     desc
   );
-  this.requestLSAs(neighborId);
+  this.sendLSRequestPacket(neighborId);
 };
 
 /**
