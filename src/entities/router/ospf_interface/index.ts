@@ -22,12 +22,13 @@ import {
   NeighborTableEventType,
 } from "src/entities/network_event/neighbor_table_event";
 import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
-import { LSAHeader } from "src/entities/ospf/lsa";
+import { LSA, LSAHeader } from "src/entities/ospf/lsa";
 import {
   LSRequest,
   LSRequestPacket,
 } from "src/entities/ospf/packets/ls_request";
 import { LsDb } from "./ls_db";
+import { LSUpdatePacket } from "src/entities/ospf/packets/ls_update";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -145,6 +146,11 @@ export class OSPFInterface {
           packet,
           ospfPacket as DDPacket,
           interfaceId
+        );
+      case PacketType.LinkStateRequest:
+        return this.lsRequestPacketHandler(
+          packet,
+          ospfPacket as LSRequestPacket
         );
       default:
         break;
@@ -457,6 +463,52 @@ export class OSPFInterface {
     });
   };
 
+  lsRequestPacketHandler = (ipPacket: IPPacket, packet: LSRequestPacket) => {
+    const { ipInterfaces, id: routerId } = this.router;
+    const { header, body: lsRequests } = packet;
+    const { areaId, routerId: neighborId } = header;
+    const neighbor = this.neighborTable[neighborId.toString()];
+    const { state, interfaceId, address } = neighbor || {};
+    const { ipInterface } = ipInterfaces.get(interfaceId) || {};
+    if (!neighbor || state < State.Exchange || !ipInterface) {
+      return; // TODO: Emit Event
+    }
+    const lsaResponseList: LSA[] = [];
+    let isBadLsReq = false;
+    lsRequests.forEach((lsRequest) => {
+      const lsa = this.lsDb.getLsa(areaId, lsRequest);
+      if (!lsa) {
+        isBadLsReq = true;
+        return;
+      }
+      const { header } = lsa;
+      const { lsAge } = header;
+      // Age all the LSAs by InfTransDelay (animation delay) before sending them on the link
+      lsaResponseList.push({
+        ...lsa,
+        header: {
+          ...header,
+          lsAge: lsAge + 2, // TODO: Use Propagation Delay stored in store to age LSA.
+        },
+      });
+    });
+    // TODO: Set timer
+    lsaResponseList.length &&
+      ipInterface.sendMessage(
+        this.router,
+        address,
+        IPProtocolNumber.ospf,
+        new LSUpdatePacket(routerId, areaId, lsaResponseList),
+        Colors.lsUpdate
+      );
+    if (isBadLsReq) {
+      this.neighborStateMachine(
+        neighborId.toString(),
+        NeighborSMEvent.BadLSReq
+      );
+    }
+  };
+
   neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
     const { neighborTable } = this;
     const neighbor = neighborTable[neighborId];
@@ -552,7 +604,7 @@ export class OSPFInterface {
     } else {
       const { ddSeqNumber, master } = neighbor;
       const lsaHeaders = this.lsDb
-        .getAreaLsaList(areaId)
+        .getLsaListByArea(areaId)
         .map((lsa) => lsa.header);
       const ddPacket = new DDPacket(
         this.router.id,

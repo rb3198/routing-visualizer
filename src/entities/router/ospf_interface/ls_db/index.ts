@@ -5,6 +5,12 @@ import { LSType } from "src/entities/ospf/enum";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { LSRefreshTime } from "src/entities/ospf/lsa/constants";
 
+export type LsId = {
+  lsType: LSType;
+  linkStateId: IPv4Address;
+  advertisingRouter: IPv4Address;
+};
+
 export class LsDb {
   /**
    * A Map of Area ID --> List of LSAs received from routers belonging to that area.
@@ -37,11 +43,7 @@ export class LsDb {
    * @param header
    * @returns
    */
-  private getLsDbKey = (header: {
-    lsType: LSType;
-    linkStateId: IPv4Address;
-    advertisingRouter: IPv4Address;
-  }) => {
+  private getLsDbKey = (header: LsId) => {
     const { lsType, linkStateId, advertisingRouter } = header;
     return `${lsType}_${linkStateId}_${advertisingRouter}`;
   };
@@ -120,7 +122,7 @@ export class LsDb {
    * @param areaId
    * @param lsKey
    */
-  getLsa = (areaId: number, header: LSAHeader) => {
+  getLsa = (areaId: number, header: LsId) => {
     const lsKey = this.getLsDbKey(header);
     return (this.db[areaId] && this.db[areaId][lsKey]) || undefined;
   };
@@ -130,8 +132,16 @@ export class LsDb {
    * @param areaId
    * @returns
    */
-  getAreaLsaList = (areaId: number) => {
+  getLsaListByArea = (areaId: number) => {
     return this.db[areaId] ? Object.values(this.db[areaId]) : [];
+  };
+
+  getAllLSAs = () => {
+    const lsaList: LSA[] = [];
+    Object.entries(this.db).forEach(([areaId, lsaDb]) => {
+      lsaList.push(...Object.values(lsaDb));
+    });
+    return lsaList;
   };
 
   /**
