@@ -95,7 +95,7 @@ export class IPLinkInterface {
     protocol: IPProtocolNumber,
     message: IPacket,
     color: string = Colors.accent,
-    duration: number = 2500
+    duration: number = 2000
   ) => {
     const fromIpStr = this.routers.getKey(from);
     if (!fromIpStr) {
