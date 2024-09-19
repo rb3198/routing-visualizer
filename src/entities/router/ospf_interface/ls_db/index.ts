@@ -3,6 +3,7 @@ import { Router } from "../..";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { LSType } from "src/entities/ospf/enum";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { LSRefreshTime } from "src/entities/ospf/lsa/constants";
 
 export class LsDb {
   /**
@@ -47,29 +48,54 @@ export class LsDb {
 
   /**
    * Ages all the LSAs in the DB by 1 second, every second.
+   *
+   * Refreshes the LSA if required.
    */
   private ageLSAs = () => {
+    const toRefresh: { areaId: number; lsa: LSA }[] = [];
     Object.keys(this.db).forEach((areaIdStr) => {
       const areaId = parseInt(areaIdStr);
       const areaDb = this.db[areaId];
       Object.keys(areaDb).forEach((lsaKey) => {
         const lsa = areaDb[lsaKey];
         const { header } = lsa;
-        const { lsAge } = header;
+        const { lsAge, advertisingRouter } = header;
+        const newLsAge = lsAge + 1;
+        const newLsa: LSA = {
+          ...lsa,
+          header: {
+            ...header,
+            lsAge: newLsAge,
+          },
+        };
         this.db = {
           ...this.db,
           [areaId]: {
             ...this.db[areaId],
-            [lsaKey]: {
-              ...lsa,
-              header: {
-                ...header,
-                lsAge: lsAge + 1,
-              },
-            },
+            [lsaKey]: newLsa,
           },
         };
+        if (
+          newLsAge === LSRefreshTime / 1000 &&
+          advertisingRouter.equals(this.router.id)
+        ) {
+          // Time to refresh the LSA
+          toRefresh.push({ areaId, lsa: newLsa });
+        }
       });
+    });
+    toRefresh.forEach(({ areaId, lsa }) => {
+      const { header } = lsa;
+      const { lsType } = header;
+      // TODO: Emit event saying "Refreshing LSA."
+      switch (lsType) {
+        case LSType.RouterLSA:
+          this.originateRouterLsa(areaId);
+          break;
+        default:
+          // TODO Summary LSAs
+          break;
+      }
     });
   };
 
