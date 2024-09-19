@@ -1,4 +1,5 @@
 import { IPacket } from "../../interfaces/IPacket";
+import { LSAHeader } from "../lsa";
 import { DDPacketBody } from "./dd";
 import { OSPFHeader } from "./header";
 import { HelloPacketBody } from "./hello";
@@ -11,7 +12,8 @@ export abstract class OSPFPacket implements IPacket {
     | HelloPacketBody
     | DDPacketBody
     | LSRequest[]
-    | LSUpdatePacketBody; // Add packet types here as you create
+    | LSUpdatePacketBody
+    | LSAHeader[];
   constructor(header: OSPFHeader) {
     this.header = header;
   }
