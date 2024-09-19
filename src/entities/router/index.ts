@@ -133,9 +133,16 @@ export class Router {
     this.turnedOn = false;
     this.ospf.lsDb.clearTimers();
     Object.values(this.ospf.neighborTable).forEach(
-      ({ deadTimer, rxmtTimer }) => {
+      ({
+        deadTimer,
+        ddRxmtTimer,
+        lsRequestRxmtTimer,
+        lsRetransmissionRxmtTimer,
+      }) => {
         clearTimeout(deadTimer);
-        clearInterval(rxmtTimer);
+        clearInterval(ddRxmtTimer);
+        clearInterval(lsRequestRxmtTimer);
+        clearInterval(lsRetransmissionRxmtTimer);
       }
     );
     [...this.ipInterfaces.values()].forEach(({ helloTimer }) => {

@@ -35,7 +35,9 @@ export const columnNames: Record<keyof NeighborTableRow, string> = {
   lastReceivedDdPacket: "Last Received DD Packet",
   master: "Master / Slave",
   deadTimer: "Inactivity Timer",
-  rxmtTimer: "",
+  ddRxmtTimer: "",
+  lsRequestRxmtTimer: "",
+  lsRetransmissionRxmtTimer: "",
   linkStateRequestList: "Link State Request List",
   dbSummaryList: "Database Summary List",
   linkStateRetransmissionList: "LS Retransmission List",
@@ -90,7 +92,9 @@ export const descriptions: Record<keyof NeighborTableRow | "none", string> = {
             <b>4 * HelloInterval</b>.
             <li>Neighbor state is set to <b>DOWN</b> once this timer fires.</li>
       </ul>`,
-  rxmtTimer: "",
+  ddRxmtTimer: "",
+  lsRequestRxmtTimer: "",
+  lsRetransmissionRxmtTimer: "",
   linkStateRetransmissionList: `
       <p>The list of LSAs that have been <b>flooded but not acknowledged on</b> by this neighbor.</p>
       <p> These will be retransmitted at intervals until:</p>

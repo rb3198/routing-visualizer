@@ -86,7 +86,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
       {
         ...neighbor,
         state: State.ExStart,
-        rxmtTimer: setInterval(
+        ddRxmtTimer: setInterval(
           this.sendDDPacket.bind(this, neighborId),
           rxmtInterval
         ),
@@ -152,7 +152,10 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
     {
       ...neighbor,
       state: State.Loading,
-      rxmtTimer: setInterval(() => this.requestLSAs(neighborId), rxmtInterval),
+      lsRequestRxmtTimer: setInterval(
+        () => this.requestLSAs(neighborId),
+        rxmtInterval
+      ),
     },
     desc
   );
@@ -199,7 +202,7 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
         linkStateRequestList: [],
         dbSummaryList: [],
         linkStateRetransmissionList: [],
-        rxmtTimer: setInterval(
+        ddRxmtTimer: setInterval(
           this.sendDDPacket.bind(this, neighbor.routerId),
           rxmtInterval
         ),

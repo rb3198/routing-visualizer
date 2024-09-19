@@ -305,7 +305,7 @@ export class OSPFInterface {
     const {
       state,
       routerId: neighborId,
-      rxmtTimer,
+      ddRxmtTimer,
       lastReceivedDdPacket,
       master: isRouterMaster,
     } = neighbor;
@@ -326,7 +326,7 @@ export class OSPFInterface {
         const { isNeighborMaster, isNeighborSlave } =
           this.isNeighborMasterOrSlave(packet);
         if (isNeighborMaster || isNeighborSlave) {
-          clearInterval(rxmtTimer);
+          clearInterval(ddRxmtTimer);
           this.neighborTable = {
             ...this.neighborTable,
             [neighbor.routerId.toString()]: {
@@ -376,7 +376,7 @@ export class OSPFInterface {
         if (isRouterMaster) {
           // The current router is the master in this adjacency.
           // The sent packet has been acknowledged.
-          clearInterval(rxmtTimer);
+          clearInterval(ddRxmtTimer);
         } else {
           this.sendDDPacket(neighborId);
         }
@@ -626,7 +626,6 @@ export class OSPFInterface {
   };
 
   requestLSAs = (neighborId: IPv4Address) => {
-    const { areaId } = this.config;
     const neighbor = this.neighborTable[neighborId.toString()];
     if (
       !neighbor ||
@@ -643,7 +642,7 @@ export class OSPFInterface {
     );
     const lsRequestPacket = new LSRequestPacket(
       this.router.id,
-      areaId,
+      this.getAreaId(ipInterface),
       requests
     );
     ipInterface?.sendMessage(

@@ -42,7 +42,9 @@ const getValue = (
       const arr = row[key];
       return `[ ${arr.join("<br>")} ]`;
     case "deadTimer":
-    case "rxmtTimer":
+    case "ddRxmtTimer":
+    case "lsRequestRxmtTimer":
+    case "lsRetransmissionRxmtTimer":
       return typeof row[key] === "undefined" ? "Not Set" : "Timer Set";
     case "lastReceivedDdPacket":
       const lastDdPacket = row[key];
