@@ -23,12 +23,10 @@ import {
 } from "src/entities/network_event/neighbor_table_event";
 import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
 import { LSA, LSAHeader } from "src/entities/ospf/lsa";
-import {
-  LSRequest,
-  LSRequestPacket,
-} from "src/entities/ospf/packets/ls_request";
+import { LSRequest } from "src/entities/ospf/packets/ls_request";
+import { LSRequestPacket } from "src/entities/ospf/packets";
 import { LsDb } from "./ls_db";
-import { LSUpdatePacket } from "src/entities/ospf/packets/ls_update";
+import { LSUpdatePacket } from "src/entities/ospf/packets";
 
 export class OSPFInterface {
   config: OSPFConfig;
