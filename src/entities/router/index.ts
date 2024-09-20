@@ -95,14 +95,14 @@ export class Router {
 
   receiveIPPacket = (interfaceId: string, packet: IPPacket) => {
     const { header } = packet;
-    const { protocol, source } = header;
+    const { protocol } = header;
     const { receivePacket } = this.ospf;
     if (!this.turnedOn) {
       return;
     }
     switch (protocol) {
       case IPProtocolNumber.ospf:
-        receivePacket(interfaceId, source, packet);
+        receivePacket(interfaceId, packet);
         break;
       default:
         break;

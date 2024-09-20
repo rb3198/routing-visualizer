@@ -1,6 +1,4 @@
 import { OSPFInterface } from ".";
-import { DDPacket } from "src/entities/ospf/packets";
-import { State } from "src/entities/ospf/enum";
 
 export const getIpPacketDropReason = function (
   this: OSPFInterface,
@@ -25,33 +23,3 @@ export const getIpPacketDropReason = function (
   }
   return reason;
 };
-
-/**
- * Validates a DD Packet when the sender is in the `Exchange` state of this router's Neighbor Table.
- * @param this
- * @param packet
- * @returns
- */
-export function validateExchangeDDPacket(
-  this: OSPFInterface,
-  packet: DDPacket
-) {
-  const { header, body } = packet;
-  const { routerId } = header;
-  const { init, ddSeqNumber: packetSeqNumber, master: ms } = body;
-  const neighbor = this.neighborTable[routerId.toString()];
-  if (!neighbor || neighbor.state !== State.Exchange) {
-    return false;
-  }
-  const { master, ddSeqNumber } = neighbor;
-  const masterOk = !master === ms;
-  const initOk = !init;
-  const seqOk = master
-    ? packetSeqNumber === ddSeqNumber
-    : packetSeqNumber === (ddSeqNumber ?? 0) + 1;
-  if (!masterOk || !initOk || !seqOk) {
-    return false;
-    // emitEvent({})(store.dispatch); TODO.
-  }
-  return true;
-}
