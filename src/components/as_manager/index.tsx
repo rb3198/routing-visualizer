@@ -248,7 +248,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       low,
       high,
       nAs,
-      new IPv4Address(byte1, nAs + 1, 0, 0)
+      new IPv4Address(byte1, nAs + 1, 0, 0, 16)
     );
     const { boundingBox } = as;
     const { centroid: asCentroid } = boundingBox;
@@ -461,8 +461,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     (routerA: Router, routerB: Router) => {
       const linkNo = linkInterfaceMap.current.size + 1;
       const linkId = `li_${linkNo}`;
-      const baseIp = new IPv4Address(192, 1, linkNo, 0);
-      const link = new IPLinkInterface(linkId, baseIp, [routerA, routerB]);
+      const link = new IPLinkInterface(linkId, 192, linkNo, [routerA, routerB]);
       linkInterfaceMap.current.set(linkId, link);
       link.draw(routerA, routerB);
       closeRouterMenu();
@@ -503,6 +502,18 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     [setLiveNeighborTable]
   );
 
+  const toggleRouterPower = useCallback(() => {
+    if (!selectedRouter) {
+      return;
+    }
+    const { turnedOn, turnOff, turnOn } = selectedRouter;
+    if (turnedOn) {
+      setSelectedRouter(turnOff());
+    } else {
+      setSelectedRouter(turnOn());
+    }
+  }, [selectedRouter]);
+
   return (
     <>
       <canvas
@@ -541,6 +552,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         pickerRef={routerMenuRef}
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
+        toggleRouterPower={toggleRouterPower}
       />
       <AnimationToolbar
         startSimulation={startSimulation}

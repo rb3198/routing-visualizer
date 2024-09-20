@@ -1,5 +1,7 @@
+import { LSA } from ".";
 import { IPv4Address } from "../../ip/ipv4_address";
 import { LSType } from "../enum";
+import { MaxAge, MaxAgeDiff } from "./constants";
 
 export class LSAHeader {
   lsAge: number;
@@ -30,4 +32,41 @@ export class LSAHeader {
     this.advertisingRouter = advertisingRouter;
     this.lsSeqNumber = lsSeqNumber;
   }
+
+  /**
+   * Given an LSA, compares the age of the LSA, as per Section 13.1 of the OSPF v2 Spec.
+   * @param comparedLsa Either the LSA Header or the LSA instance itself of the LSA whose age needs to be compared.
+   * @returns
+   * - **0** if This LSA is of the same age as compared to the `comparedLsa`
+   * - **-1** if This LSA is younger than the `comparedLsa`
+   * - **1** if This LSA is older than the `comparedLsa`
+   */
+  compareAge = (comparedLsa: LSAHeader | LSA) => {
+    const comparedHeader =
+      comparedLsa instanceof LSA ? comparedLsa.header : comparedLsa;
+    const { lsAge, lsSeqNumber } = this;
+    const { lsAge: comparedLsAge, lsSeqNumber: comparedLsSeqNo } =
+      comparedHeader;
+    // LSAs with bigger Sequence numbers are younger.
+    if (lsSeqNumber > comparedLsSeqNo) {
+      return -1;
+    } else if (lsSeqNumber < comparedLsSeqNo) {
+      return 1;
+    }
+    // Sequence Number is Equal
+
+    // If one of the instances has its age == `MaxAge`, it's considered to be more recent.
+    if (lsAge === MaxAge) {
+      return -1;
+    }
+    if (comparedLsAge === MaxAge) {
+      return 1;
+    }
+    // None of the instances have age = `MaxAge`.
+    // Compare the age
+    if (Math.abs(lsAge - comparedLsAge) > MaxAgeDiff) {
+      return lsAge > comparedLsAge ? 1 : -1;
+    }
+    return 0;
+  };
 }

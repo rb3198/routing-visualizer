@@ -6,7 +6,8 @@ import { deadTimerFactory } from "./timer_factories";
 
 type NeighborEventHandler = (
   this: OSPFInterface,
-  neighbor: NeighborTableRow
+  neighbor: NeighborTableRow,
+  desc?: string
 ) => void;
 
 /**
@@ -85,7 +86,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
       {
         ...neighbor,
         state: State.ExStart,
-        rxmtTimer: setInterval(
+        ddRxmtTimer: setInterval(
           this.sendDDPacket.bind(this, neighborId),
           rxmtInterval
         ),
@@ -137,33 +138,47 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
  */
 const exchangeDone: NeighborEventHandler = function (neighbor) {
   const { linkStateRequestList, routerId: neighborId } = neighbor;
-  const exchangeDone = !linkStateRequestList.length;
-  const desc = exchangeDone
-    ? `Exchange between the router and ${neighborId} is complete. Entering the FULL (final) state!`
-    : `The router received some link state requests from ${neighborId}. The router is completing the requests.`;
+  const { rxmtInterval } = this.config;
+  const loadDone = !linkStateRequestList.length;
+  if (loadDone) {
+    return loadingDone.call(
+      this,
+      neighbor,
+      `Exchange between the router and ${neighborId} is complete. Entering the FULL (final) state!`
+    );
+  }
+  const desc = `The router has some link state requests to emit to ${neighborId}. The router is completing the requests.`;
   this.setNeighbor(
     {
       ...neighbor,
-      state: exchangeDone ? State.Full : State.Loading,
+      state: State.Loading,
+      lsRequestRxmtTimer: setInterval(
+        () => this.sendLSRequestPacket(neighborId),
+        rxmtInterval
+      ),
     },
     desc
   );
-  // TODO: Send LSA Request Packets to the neighbor.
+  this.sendLSRequestPacket(neighborId);
 };
 
 /**
  * The `LoadingDone` Event handler. Sets the state to full, since all the LSAs from the neighbor have been received.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @param desc Optional description to be emitted to Event Handler.
  */
-const loadingDone: NeighborEventHandler = function (neighbor) {
+const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
+  const { routerId: neighborId, areaId } = neighbor;
   this.setNeighbor(
     {
       ...neighbor,
       state: State.Full,
     },
-    `Loading complete wrt neighbor ${neighbor.routerId}. Entering the FULL state.`
+    desc ??
+      `Loading complete wrt neighbor ${neighborId}. Entering the FULL state.`
   );
+  this.lsDb.originateRouterLsa(areaId);
 };
 
 // AdjOK event handler is not required since this event will never be transmitted in our simulator.
@@ -187,7 +202,7 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
         linkStateRequestList: [],
         dbSummaryList: [],
         linkStateRetransmissionList: [],
-        rxmtTimer: setInterval(
+        ddRxmtTimer: setInterval(
           this.sendDDPacket.bind(this, neighbor.routerId),
           rxmtInterval
         ),

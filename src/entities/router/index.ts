@@ -97,6 +97,9 @@ export class Router {
     const { header } = packet;
     const { protocol, source } = header;
     const { receivePacket } = this.ospf;
+    if (!this.turnedOn) {
+      return;
+    }
     switch (protocol) {
       case IPProtocolNumber.ospf:
         receivePacket(interfaceId, source, packet);
@@ -123,5 +126,28 @@ export class Router {
         helloTimer,
       });
     }
+    return { ...this };
+  };
+
+  turnOff = () => {
+    this.turnedOn = false;
+    this.ospf.lsDb.clearTimers();
+    Object.values(this.ospf.neighborTable).forEach(
+      ({
+        deadTimer,
+        ddRxmtTimer,
+        lsRequestRxmtTimer,
+        lsRetransmissionRxmtTimer,
+      }) => {
+        clearTimeout(deadTimer);
+        clearInterval(ddRxmtTimer);
+        clearInterval(lsRequestRxmtTimer);
+        clearInterval(lsRetransmissionRxmtTimer);
+      }
+    );
+    [...this.ipInterfaces.values()].forEach(({ helloTimer }) => {
+      clearInterval(helloTimer);
+    });
+    return { ...this };
   };
 }
