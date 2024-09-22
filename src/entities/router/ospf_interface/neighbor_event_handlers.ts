@@ -178,7 +178,7 @@ const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
     desc ??
       `Loading complete wrt neighbor ${neighborId}. Entering the FULL state.`
   );
-  this.lsDb.originateRouterLsa(areaId);
+  this.lsDb.originateRouterLsa(areaId, true);
 };
 
 // AdjOK event handler is not required since this event will never be transmitted in our simulator.

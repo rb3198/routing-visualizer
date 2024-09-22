@@ -84,6 +84,7 @@ export class LsDb {
           // Time to refresh the LSA
           toRefresh.push({ areaId, lsa: newLsa });
         }
+        // TODO: Handle MaxAge LSAs (Section 14).
       });
     });
     toRefresh.forEach(({ areaId, lsa }) => {
@@ -92,7 +93,7 @@ export class LsDb {
       // TODO: Emit event saying "Refreshing LSA."
       switch (lsType) {
         case LSType.RouterLSA:
-          this.originateRouterLsa(areaId);
+          this.originateRouterLsa(areaId, true);
           break;
         default:
           // TODO Summary LSAs
@@ -171,7 +172,7 @@ export class LsDb {
    * @param areaId
    * @param lsa
    */
-  setLsDb = (areaId: number, lsa: LSA) => {
+  setLsDb = (areaId: number, lsa: LSA, flood?: boolean) => {
     const { header } = lsa;
     const key = this.getLsDbKey(header);
     this.db = {
@@ -181,10 +182,11 @@ export class LsDb {
         [key]: lsa,
       },
     };
-    // TODO: Flood this LSA in that area.
+    // TODO: Flood this LSA in that area, recalculate routing tables.
+    // Section 13.3
   };
 
-  originateRouterLsa = (areaId: number) => {
+  originateRouterLsa = (areaId: number, flood?: boolean) => {
     const areaExists = !!this.db[areaId];
     if (!areaExists) {
       this.db[areaId] = {};
@@ -193,11 +195,11 @@ export class LsDb {
       Object.keys(this.db).forEach((areaIdKey) => {
         const areaId = parseInt(areaIdKey);
         const routerLsa = this.getRouterLsa(areaId);
-        this.setLsDb(areaId, routerLsa);
+        this.setLsDb(areaId, routerLsa, flood);
       });
     } else {
       const routerLsa = this.getRouterLsa(areaId);
-      this.setLsDb(areaId, routerLsa);
+      this.setLsDb(areaId, routerLsa, flood);
     }
   };
 }

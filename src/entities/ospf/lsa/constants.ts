@@ -19,6 +19,14 @@ export const LSRefreshTime = 1800000;
 export const MinLSInterval = 5000;
 
 /**
+ * For any particular LSA, the minimum time that must elapse
+    between reception of new LSA instances during flooding. 
+ *   
+ * LSA instances received at higher frequencies are discarded. The value of MinLSArrival is set to 1 second.
+ */
+export const MinLSArrival = 1000;
+
+/**
  * The maximum age that an LSA can attain. When an LSA's LS age field reaches MaxAge,
  * it is re-flooded in an attempt to flush the LSA from the routing domain.
  *

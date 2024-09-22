@@ -272,7 +272,7 @@ export class OSPFInterface {
       ipSrc,
       interfaceId
     );
-    this.lsDb.originateRouterLsa(areaId);
+    this.lsDb.originateRouterLsa(areaId, true);
     const eventDesc = `Router ${routerId} <i>added to</i> the OSPF Neighbor Table since
     its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
     It belonged to the same area or the backbone area (Area 0)`;
