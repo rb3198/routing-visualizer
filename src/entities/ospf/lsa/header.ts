@@ -69,4 +69,21 @@ export class LSAHeader {
     }
     return 0;
   };
+
+  /**
+   * Given an LSA Header to compare, determines if it is the same instance as this one.
+   * @param comparedLsa
+   */
+  equals = (comparedLsa: LSA | LSAHeader) => {
+    const comparedHeader =
+      comparedLsa instanceof LSAHeader ? comparedLsa : comparedLsa.header;
+    const { lsAge, lsSeqNumber, advertisingRouter, linkStateId, lsType } = this;
+    return (
+      lsType === comparedHeader.lsType &&
+      lsSeqNumber === comparedHeader.lsSeqNumber &&
+      Math.abs(lsAge - comparedHeader.lsAge) < MaxAgeDiff &&
+      advertisingRouter.equals(comparedHeader.advertisingRouter) &&
+      linkStateId.equals(comparedHeader.linkStateId)
+    );
+  };
 }
