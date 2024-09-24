@@ -7,6 +7,7 @@ import { Router } from "src/entities/router";
 import { NetworkEventCallback } from "../base";
 import { PacketEvent } from "./base";
 import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
+import { IPAddresses } from "src/constants/ip_addresses";
 
 export class PacketSentEvent extends PacketEvent {
   src: Router;
@@ -57,6 +58,14 @@ export class PacketSentEvent extends PacketEvent {
       type
     )}; font-weight: bold">${
       this.packetType
-    } packet</span> <i>sent</i> by router <b>${routerId.toString()}</b> to destination <b>${destination.toString()}</b>.`;
+    } packet</span> <i>sent</i> by router <b>${routerId.toString()}</b> to destination <b>${
+      destination.equals(IPAddresses.OSPFBroadcast)
+        ? IPAddresses.OSPFBroadcast
+        : this.dest.id
+    } ${
+      (destination.equals(IPAddresses.OSPFBroadcast) &&
+        "(OSPF Broadcast Address)") ||
+      ""
+    }</b>.`;
   }
 }
