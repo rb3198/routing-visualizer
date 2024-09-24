@@ -77,13 +77,23 @@ export class LSAHeader {
   equals = (comparedLsa: LSA | LSAHeader) => {
     const comparedHeader =
       comparedLsa instanceof LSAHeader ? comparedLsa : comparedLsa.header;
-    const { lsAge, lsSeqNumber, advertisingRouter, linkStateId, lsType } = this;
+    const { advertisingRouter, linkStateId, lsType } = this;
     return (
       lsType === comparedHeader.lsType &&
-      lsSeqNumber === comparedHeader.lsSeqNumber &&
-      Math.abs(lsAge - comparedHeader.lsAge) < MaxAgeDiff &&
       advertisingRouter.equals(comparedHeader.advertisingRouter) &&
       linkStateId.equals(comparedHeader.linkStateId)
+    );
+  };
+
+  static from = (header: LSAHeader) => {
+    const { lsAge, lsSeqNumber, lsType, linkStateId, advertisingRouter } =
+      header;
+    return new LSAHeader(
+      lsAge,
+      lsType,
+      linkStateId,
+      advertisingRouter,
+      lsSeqNumber
     );
   };
 }
