@@ -78,7 +78,7 @@ export class NeighborTableRow {
    * The list of LSAs that have been flooded but not acknowledged on this adjacency.
    * These will be retransmitted at intervals until they are acknowledged, or until the adjacency is destroyed.
    */
-  linkStateRetransmissionList: LSA[]; // TODO
+  linkStateRetransmissionList: LSA[];
 
   lastReceivedDdPacket?: DDPacketSummary;
 

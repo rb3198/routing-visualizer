@@ -137,7 +137,7 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const exchangeDone: NeighborEventHandler = function (neighbor) {
-  const { linkStateRequestList, routerId: neighborId } = neighbor;
+  const { linkStateRequestList, routerId: neighborId, ddRxmtTimer } = neighbor;
   const { rxmtInterval } = this.config;
   const loadDone = !linkStateRequestList.length;
   if (loadDone) {
@@ -148,6 +148,7 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
     );
   }
   const desc = `The router has some link state requests to emit to ${neighborId}. The router is completing the requests.`;
+  clearInterval(ddRxmtTimer);
   this.setNeighbor(
     {
       ...neighbor,
@@ -156,6 +157,7 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
         () => this.sendLSRequestPacket(neighborId),
         rxmtInterval
       ),
+      ddRxmtTimer: undefined,
     },
     desc
   );
@@ -169,11 +171,13 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
  * @param desc Optional description to be emitted to Event Handler.
  */
 const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
-  const { routerId: neighborId, areaId } = neighbor;
+  const { routerId: neighborId, areaId, lsRequestRxmtTimer } = neighbor;
+  clearInterval(lsRequestRxmtTimer);
   this.setNeighbor(
     {
       ...neighbor,
       state: State.Full,
+      lsRequestRxmtTimer: undefined,
     },
     desc ??
       `Loading complete wrt neighbor ${neighborId}. Entering the FULL state.`
@@ -193,7 +197,9 @@ const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
 const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
   const { config } = this;
   const { rxmtInterval } = config;
-  const { state } = neighbor;
+  const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer } = neighbor;
+  clearInterval(lsRequestRxmtTimer);
+  clearTimeout(lsRetransmissionRxmtTimer);
   if (state >= State.Exchange) {
     this.setNeighbor(
       {
@@ -206,6 +212,8 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
           this.sendDDPacket.bind(this, neighbor.routerId),
           rxmtInterval
         ),
+        lsRequestRxmtTimer: undefined,
+        lsRetransmissionRxmtTimer: undefined,
       },
       ""
     );

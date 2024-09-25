@@ -1,9 +1,11 @@
 import { LSA, LSAHeader } from "src/entities/ospf/lsa";
-import { Router } from "../..";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
-import { LSType } from "src/entities/ospf/enum";
+import { LSType, State } from "src/entities/ospf/enum";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
-import { LSRefreshTime } from "src/entities/ospf/lsa/constants";
+import { LSRefreshTime, MinLSInterval } from "src/entities/ospf/lsa/constants";
+import { OSPFInterface } from "..";
+import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
+import { NeighborTableRow } from "src/entities/ospf/tables";
 
 export type LsId = {
   lsType: LSType;
@@ -19,11 +21,11 @@ export class LsDb {
 
   agingTimer: NodeJS.Timeout;
 
-  router: Router;
+  ospfInterface: OSPFInterface;
 
-  constructor(router: Router) {
+  constructor(ospfInterface: OSPFInterface) {
     this.db = {};
-    this.router = router;
+    this.ospfInterface = ospfInterface;
     this.agingTimer = setInterval(this.ageLSAs, 1000);
   }
 
@@ -54,6 +56,8 @@ export class LsDb {
    * Refreshes the LSA if required.
    */
   private ageLSAs = () => {
+    const { router } = this.ospfInterface;
+    const { id: routerId } = router;
     const toRefresh: { areaId: number; lsa: LSA }[] = [];
     Object.keys(this.db).forEach((areaIdStr) => {
       const areaId = parseInt(areaIdStr);
@@ -79,7 +83,7 @@ export class LsDb {
         };
         if (
           newLsAge === LSRefreshTime / 1000 &&
-          advertisingRouter.equals(this.router.id)
+          advertisingRouter.equals(routerId)
         ) {
           // Time to refresh the LSA
           toRefresh.push({ areaId, lsa: newLsa });
@@ -123,7 +127,7 @@ export class LsDb {
    * @param areaId
    * @param lsKey
    */
-  getLsa = (areaId: number, header: LsId) => {
+  getLsa = (areaId: number, header: LsId): LSA | undefined => {
     const lsKey = this.getLsDbKey(header);
     return (this.db[areaId] && this.db[areaId][lsKey]) || undefined;
   };
@@ -139,7 +143,7 @@ export class LsDb {
 
   getAllLSAs = () => {
     const lsaList: LSA[] = [];
-    Object.entries(this.db).forEach(([areaId, lsaDb]) => {
+    Object.entries(this.db).forEach(([, lsaDb]) => {
       lsaList.push(...Object.values(lsaDb));
     });
     return lsaList;
@@ -151,20 +155,48 @@ export class LsDb {
    * @param areaId
    * @returns Router LSA for the attached router and the given area.
    */
-  private getRouterLsa = (areaId: number) => {
+  private createRouterLsa = (areaId: number) => {
+    const { router } = this.ospfInterface;
+    const { id: routerId } = router;
     const key = this.getLsDbKey({
       lsType: LSType.RouterLSA,
-      linkStateId: this.router.id,
-      advertisingRouter: this.router.id,
+      linkStateId: routerId,
+      advertisingRouter: routerId,
     });
     const oldRouterLsa = this.db[areaId] && this.db[areaId][key];
     const { header } = oldRouterLsa || {};
     const { lsSeqNumber } = header || {};
     return new RouterLSA(
-      this.router,
+      router,
       areaId,
       lsSeqNumber ? lsSeqNumber + 1 : undefined
     );
+  };
+
+  removeOldLsaFromRetransmissionLists = (oldCopy: LSA) => {
+    const { neighborTable, setNeighbor } = this.ospfInterface;
+    Object.values(neighborTable).forEach((neighbor) => {
+      const { linkStateRetransmissionList, routerId: neighborId } = neighbor;
+      const newRetransmissionList = linkStateRetransmissionList.filter(
+        (lsa) => !lsa.isInstanceOf(oldCopy)
+      );
+      setNeighbor(
+        {
+          ...neighbor,
+          linkStateRetransmissionList: newRetransmissionList,
+        },
+        `
+        <ul>
+        <li>Removed the stale LSA copy from neighbor ${neighborId}'s Link State Retransmission List.</li>
+        ${
+          !newRetransmissionList.length
+            ? "<li>Cleared the associated timer to send LSAs, since none were left.</li>"
+            : ""
+        }
+        </ul>
+        `
+      );
+    });
   };
 
   /**
@@ -172,9 +204,113 @@ export class LsDb {
    * @param areaId
    * @param lsa
    */
-  setLsDb = (areaId: number, lsa: LSA, flood?: boolean) => {
+
+  /**
+   * Given a received LSA and the corresponding neighbor, updates the associated Link State Request List
+   * if the neighbor is in a state < `FULL` and the exact (or an older) instance was requested to the neighbor.
+   * @param neighbor
+   * @param lsa
+   * @returns `true` if the flooding process should go to the next neighbor,
+   * `false` if the flooding process should continue processing the current neighbor.
+   */
+  private updateNeighborLsRequestList = (
+    neighbor: NeighborTableRow,
+    lsa: LSA
+  ) => {
+    const { state, linkStateRequestList, routerId: neighborId } = neighbor;
+    const { header } = lsa;
+    const { setNeighbor, neighborStateMachine } = this.ospfInterface;
+    /**
+     * LSA that was previously requested to the neighbor, before getting the current LSA (passed to this function)
+     */
+    const requestedLsa = linkStateRequestList.find((neighborLsa) =>
+      neighborLsa.isInstanceOf(lsa)
+    );
+    if (!requestedLsa || state === State.Full) {
+      return false;
+    }
+    if (header.compareAge(requestedLsa) > 0) {
+      // New LSA is less recent (older) than the one in the request list of the neighbor. The list won't be truncated.
+      return true;
+    }
+    const newLinkStateRequestList = linkStateRequestList.filter(
+      (neighborLsa) => !neighborLsa.isInstanceOf(lsa)
+    );
+    setNeighbor(
+      {
+        ...neighbor,
+        linkStateRequestList: newLinkStateRequestList,
+      },
+      `Received a requested LSA from the network. Neighbor ${neighborId} Updated with the new link state request list.`
+    );
+    if (!newLinkStateRequestList.length) {
+      neighborStateMachine(neighborId.toString(), NeighborSMEvent.LoadingDone);
+    }
+    return true;
+  };
+
+  /**
+   * Floods a given LSA in the given Area.
+   * @param areaId
+   * @param lsa
+   * @param receivedFrom The ID of the Neighbor that this LSA was received from. `undefined` if self-originated LSA.
+   */
+  floodLsa = (areaId: number, lsa: LSA, receivedFrom?: IPv4Address) => {
+    const { neighborTable, config, setNeighbor, sendLSUpdatePacket } =
+      this.ospfInterface;
+    const { rxmtInterval } = config;
+    console.log(
+      `Router ID ${this.ospfInterface.router.id}, setting LSA: ${lsa.header.advertisingRouter} of type ${lsa.header.lsType}`
+    );
+    for (const neighbor of Object.values(neighborTable)) {
+      const {
+        state,
+        areaId: neighborAreaId,
+        linkStateRetransmissionList,
+        routerId: neighborId,
+        lsRetransmissionRxmtTimer,
+      } = neighbor;
+      if (state < State.Exchange || areaId !== neighborAreaId) {
+        continue;
+      }
+      if (this.updateNeighborLsRequestList(neighbor, lsa)) {
+        continue;
+      }
+      if (receivedFrom && neighborId.equals(receivedFrom)) {
+        continue;
+      }
+      setNeighbor(
+        {
+          ...neighbor,
+          lsRetransmissionRxmtTimer:
+            lsRetransmissionRxmtTimer ??
+            setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval),
+          linkStateRetransmissionList: [...linkStateRetransmissionList, lsa],
+        },
+        `LSA added to neighbor ${neighborId}'s retransmission list`
+      );
+      console.log(
+        `LSA ${lsa.header.advertisingRouter} of type ${
+          lsa.header.lsType
+        } added to neighbor ${neighborId}'s retransmission list in state ${
+          Object.keys(State)[Object.values(State).indexOf(state)]
+        }`
+      );
+      !lsRetransmissionRxmtTimer && sendLSUpdatePacket(neighborId);
+    }
+  };
+
+  installLsa = (
+    areaId: number,
+    lsa: LSA,
+    receivedFrom?: IPv4Address,
+    flood?: boolean
+  ) => {
     const { header } = lsa;
     const key = this.getLsDbKey(header);
+    const oldCopy = this.getLsa(areaId, header);
+    oldCopy && this.removeOldLsaFromRetransmissionLists(oldCopy);
+    lsa.updatedOn = Date.now();
     this.db = {
       ...this.db,
       [areaId]: {
@@ -182,24 +318,53 @@ export class LsDb {
         [key]: lsa,
       },
     };
-    // TODO: Flood this LSA in that area, recalculate routing tables.
-    // Section 13.3
+    flood && this.floodLsa(areaId, lsa, receivedFrom);
+    // TODO: Compare the bodies of the old and new copies. Calculate routing tables on LSA change.
+    const isDifferent = !!oldCopy;
+    if (isDifferent) {
+    }
   };
 
   originateRouterLsa = (areaId: number, flood?: boolean) => {
+    const { router } = this.ospfInterface;
+    const { id: routerId } = router;
     const areaExists = !!this.db[areaId];
     if (!areaExists) {
       this.db[areaId] = {};
       // A new area will be added, originate the router LSA for each area ID and flood it.
       // (The B bit will change in the new LSA)
       Object.keys(this.db).forEach((areaIdKey) => {
-        const areaId = parseInt(areaIdKey);
-        const routerLsa = this.getRouterLsa(areaId);
-        this.setLsDb(areaId, routerLsa, flood);
+        const oAreaId = parseInt(areaIdKey);
+        const routerLsa = this.createRouterLsa(oAreaId);
+        this.installLsa(
+          oAreaId,
+          routerLsa,
+          undefined,
+          flood || oAreaId !== areaId
+        );
       });
     } else {
-      const routerLsa = this.getRouterLsa(areaId);
-      this.setLsDb(areaId, routerLsa, flood);
+      const existingRouterLsa = this.getLsa(areaId, {
+        advertisingRouter: routerId,
+        linkStateId: routerId,
+        lsType: LSType.RouterLSA,
+      });
+      const originateLsa = () => {
+        const routerLsa = this.createRouterLsa(areaId);
+        this.installLsa(areaId, routerLsa, undefined, flood);
+      };
+      const timeSinceInception =
+        existingRouterLsa && Date.now() - existingRouterLsa.createdOn;
+      if (
+        timeSinceInception &&
+        timeSinceInception > 0 &&
+        timeSinceInception < MinLSInterval
+      ) {
+        console.log("Waiting before generating a new router LSA.");
+        setTimeout(originateLsa, MinLSInterval - timeSinceInception);
+      } else {
+        originateLsa();
+      }
     }
   };
 }

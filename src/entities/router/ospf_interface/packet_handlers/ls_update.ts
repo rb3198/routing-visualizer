@@ -11,6 +11,7 @@ import {
   MaxAge,
   MaxSequenceNumber,
   MinLSArrival,
+  MinLSInterval,
 } from "src/entities/ospf/lsa/constants";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
@@ -34,6 +35,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       );
       return false;
     }
+    return true;
   };
 
   /**
@@ -90,10 +92,18 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     // TODO: (Post routing table construction)
     // If LSA is a summary LSA and router's routing table does not have a route to that destination, FLUSH the LSA
     // Else the following code:
+    const setRouterLsa = () => {
+      const newLsa = new RouterLSA(router, areaId, lsSeqNumber + 1);
+      lsDb.installLsa(areaId, newLsa, undefined, true);
+    };
     switch (lsType) {
       case LSType.RouterLSA:
-        const newLsa = new RouterLSA(router, areaId, lsSeqNumber + 1);
-        lsDb.setLsDb(areaId, newLsa, true);
+        const timeSinceDbCopy = Date.now() - dbCopy.createdOn;
+        if (timeSinceDbCopy < MinLSInterval) {
+          setTimeout(setRouterLsa, MinLSInterval - timeSinceDbCopy);
+        } else {
+          setRouterLsa();
+        }
         break;
       default:
         throw new Error(
@@ -101,23 +111,6 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         );
     }
     return true;
-  };
-
-  private removeOldLsaFromRetransmissionLists = (oldCopy: LSA) => {
-    const { neighborTable, setNeighbor } = this.ospfInterface;
-    Object.values(neighborTable).forEach((neighbor) => {
-      const { linkStateRetransmissionList, routerId: neighborId } = neighbor;
-      const newRetransmissionList = linkStateRetransmissionList.filter(
-        (lsa) => !lsa.equals(oldCopy)
-      );
-      setNeighbor(
-        {
-          ...neighbor,
-          linkStateRetransmissionList: newRetransmissionList,
-        },
-        `Removed the stale LSA copy from neighbor ${neighborId}'s Link State Retransmission List.`
-      );
-    });
   };
 
   handle = (
@@ -128,7 +121,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     if (!this.validPacket(ipPacket, packet)) {
       return;
     }
-    const { lsDb, neighborTable, router } = this.ospfInterface;
+    const { lsDb, neighborTable, router, sendLSAckPacket } = this.ospfInterface;
     const { ipInterfaces, id: routerId } = router;
     /**
      * List of Acknowledgements to be sent back to the neighbor.
@@ -137,35 +130,49 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     const { header, body } = packet;
     const { areaId, routerId: neighborId } = header;
     const { lsaList } = body;
+    if (!lsaList.length) {
+      console.log("Empty LSA List received!");
+    }
+    console.warn(
+      `Router ${router.id} received the following LSAs from ${neighborId}:`
+    );
+    let idx = 0;
     for (const lsa of lsaList) {
       const { header } = lsa;
+      console.warn(
+        `${idx++}: LS Request Type ${header.lsType}; ${header.linkStateId}; ${
+          header.advertisingRouter
+        } Seq: ${header.lsSeqNumber}`
+      );
       if (this.shouldAcknowledgeAndDiscardLsa(areaId, lsa)) {
         acknowledgements.push(header);
         continue;
       }
       const dbCopy = lsDb.getLsa(areaId, header);
       const { header: dbCopyHeader, updatedOn: dbUpdatedOn } = dbCopy || {};
-      const { lsAge: dbCopyAge, lsSeqNumber: dbLsSeqNumber } = dbCopyHeader;
-      if (!dbCopy || dbCopyHeader.compareAge(header) > 0) {
+      const { lsAge: dbCopyAge, lsSeqNumber: dbLsSeqNumber } =
+        dbCopyHeader || {};
+      const shouldInstallLsa = !dbCopy || dbCopyHeader!.compareAge(header) > 0;
+      if (shouldInstallLsa) {
         // Either there is no copy of the LSA in the DB, or the existing copy is older.
         if (this.specialActionTaken(areaId, lsa, dbCopy)) {
           continue;
         }
-        if (dbCopy && Date.now() - dbUpdatedOn < MinLSArrival) {
+        if (dbCopy && Date.now() - dbUpdatedOn! < MinLSArrival) {
           // Discarding the LSA without acknowledging it.
           continue;
         }
         // Install the LSA and flood it.
-        lsa.updatedOn = Date.now();
-        this.removeOldLsaFromRetransmissionLists(dbCopy);
-        lsDb.setLsDb(areaId, lsa, true);
-        acknowledgements.push(header); //TODO: Conditionally, based on 13.5
+        lsDb.installLsa(areaId, lsa, neighborId, true);
+        acknowledgements.push(header);
         continue;
       }
       const neighbor = neighborTable[neighborId.toString()];
       const { linkStateRequestList, linkStateRetransmissionList, address } =
         neighbor;
-      if (linkStateRequestList.some((lsaHeader) => lsaHeader.equals(lsa))) {
+      if (
+        linkStateRequestList.some((lsaHeader) => lsaHeader.isInstanceOf(lsa))
+      ) {
         // an error has occurred in the Database Exchange process.
         this.ospfInterface.neighborStateMachine(
           neighborId.toString(),
@@ -176,8 +183,8 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       if (dbCopy.equals(lsa)) {
         // Received LSA is the same instance as the database copy.
         if (
-          linkStateRetransmissionList.some((neighborLsa) =>
-            neighborLsa.equals(lsa)
+          linkStateRetransmissionList.some(
+            (neighborLsa) => neighborLsa.equals(lsa) //changed here from isInstanceof
           )
         ) {
           // Implied Acknowledgement.
@@ -212,5 +219,6 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         Colors.lsUpdate
       );
     }
+    acknowledgements.length && sendLSAckPacket(neighborId, acknowledgements);
   };
 }

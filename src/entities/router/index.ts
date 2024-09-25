@@ -142,22 +142,10 @@ export class Router {
         clearTimeout(deadTimer);
         clearInterval(ddRxmtTimer);
         clearInterval(lsRequestRxmtTimer);
-        clearInterval(lsRetransmissionRxmtTimer);
+        clearTimeout(lsRetransmissionRxmtTimer);
       }
     );
-    Object.entries(this.ospf.neighborTable).forEach(
-      ([neighborId, neighbor]) => {
-        this.ospf.neighborTable = {
-          ...this.ospf.neighborTable,
-          [neighborId]: {
-            ...neighbor,
-            ddRxmtTimer: undefined,
-            lsRequestRxmtTimer: undefined,
-            lsRetransmissionRxmtTimer: undefined,
-          },
-        };
-      }
-    );
+    this.ospf.neighborTable = {};
     [...this.ipInterfaces.values()].forEach(({ helloTimer }) => {
       clearInterval(helloTimer);
     });
