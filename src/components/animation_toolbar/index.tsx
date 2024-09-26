@@ -1,12 +1,6 @@
 import React from "react";
 import styles from "./styles.module.css";
-import {
-  FaFastBackward,
-  FaFastForward,
-  FaPause,
-  FaPlay,
-  FaStop,
-} from "react-icons/fa";
+import { FaPause, FaPlay, FaStop } from "react-icons/fa";
 
 interface AnimationToolbarProps {
   startSimulation: () => boolean;
@@ -31,12 +25,6 @@ export const AnimationToolbar: React.FC<AnimationToolbarProps> = (props) => {
       </div>
       <div>
         <FaStop color="black" />
-      </div>
-      <div>
-        <FaFastBackward color="black" />
-      </div>
-      <div>
-        <FaFastForward color="black" />
       </div>
     </div>
   );
