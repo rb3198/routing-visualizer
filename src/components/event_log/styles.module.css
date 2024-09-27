@@ -1,10 +1,45 @@
-#container {
-    width: 25vw;
+.container {
+    overflow-x: visible;
+    background-color: white;
+    transition: transform .5s ease-in;
+    transform: translateX(100%);
+}
+
+.container.expanded {
+    transform: translateX(0);
+}
+
+#toggle {
+    display: flex;
+    align-items: center;
+    background-color: #324ca8;
+    color: white;
     position: absolute;
-    left: 75vw;
+    left: 0;
+    padding: .5vw;
+    border: 1px solid white;
+    border-bottom: none;
+    font-size: 1vw;
+    font-weight: bold;
+    z-index: 1;
+    transform-origin: bottom right;
+    transform: translateX(-100%) rotate(-90deg);
+    cursor: pointer;
+}
+
+.toggle_icon {
+    margin-left: 0.5vw;
+    transition: transform 0.2s ease-in;
+}
+
+.toggle_icon.expanded {
+    transform: rotate(180deg);
+}
+#main {
+    background-color: white;
     overflow-y: scroll;
-    min-height: 92.5vh;
-    max-height: 92.5vh;
+    height: 92.5vh;
+    border-left: 1px solid #ccc;
 }
 
 #container ul {

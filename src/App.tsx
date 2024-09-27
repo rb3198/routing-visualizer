@@ -22,7 +22,7 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
+    <div className={styles.App}>
       <Provider store={store}>
         <NotificationTooltipContext.Provider
           value={{
