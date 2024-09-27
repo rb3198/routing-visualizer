@@ -12,14 +12,14 @@
     min-width: 0;
 }
 #description {
-    margin-top: 1vw;
+    margin-top: 1vmax;
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 #message {
-    margin-bottom: 1vw;
+    margin-bottom: 1vmax;
 }
 .centered_text {
     text-align: center;

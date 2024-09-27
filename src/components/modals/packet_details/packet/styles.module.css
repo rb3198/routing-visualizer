@@ -16,7 +16,7 @@
 .field {
     border-top: 3px solid #aaa;
     border-right: 3px solid #aaa;
-    padding: .764vw 0;
+    padding: .764vmax 0;
     flex: 1;
     cursor: pointer;
     display: flex;
@@ -31,13 +31,13 @@
 }
 
 .value {
-    font-size: .764vw;
+    font-size: .764vmax;
     font-weight: bold;
 }
 
 .fieldLabel {
     opacity: .75;
-    font-size: .618vw;
+    font-size: .618vmax;
 }
 
 #separator {
@@ -53,5 +53,5 @@
     left: 0;
     color: #324ca8aa;
     font-weight: bold;
-    font-size: .764vw;
+    font-size: .764vmax;
 }

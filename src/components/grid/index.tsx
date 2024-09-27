@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
 import { onCanvasLayout } from "../../utils/ui";
@@ -18,8 +18,16 @@ export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const constructGrid = useCallback(
-    (canvas: HTMLCanvasElement, cellSize: number) => {
+    (canvas: HTMLCanvasElement) => {
       const { width, height } = canvas.getBoundingClientRect();
+      const totalCells = gridSize ** 2;
+      const aspectRatio = width / height;
+      const cols = Math.round(Math.sqrt(totalCells * aspectRatio));
+      const rows = Math.round(totalCells / cols);
+      const cellWidth = width / cols;
+      const cellHeight = height / rows;
+      const cellSize = Math.min(cellWidth, cellHeight);
+      setCellSize(cellSize);
       const context = canvas.getContext("2d");
       let x = 0,
         y = 0;
@@ -38,19 +46,17 @@ export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
       }
       return gridRect;
     },
-    []
+    [gridSize, setCellSize]
   );
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!canvasRef.current) {
       return;
     }
     onCanvasLayout(canvasRef.current);
-    const cellSize = canvasRef.current.width / gridSize;
-    setCellSize(cellSize);
-    const gridRect = constructGrid(canvasRef.current, cellSize);
+    const gridRect = constructGrid(canvasRef.current);
     setGrid(gridRect);
-  }, [gridSize, setGrid, constructGrid, setCellSize]);
+  }, [setGrid, constructGrid]);
   return <canvas ref={canvasRef} id={styles.cell_grid} />;
 };
 

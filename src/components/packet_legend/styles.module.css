@@ -8,9 +8,9 @@
     cursor: pointer;
     z-index: 10;
     box-shadow: 0px 0px 10px 2px #aaa;
-    border-radius: 12px;
-    padding: 12px;
-    font-size: 1vw;
+    border-radius: .75vmax;
+    padding: .75vmax;
+    font-size: 1vmax;
 }
 
 #main {
@@ -51,7 +51,7 @@
 
 #list li {
     display: flex;
-    font-size: .8vw;
+    font-size: .8vmax;
     font-weight: normal;
     align-items: center;
     margin-bottom: .25vh;
@@ -62,13 +62,13 @@
 }
 
 .packet {
-    width: 1vw;
-    height: .75vw;
-    margin-right: .5vw;
+    width: 1vmax;
+    height: .75vmax;
+    margin-right: .5vmax;
 }
 
 .expand {
-    margin-left: .25vw;
+    margin-left: .25vmax;
     transition: transform .25s ease-in;
 }
 

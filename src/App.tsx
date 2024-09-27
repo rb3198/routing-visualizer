@@ -34,7 +34,7 @@ function App() {
           }}
         >
           <Header />
-          <GridManager gridSize={35} />
+          <GridManager />
           <EventLog showControlPanel classes={styles.event_log} />
           <NotificationTooltip />
           <EventModalManager />

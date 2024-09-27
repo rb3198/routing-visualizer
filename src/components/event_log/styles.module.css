@@ -16,10 +16,10 @@
     color: white;
     position: absolute;
     left: 0;
-    padding: .5vw;
+    padding: .5vmax;
     border: 1px solid white;
     border-bottom: none;
-    font-size: 1vw;
+    font-size: 1vmax;
     font-weight: 600;
     z-index: 1;
     transform-origin: bottom right;
@@ -28,7 +28,7 @@
 }
 
 .toggle_icon {
-    margin-left: 0.5vw;
+    margin-left: 0.5vmax;
     transition: transform 0.2s ease-in;
 }
 
@@ -50,14 +50,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.25vw 1vw;
+    padding: 0.25vmax 1vmax;
     margin-bottom: 2vh;
 }
 
 #search_box {
     box-shadow: 0 0 5px 1px #ccc;
     border: none;
-    height: 2vw;
+    height: 2vmax;
     border-radius: 6px;
     width: 50%;
     display: flex;
@@ -76,6 +76,7 @@
     display: flex;
     flex-grow: 1;
     border-radius: 6px;
+    font-size: .75vmax;
 }
 
 #search_input:focus {
@@ -94,7 +95,7 @@
     list-style-position: inside;
     text-align: justify;
     padding: 0 1.25vh;
-    font-size: .75vw;
+    font-size: .75vmax;
 }
 
 .event {
@@ -108,7 +109,7 @@
 }
 
 .link {
-    margin-right: .75vw;
+    margin-right: .75vmax;
     text-decoration: underline;
     cursor: pointer;
     color: #324ca8;
@@ -117,15 +118,16 @@
 
 
 #log_size_selector {
-    height: 2vw;
+    height: 2vmax;
+    font-size: .75vmax;
     box-shadow: 0 0 5px 1px #ccc;
     border: none;
     border-radius: 6px;
-    width: 5vw;
+    width: 5vmax;
 }
 
 #log_size_selector_container label{
-    font-size: .618vw;
+    font-size: .618vmax;
     color: #aaa;
-    margin-right: .5vw;
+    margin-right: .5vmax;
 }
