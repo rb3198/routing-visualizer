@@ -9,16 +9,16 @@ import React, {
 } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
-import { AutonomousSystemTree } from "../../entities/AutonomousSystemTree";
+import { AreaTree } from "../../entities/area_tree";
 import { mapCoordsToGridCell, onCanvasLayout } from "../../utils/ui";
 import { Point2D } from "../../types/geometry";
-import { getASPosition, getPickerPosition } from "./utils";
+import { getAreaPosition, getPickerPosition } from "./utils";
 import { ComponentPicker, PickerOption } from "../picker";
 import { RouterMenu } from "../router_menu";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
 import { IPv4Address } from "../../entities/ip/ipv4_address";
-import { AutonomousSystem } from "../../entities/autonomous_system";
+import { OSPFArea } from "../../entities/area";
 import { Colors } from "../../constants/theme";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
@@ -30,9 +30,9 @@ import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import { setLiveNeighborTable } from "src/action_creators";
-interface ASManagerProps {
+interface AreaManagerProps {
   gridRect: GridCell[][];
-  defaultAsSize: number;
+  defaultAreaSize: number;
 }
 
 type PickerState = {
@@ -62,17 +62,17 @@ const defaultPickerState = {
 const rootIp = new IPv4Address(192, 0, 0, 0, 8);
 
 type ReduxProps = ConnectedProps<typeof connector>;
-export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
+export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   props
 ) => {
-  const { gridRect, defaultAsSize, setLiveNeighborTable } = props;
+  const { gridRect, defaultAreaSize, setLiveNeighborTable } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
-  const asLayerHoverLocation = useRef<Point2D>();
-  const asTree = useRef<AutonomousSystemTree>(new AutonomousSystemTree());
+  const areaLayerHoverLocation = useRef<Point2D>();
+  const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
-  const asLayerRef = useRef<HTMLCanvasElement>(null);
-  const asComponentLayerRef = useRef<HTMLCanvasElement>(null);
+  const areaLayerRef = useRef<HTMLCanvasElement>(null);
+  const componentLayerRef = useRef<HTMLCanvasElement>(null);
   const routerConnectionLayerRef = useRef<HTMLCanvasElement>(null);
   const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
@@ -84,11 +84,9 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   const [componentPicker, setComponentPicker] =
     useState<PickerState>(defaultPickerState);
   const [componentOptions, setComponentOptions] = useState<
-    "as" | "router" | "none"
+    "area" | "router" | "none"
   >("none");
-  const [connectionOptions, setConnectionOptions] = useState<
-    AutonomousSystem[]
-  >([]);
+  const [connectionOptions, setConnectionOptions] = useState<OSPFArea[]>([]);
   const [selectedRouter, setSelectedRouter] = useState<Router>();
   const [simulationPlaying, setSimulationPlaying] = useState(false);
   const notificationTooltipContext = useContext(NotificationTooltipContext);
@@ -121,20 +119,22 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         new Set(ipInterfaces.keys())
       );
       const filteredConnectionOptions = (connectionOptions || [])
-        .filter((as) => {
+        .filter((area) => {
           const { ospf } = selectedRouter;
           const { config } = ospf;
           const { connectedToBackbone, areaId } = config;
           if (areaId === BACKBONE_AREA_ID) {
-            return !as.ospfConfig.connectedToBackbone;
+            return !area.ospfConfig.connectedToBackbone;
           }
           if (connectedToBackbone) {
-            return as.id !== BACKBONE_AREA_ID && as.routerLocations.size > 0;
+            return (
+              area.id !== BACKBONE_AREA_ID && area.routerLocations.size > 0
+            );
           }
-          return as.routerLocations.size > 0;
+          return area.routerLocations.size > 0;
         })
-        .map((as) => {
-          const { routerLocations, id, name } = as;
+        .map((area) => {
+          const { routerLocations, id, name } = area;
           return {
             id,
             name,
@@ -170,8 +170,8 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   useLayoutEffect(() => {
     [
       iconLayerRef.current,
-      asLayerRef.current,
-      asComponentLayerRef.current,
+      areaLayerRef.current,
+      componentLayerRef.current,
       routerConnectionLayerRef.current,
       elementsLayerRef.current,
     ].forEach((canvas) => {
@@ -180,7 +180,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       }
     });
     window.elementLayer = elementsLayerRef.current;
-    window.gridComponentLayer = asComponentLayerRef.current;
+    window.gridComponentLayer = componentLayerRef.current;
     window.routerConnectionLayer = routerConnectionLayerRef.current;
   }, []);
 
@@ -190,7 +190,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   const managePreviousHover = useCallback(
     (curRow: number, curCol: number) => {
       const iconLayerContext = iconLayerRef.current?.getContext("2d");
-      const asCompLayerContext = asComponentLayerRef.current?.getContext("2d");
+      const compLayerContext = componentLayerRef.current?.getContext("2d");
       if (iconLayerHoverLocation.current) {
         const [prevCol, prevRow] = iconLayerHoverLocation.current;
         if (prevCol !== curCol || prevRow !== curRow) {
@@ -201,14 +201,17 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
             );
         }
       }
-      if (asLayerHoverLocation.current) {
-        const [prevCol, prevRow] = asLayerHoverLocation.current;
-        const [, nearestAs] = asTree.current.searchClosest([prevCol, prevRow]);
-        const { routerLocations, getRouterLocationKey } = nearestAs;
+      if (areaLayerHoverLocation.current) {
+        const [prevCol, prevRow] = areaLayerHoverLocation.current;
+        const [, nearestArea] = areaTree.current.searchClosest([
+          prevCol,
+          prevRow,
+        ]);
+        const { routerLocations, getRouterLocationKey } = nearestArea;
         if (!routerLocations.has(getRouterLocationKey(prevRow, prevCol))) {
-          asCompLayerContext &&
+          compLayerContext &&
             gridRect[prevRow][prevCol].drawEmpty(
-              asCompLayerContext,
+              compLayerContext,
               "transparent"
             );
         }
@@ -217,65 +220,67 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     [gridRect]
   );
 
-  const placeAS: MouseEventHandler = useCallback(() => {
+  const placeArea: MouseEventHandler = useCallback(() => {
     const iconLayerContext = iconLayerRef.current?.getContext("2d");
-    const asLayerContext = asLayerRef.current?.getContext("2d");
+    const areaLayerContext = areaLayerRef.current?.getContext("2d");
     if (!iconLayerHoverLocation.current) {
       console.error(
-        "Unexpected placeAS call! Active Location must be populated before calling this method"
+        "Unexpected placeArea call! Active Location must be populated before calling this method"
       );
       return;
     }
     const activeLocation = iconLayerHoverLocation.current;
     const [col, row] = activeLocation;
-    if (!asLayerContext) {
+    if (!areaLayerContext) {
       return;
     }
-    const asBounds = getASPosition(
+    const arBounds = getAreaPosition(
       row,
       col,
-      defaultAsSize,
+      defaultAreaSize,
       gridRect[0].length,
       gridRect.length
     );
-    if (!asBounds) {
+    if (!arBounds) {
       return;
     }
-    const { low, high } = asBounds;
+    const { low, high } = arBounds;
     const [byte1] = rootIp.bytes;
-    const nAs = asTree.current.inOrderTraversal(asTree.current.root).length;
-    const as = new AutonomousSystem(
+    const nAreas = areaTree.current.inOrderTraversal(
+      areaTree.current.root
+    ).length;
+    const area = new OSPFArea(
       low,
       high,
-      nAs,
-      new IPv4Address(byte1, nAs + 1, 0, 0, 16)
+      nAreas,
+      new IPv4Address(byte1, nAreas + 1, 0, 0, 16)
     );
-    const { boundingBox } = as;
-    const { centroid: asCentroid } = boundingBox;
-    const asFillColor = Colors.accent + "55";
-    as.draw(asLayerContext, Colors.accent, asFillColor, gridRect);
-    asTree.current.insert(asCentroid, as);
+    const { boundingBox } = area;
+    const { centroid: areaCentroid } = boundingBox;
+    const areaFillColor = Colors.accent + "55";
+    area.draw(areaLayerContext, Colors.accent, areaFillColor, gridRect);
+    areaTree.current.insert(areaCentroid, area);
     iconLayerContext && gridRect[row][col].drawEmpty(iconLayerContext);
     iconLayerHoverLocation.current = undefined;
     closeComponentPicker();
-  }, [iconLayerHoverLocation, defaultAsSize, gridRect, closeComponentPicker]);
+  }, [iconLayerHoverLocation, defaultAreaSize, gridRect, closeComponentPicker]);
 
   const placeRouter: MouseEventHandler = useCallback(() => {
     if (
-      !asLayerHoverLocation.current ||
-      !asTree.current.root ||
-      !asComponentLayerRef.current
+      !areaLayerHoverLocation.current ||
+      !areaTree.current.root ||
+      !componentLayerRef.current
     ) {
       return;
     }
-    const [col, row] = asLayerHoverLocation.current;
-    const [, nearestAs] = asTree.current.searchClosest([col, row]);
-    const { routerLocations, getRouterLocationKey, placeRouter } = nearestAs;
+    const [col, row] = areaLayerHoverLocation.current;
+    const [, nearestArea] = areaTree.current.searchClosest([col, row]);
+    const { routerLocations, getRouterLocationKey, placeRouter } = nearestArea;
     const routerKey = getRouterLocationKey(row, col);
     if (routerLocations.has(routerKey)) {
       return;
     }
-    const context = asComponentLayerRef.current.getContext("2d");
+    const context = componentLayerRef.current.getContext("2d");
     if (!context) {
       return;
     }
@@ -290,8 +295,8 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
     (e) => {
       if (
         !iconLayerRef.current ||
-        !asLayerRef.current ||
-        !asComponentLayerRef.current ||
+        !areaLayerRef.current ||
+        !componentLayerRef.current ||
         !gridRect.length ||
         componentPickerVisible ||
         routerMenuVisible
@@ -300,8 +305,8 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       }
       const { clientX, clientY } = e;
       const iconLayerContext = iconLayerRef.current.getContext("2d");
-      const asCompLayerContext = asComponentLayerRef.current.getContext("2d");
-      if (!iconLayerContext || !asCompLayerContext) {
+      const compLayerContext = componentLayerRef.current.getContext("2d");
+      if (!iconLayerContext || !compLayerContext) {
         return;
       }
       const { row, column, cell } = mapCoordsToGridCell(
@@ -320,8 +325,8 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       }
       managePreviousHover(row, column);
       if (
-        asTree.current.handleHover(
-          asCompLayerContext,
+        areaTree.current.handleHover(
+          compLayerContext,
           column,
           row,
           setComponentOptions,
@@ -329,25 +334,25 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
           cell
         )
       ) {
-        // Hover is inside an AS, handled by the AS tree.
-        asLayerHoverLocation.current = [column, row];
+        // Hover is inside an Area, handled by the Area tree.
+        areaLayerHoverLocation.current = [column, row];
         return;
       }
       iconLayerHoverLocation.current = [column, row];
-      const potentialAsPosition = getASPosition(
+      const potentialAreaPosition = getAreaPosition(
         row,
         column,
-        defaultAsSize,
+        defaultAreaSize,
         gridSizeX,
         gridSizeY
       );
-      if (potentialAsPosition) {
+      if (potentialAreaPosition) {
         const potentialAsRect = new Rect2D(
-          potentialAsPosition.low,
-          potentialAsPosition.high
+          potentialAreaPosition.low,
+          potentialAreaPosition.high
         );
-        if (asTree.current.canPlaceAsOnCell(potentialAsRect)) {
-          setComponentOptions("as");
+        if (areaTree.current.canPlaceOnCell(potentialAsRect)) {
+          setComponentOptions("area");
           cell?.drawAddIcon(iconLayerContext);
         } else {
           setComponentOptions("none");
@@ -359,7 +364,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       gridRect,
       componentPickerVisible,
       routerMenuVisible,
-      defaultAsSize,
+      defaultAreaSize,
       gridSizeX,
       gridSizeY,
       managePreviousHover,
@@ -368,7 +373,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
 
   const onCanvasClick: MouseEventHandler = useCallback(
     (e) => {
-      if (!iconLayerRef.current || !asLayerRef.current || !gridRect.length) {
+      if (!iconLayerRef.current || !areaLayerRef.current || !gridRect.length) {
         return;
       }
       const { clientX, clientY } = e;
@@ -387,9 +392,9 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         ctx && cell && cell.drawAddIcon(ctx);
         return;
       }
-      if (asTree.current.root) {
-        const [, nearestAs] = asTree.current.searchClosest([column, row]);
-        const { routerLocations, getRouterLocationKey } = nearestAs;
+      if (areaTree.current.root) {
+        const [, nearestArea] = areaTree.current.searchClosest([column, row]);
+        const { routerLocations, getRouterLocationKey } = nearestArea;
         const routerLoc = getRouterLocationKey(row, column);
         if (routerLocations.has(routerLoc)) {
           const selectedRouter = routerLocations.get(routerLoc);
@@ -399,7 +404,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
             column,
             gridRect,
             routerMenuRef.current,
-            asLayerRef.current
+            areaLayerRef.current
           );
           openRouterMenu(left, top, bottom, selectedRouter);
         }
@@ -413,9 +418,9 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         column,
         gridRect,
         componentPickerRef.current,
-        asLayerRef.current
+        areaLayerRef.current
       );
-      if (componentOptions === "as" || componentOptions === "router") {
+      if (componentOptions === "area" || componentOptions === "router") {
         openComponentPicker(compPickerLeft, compPickerTop, compPickerBottom);
         return;
       }
@@ -443,19 +448,19 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
             onClick: placeRouter,
           },
         ];
-      case "as":
+      case "area":
         return [
           {
-            label: "AS Boundary",
+            label: "Area Boundary",
             Icon: PiRectangleDashed,
-            onClick: placeAS,
+            onClick: placeArea,
           },
         ];
       case "none":
       default:
         return [];
     }
-  }, [componentOptions, placeAS, placeRouter]);
+  }, [componentOptions, placeArea, placeRouter]);
 
   const connectRouters = useCallback(
     (routerA: Router, routerB: Router) => {
@@ -470,7 +475,7 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
   );
 
   const startSimulation = useCallback(() => {
-    if (!linkInterfaceMap.current.size || !asTree.current.root) {
+    if (!linkInterfaceMap.current.size || !areaTree.current.root) {
       openNotificationTooltip &&
         openNotificationTooltip(
           "No Connections Created. Please create a network and then start the simulation"
@@ -478,12 +483,14 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
       return false;
     }
     setSimulationPlaying(true);
-    asTree.current.inOrderTraversal(asTree.current.root).forEach(([, as]) => {
-      const { routerLocations } = as;
-      for (const router of routerLocations.values()) {
-        router.turnOn();
-      }
-    });
+    areaTree.current
+      .inOrderTraversal(areaTree.current.root)
+      .forEach(([, ar]) => {
+        const { routerLocations } = ar;
+        for (const router of routerLocations.values()) {
+          router.turnOn();
+        }
+      });
     return true;
   }, [openNotificationTooltip]);
 
@@ -521,7 +528,11 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         className={styles.canvas}
         ref={iconLayerRef}
       />
-      <canvas id={styles.as_layer} className={styles.canvas} ref={asLayerRef} />
+      <canvas
+        id={styles.area_layer}
+        className={styles.canvas}
+        ref={areaLayerRef}
+      />
       <canvas
         id={styles.router_connection_layer}
         className={styles.canvas}
@@ -533,9 +544,9 @@ export const ASManagerComponent: React.FC<ASManagerProps & ReduxProps> = (
         ref={elementsLayerRef}
       />
       <canvas
-        id={styles.as_component_layer}
+        id={styles.component_layer}
         className={styles.canvas}
-        ref={asComponentLayerRef}
+        ref={componentLayerRef}
         onMouseMove={onHover}
         onClick={onCanvasClick}
       />
@@ -578,4 +589,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
-export const ASManager = connector(ASManagerComponent);
+export const AreaManager = connector(AreaManagerComponent);

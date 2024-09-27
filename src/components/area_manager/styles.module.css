@@ -7,7 +7,7 @@
     z-index: 2;
 }
 
-#as_layer {
+#area_layer {
     z-index: 3;
 }
 
@@ -19,6 +19,6 @@
     z-index: 5;
 }
 
-#as_component_layer {
+#component_layer {
     z-index: 6;
 }

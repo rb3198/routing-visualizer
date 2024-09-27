@@ -7,51 +7,51 @@ import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
 
-export class AutonomousSystem {
+export class OSPFArea {
   /**
-   * Bounding box representing the area contained in the AS. Runs on inverted Y axis as per JS norms.
+   * Bounding box representing the area contained in the OSPF Area. Runs on inverted Y axis as per JS norms.
    *
    * p1 = top left point, p2 = top right point, p3 = bottom right point, p4 = bottom left point.
    */
   boundingBox: Rect2D;
   /**
-   * A set of all locations of routers stored in the AS, stored as `<x coordinate>_<y_coordinate>`
+   * A set of all locations of routers stored in the OSPF Area, stored as `<x coordinate>_<y_coordinate>`
    */
   routerLocations: Map<string, Router>;
 
   /**
-   * ID to identify the AS.
+   * ID to identify the OSPF Area.
    */
   id: number;
 
   /**
-   * Name of the AS.
+   * Name of the OSPF Area.
    */
   name: string;
 
   /**
-   * IP of this AS.
+   * IP of this OSPF Area.
    */
   ip: IPv4Address;
 
   /**
-   * Cell containing the label of the AS. Should be non-interactive.
+   * Cell containing the label of the OSPF Area. Should be non-interactive.
    */
   labelCell: Point2D;
 
   routerSubnetMask: number = 24;
 
   /**
-   * AS in the simulator also behaves as a single OSPF Area. Therefore, OSPF Configuration is attached to the AS itself.
+   * OSPF Area in the simulator also behaves as a single OSPF Area. Therefore, OSPF Configuration is attached to the OSPF Area itself.
    */
   ospfConfig: OSPFConfig;
 
   /**
    *
-   * @param low Top left point of the AS's bounding box
-   * @param high Bottom right point of the AS's bounding box
-   * @param id ID to assign to this AS. Will be labelled on the canvas.
-   * @param routerLocations Point2D Locations of routers, if any, in the AS.
+   * @param low Top left point of the OSPF Area's bounding box
+   * @param high Bottom right point of the OSPF Area's bounding box
+   * @param id ID to assign to this OSPF Area. Will be labelled on the canvas.
+   * @param routerLocations Point2D Locations of routers, if any, in the OSPF Area.
    */
   constructor(
     low: Point2D,
@@ -60,15 +60,15 @@ export class AutonomousSystem {
     ip: IPv4Address,
     routerLocations?: Point2D[]
   ) {
-    // 2 bytes for identifying the AS, 3rd byte for the router,
+    // 2 bytes for identifying the OSPF Area, 3rd byte for the router,
     // and the 4th byte to identify devices connected to the router.
     const [byte1, byte2] = ip.bytes;
-    const asSubnetMask = 16;
+    const areaSubnetMask = 16;
     this.labelCell = low;
     this.boundingBox = new Rect2D(low, high);
     this.id = id;
-    this.name = `AS ${id}`;
-    this.ip = new IPv4Address(byte1, byte2, 0, 0, asSubnetMask);
+    this.name = `Area ${id}`;
+    this.ip = new IPv4Address(byte1, byte2, 0, 0, areaSubnetMask);
     this.ospfConfig = new OSPFConfig(id);
     this.routerLocations = routerLocations
       ? new Map(
@@ -103,8 +103,8 @@ export class AutonomousSystem {
   };
 
   /**
-   * Draws the AS from scratch on the grid.
-   * Redraws all the routers and paths included in the AS.
+   * Draws the OSPF Area from scratch on the grid.
+   * Redraws all the routers and paths included in the OSPF Area.
    * @param context
    * @param strokeStyle
    * @param fillStyle
@@ -142,7 +142,7 @@ export class AutonomousSystem {
     context.fill();
     context.closePath();
     context.setLineDash([]);
-    context.font = `${cellSize / 2}px sans-serif`;
+    context.font = `${cellSize / 3}px sans-serif`;
     const { actualBoundingBoxAscent, actualBoundingBoxDescent } =
       context.measureText(this.name);
     const textHeight = actualBoundingBoxAscent + actualBoundingBoxDescent;
@@ -151,7 +151,7 @@ export class AutonomousSystem {
       this.name,
       low[0] * cellSize + textHeight / 4,
       low[1] * cellSize + (5 * textHeight) / 4,
-      20
+      cellSize - 5
     );
     for (let [loc, router] of this.routerLocations.entries()) {
       const [row, col] = loc.split("_").map((l) => parseInt(l));

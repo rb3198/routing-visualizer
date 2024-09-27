@@ -111,7 +111,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
           {connectionOptions.map(({ name, connectionOptions }) => {
             return (
               <React.Fragment key={`connection_picker_${name}`}>
-                <p className={`${styles.as_name} ${styles.description}`}>
+                <p className={`${styles.area_name} ${styles.description}`}>
                   {name}
                 </p>
                 <ul>

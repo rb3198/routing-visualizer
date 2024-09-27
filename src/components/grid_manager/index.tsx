@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Grid } from "../grid";
 import { GridCell } from "../../entities/geometry/grid_cell";
-import { ASManager } from "../as_manager";
+import { AreaManager } from "../area_manager";
 interface GridProps {
   gridSize: number;
 }
@@ -17,7 +17,7 @@ export const GridManager: React.FC<GridProps> = (props) => {
   return (
     <>
       <Grid setGrid={setGrid} gridSize={gridSize} gridRect={grid} />
-      <ASManager gridRect={grid} defaultAsSize={Math.ceil(gridSize / 5)} />
+      <AreaManager gridRect={grid} defaultAreaSize={Math.ceil(gridSize / 5)} />
     </>
   );
 };
