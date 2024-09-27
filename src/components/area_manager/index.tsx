@@ -30,6 +30,7 @@ import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import { setLiveNeighborTable } from "src/action_creators";
+import { PacketLegend } from "../packet_legend";
 interface AreaManagerProps {
   gridRect: GridCell[][];
   defaultAreaSize: number;
@@ -570,6 +571,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         pauseSimulation={pauseSimulation}
         playing={simulationPlaying}
       />
+      <PacketLegend />
     </>
   );
 };
