@@ -17,6 +17,9 @@ export type EventLogProps = {
   showControlPanel?: boolean;
   classes?: string;
   hideLinks?: boolean;
+  expanded?: boolean;
+  showExpandToggle?: boolean;
+  noBorders?: boolean;
 };
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -28,10 +31,13 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     showControlPanel,
     classes,
     hideLinks,
+    showExpandToggle,
+    noBorders,
+    expanded: defaultExpanded,
     setEventLogKeepCount,
   } = props;
 
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded || false);
 
   const { type, routerId } = filter || {};
 
@@ -84,15 +90,17 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         expanded ? styles.expanded : ""
       }`}
     >
-      <div id={styles.toggle} onClick={toggleEventLog}>
-        Event Log
-        <MdKeyboardArrowUp
-          className={`${styles.toggle_icon} ${
-            (expanded && styles.expanded) || ""
-          }`}
-        />
-      </div>
-      <div id={styles.main}>
+      {showExpandToggle && (
+        <div id={styles.toggle} onClick={toggleEventLog}>
+          Event Log
+          <MdKeyboardArrowUp
+            className={`${styles.toggle_icon} ${
+              (expanded && styles.expanded) || ""
+            }`}
+          />
+        </div>
+      )}
+      <div id={styles.main} data-no-borders={noBorders}>
         <h2 id={styles.title}>Recent Events</h2>
         {(showControlPanel && ControlPanel) || <></>}
         <ul id={styles.log_list}>

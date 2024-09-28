@@ -35,7 +35,11 @@ function App() {
         >
           <Header />
           <GridManager />
-          <EventLog showControlPanel classes={styles.event_log} />
+          <EventLog
+            showControlPanel
+            classes={styles.event_log}
+            showExpandToggle
+          />
           <NotificationTooltip />
           <EventModalManager />
         </NotificationTooltipContext.Provider>

@@ -42,6 +42,10 @@
     border-left: 1px solid #ccc;
 }
 
+#main[data-no-borders="true"] {
+    border-left: 0;
+}
+
 #container ul {
     list-style-position: inside;
 }

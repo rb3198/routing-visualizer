@@ -11,6 +11,7 @@ import {
   getSlopeAngleDist2D,
 } from "../../../utils/drawing";
 import { store } from "../../../store";
+import { getTravelDirection } from "src/utils/geometry";
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
@@ -122,6 +123,81 @@ export class IPLinkInterface {
     }
   };
 
+  private drawIps = (
+    context: CanvasRenderingContext2D,
+    routerA: Router,
+    routerB: Router
+  ) => {
+    const { cellSize } = store.getState();
+    const ipA = this.routers.getKey(routerA);
+    const ipB = this.routers.getKey(routerB);
+    if (!ipA || !ipB) {
+      console.warn("Draw IPs called with unknown routers");
+      return;
+    }
+    let { location: start } = routerA;
+    let { location: end } = routerB;
+    const { directionX, directionY } = getTravelDirection(start, end);
+    if (directionX === "left") {
+      const temp = start;
+      start = end;
+      end = temp;
+    }
+    let startX = (start[0] + 1) * cellSize,
+      startY = (start[1] + 1 / 2) * cellSize;
+    let endX = end[0] * cellSize,
+      endY = (end[1] + 1 / 2) * cellSize;
+    const { theta } = getSlopeAngleDist2D([startX, startY], [endX, endY]);
+    const m = Math.tan(theta);
+    if (directionX === "right" && directionY === "top") {
+      startX = startX + (cellSize * 0.5) / Math.sqrt(1 + m ** 2);
+      startY = startY + (m * cellSize * 0.5) / Math.sqrt(1 + m ** 2);
+    }
+    if (directionX === "none") {
+      if (directionY === "bottom") {
+        startX = (start[0] + 0.5) * cellSize;
+        startY = (start[1] + 1) * cellSize + 2;
+        endX = (end[0] + 0.5) * cellSize;
+        endY = 5 + end[1] * cellSize - context.measureText(ipB).width;
+      } else {
+        startX = (end[0] + 0.5) * cellSize;
+        startY = (end[1] + 1) * cellSize + context.measureText(ipB).width - 5;
+        endX = (start[0] + 0.5) * cellSize;
+        endY = 5 + (start[1] + 1) * cellSize - context.measureText(ipB).width;
+      }
+    } else {
+      if (directionX === "left") {
+        startX = startX + (cellSize * 0.75) / Math.sqrt(1 + m ** 2);
+        startY = startY + (m * cellSize * 0.75) / Math.sqrt(1 + m ** 2);
+      }
+      endX = endX - (cellSize * 1.5) / Math.sqrt(1 + m ** 2);
+      endY = endY - (m * 1.5 * cellSize) / Math.sqrt(1 + m ** 2);
+    }
+    const shouldInterchangeIp =
+      directionX === "left" || (directionX === "none" && directionY === "top");
+    [
+      { x: startX, y: startY, ip: shouldInterchangeIp ? ipB : ipA },
+      { x: endX, y: endY, ip: shouldInterchangeIp ? ipA : ipB },
+    ].forEach(({ x, y, ip }) => {
+      context.save();
+      context.font = ".85vmin sans-serif";
+      context.strokeStyle = "black";
+      context.fillStyle = "black";
+      context.beginPath();
+      context.translate(x, y);
+      context.rotate(
+        directionX === "none"
+          ? ((shouldInterchangeIp ? -90 : 90) * Math.PI) / 180
+          : theta
+      );
+      context.fillText(ip, 0, -5);
+      context.stroke();
+      context.fill();
+      context.closePath();
+      context.restore();
+    });
+  };
+
   draw = (routerA: Router, routerB: Router) => {
     const { cellSize } = store.getState();
     const context = window.routerConnectionLayer?.getContext("2d");
@@ -131,6 +207,7 @@ export class IPLinkInterface {
     const { location: locA } = routerA;
     const { location: locB } = routerB;
     const { theta } = getSlopeAngleDist2D(locA, locB);
+    this.drawIps(context, routerA, routerB);
     context.save();
     context.strokeStyle = "black";
     context.fillStyle = "black";
@@ -143,10 +220,10 @@ export class IPLinkInterface {
     );
     context.moveTo(startX, startY);
     context.lineTo(endX, endY);
-    context.font = "16px sans-serif";
-    const textX = (startX + endX) / 2,
-      textY = (startY + endY) / 2;
-    context.translate(textX, textY);
+    context.font = "1vmax sans-serif";
+    const costX = (startX + endX) / 2,
+      costY = (startY + endY) / 2;
+    context.translate(costX, costY);
     context.rotate(theta);
     context.fillText(this.cost.toString(), 0, -5);
     context.stroke();

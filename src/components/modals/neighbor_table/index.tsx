@@ -110,6 +110,8 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
           <EventLog
             classes={styles.event_log}
             hideLinks
+            expanded
+            noBorders
             filter={{ type: "neighbor", routerId: props.routerId.toString() }}
           />
         </div>
