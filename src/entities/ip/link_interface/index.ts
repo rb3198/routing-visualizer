@@ -11,7 +11,7 @@ import {
   getSlopeAngleDist2D,
 } from "../../../utils/drawing";
 import { store } from "../../../store";
-import { getTravelDirection } from "src/utils/geometry";
+import { getTravelDirection, vmax } from "src/utils/geometry";
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
@@ -137,62 +137,88 @@ export class IPLinkInterface {
     }
     let { location: start } = routerA;
     let { location: end } = routerB;
-    const { directionX, directionY } = getTravelDirection(start, end);
-    if (directionX === "left") {
-      const temp = start;
-      start = end;
-      end = temp;
+    let { directionX, directionY } = getTravelDirection(start, end);
+    let [startX, startY] = start.map((u) => u * cellSize),
+      [endX, endY] = end.map((u) => u * cellSize);
+    startY += cellSize / 2;
+    endY += cellSize / 2;
+    if (directionX === "right") {
+      startX += cellSize;
+    } else if (directionX === "left") {
+      endX += cellSize;
     }
-    let startX = (start[0] + 1) * cellSize,
-      startY = (start[1] + 1 / 2) * cellSize;
-    let endX = end[0] * cellSize,
-      endY = (end[1] + 1 / 2) * cellSize;
-    const { theta } = getSlopeAngleDist2D([startX, startY], [endX, endY]);
+    const { directionX: x, directionY: y } = getTravelDirection(
+      [startX, startY],
+      [endX, endY]
+    );
+    const changed = x !== directionX;
+    directionX = x;
+    directionY = y;
+    const { theta, distance: totalDistance } = getSlopeAngleDist2D(
+      [startX, startY],
+      [endX, endY]
+    );
     const m = Math.tan(theta);
-    if (directionX === "right" && directionY === "top") {
-      startX = startX + (cellSize * 0.5) / Math.sqrt(1 + m ** 2);
-      startY = startY + (m * cellSize * 0.5) / Math.sqrt(1 + m ** 2);
-    }
+    const norm = Math.sqrt(1 + m ** 2);
+    const padding = vmax(0.1);
+    let startThetaOffset = 0,
+      endThetaOffset = 0;
+    const distOffset = 0.15;
     if (directionX === "none") {
+      const distance = distOffset * totalDistance;
+      startX += changed ? 0 : cellSize / 2;
+      endX += changed ? 0 : cellSize / 2;
       if (directionY === "bottom") {
-        startX = (start[0] + 0.5) * cellSize;
-        startY = (start[1] + 1) * cellSize + 2;
-        endX = (end[0] + 0.5) * cellSize;
-        endY = 5 + end[1] * cellSize - context.measureText(ipB).width;
+        endThetaOffset = Math.PI;
       } else {
-        startX = (end[0] + 0.5) * cellSize;
-        startY = (end[1] + 1) * cellSize + context.measureText(ipB).width - 5;
-        endX = (start[0] + 0.5) * cellSize;
-        endY = 5 + (start[1] + 1) * cellSize - context.measureText(ipB).width;
+        endThetaOffset = Math.PI;
       }
+      startY +=
+        directionY === "bottom"
+          ? cellSize / 2 + distance
+          : -cellSize / 2 - distance;
+      endY +=
+        directionY === "bottom"
+          ? -cellSize / 2 - distance
+          : cellSize / 2 + distance;
+    } else if (directionX === "left") {
+      startX -= (distOffset * totalDistance) / norm;
+      startY -= (distOffset * totalDistance * m) / norm;
+      endX += (distOffset * totalDistance) / norm;
+      endY += (distOffset * totalDistance * m) / norm;
+      startThetaOffset = Math.PI;
     } else {
-      if (directionX === "left") {
-        startX = startX + (cellSize * 0.75) / Math.sqrt(1 + m ** 2);
-        startY = startY + (m * cellSize * 0.75) / Math.sqrt(1 + m ** 2);
-      }
-      endX = endX - (cellSize * 1.5) / Math.sqrt(1 + m ** 2);
-      endY = endY - (m * 1.5 * cellSize) / Math.sqrt(1 + m ** 2);
+      startX += (distOffset * totalDistance) / norm;
+      startY += (distOffset * totalDistance * m) / norm;
+      endX -= (distOffset * totalDistance) / norm;
+      endY -= (distOffset * totalDistance * m) / norm;
+      endThetaOffset = Math.PI;
     }
-    const shouldInterchangeIp =
-      directionX === "left" || (directionX === "none" && directionY === "top");
     [
-      { x: startX, y: startY, ip: shouldInterchangeIp ? ipB : ipA },
-      { x: endX, y: endY, ip: shouldInterchangeIp ? ipA : ipB },
-    ].forEach(({ x, y, ip }) => {
+      { x: startX, y: startY, ip: ipA, offset: startThetaOffset },
+      { x: endX, y: endY, ip: ipB, offset: endThetaOffset },
+    ].forEach(({ x, y, ip, offset }) => {
+      const {
+        width: textWidth,
+        fontBoundingBoxAscent: asc,
+        fontBoundingBoxDescent: dsc,
+      } = context.measureText(ip);
+      const textHeight = asc + dsc;
       context.save();
       context.font = ".85vmin sans-serif";
-      context.strokeStyle = "black";
-      context.fillStyle = "black";
-      context.beginPath();
+      context.strokeStyle = "white";
+      context.fillStyle = "black"; // TODO
       context.translate(x, y);
-      context.rotate(
-        directionX === "none"
-          ? ((shouldInterchangeIp ? -90 : 90) * Math.PI) / 180
-          : theta
-      );
-      context.fillText(ip, 0, -5);
-      context.stroke();
+      context.rotate(theta + offset + Math.PI / 2);
+      context.translate(-textWidth / 2, 0);
+      context.beginPath();
+      context.fillStyle = "black";
+      context.rect(-padding, -textHeight, textWidth, textHeight + 2 * padding);
       context.fill();
+      context.closePath();
+      context.beginPath();
+      context.fillStyle = "white";
+      context.fillText(ip, 0, 0);
       context.closePath();
       context.restore();
     });
