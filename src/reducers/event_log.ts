@@ -1,6 +1,7 @@
 import { Reducer } from "redux";
 import { EventLogAction } from "../types/actions";
 import { NetworkEventBase } from "../entities/network_event/base";
+import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 
 type EventLogState = {
   logs: NetworkEventBase[];
@@ -10,7 +11,8 @@ type EventLogState = {
 export const eventLogReducer: Reducer<EventLogState, EventLogAction> = (
   state = {
     logs: [],
-    keepCount: 200,
+    keepCount:
+      parseInt(localStorage.getItem(EVENT_LOG_STORAGE_COUNT_KEY) || "0") || 600,
   },
   action
 ) => {
