@@ -9,11 +9,11 @@ import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
 import { getHeaderRows } from "../descriptions/header";
 import styles from "./styles.module.css";
-import { PacketVizField } from "../descriptions/types";
+import { PacketViz, PacketVizField } from "../descriptions/types";
 
 interface PacketVizProps {
   packet: OSPFPacket;
-  bodyRows: PacketVizField[][];
+  bodyRows: PacketViz[];
   setFieldDesc: React.Dispatch<React.SetStateAction<string>>;
 }
 
@@ -38,7 +38,7 @@ const Field: React.FC<{
       onMouseOver={onMouseOver}
       onMouseLeave={onMouseLeave}
     >
-      {value !== NOT_IMPLEMENTED && value && (
+      {value !== NOT_IMPLEMENTED && typeof value !== "undefined" && (
         <p className={styles.fieldLabel}>{label}</p>
       )}
       <p
@@ -47,7 +47,7 @@ const Field: React.FC<{
           __html:
             value === NOT_IMPLEMENTED
               ? `${label} (Not Simulated)`
-              : !value
+              : typeof value === "undefined"
               ? label
               : value.toString(),
         }}
@@ -65,20 +65,34 @@ export const PacketInteractive: React.FC<PacketVizProps> = (props) => {
   const [separatorTop, setSeparatorTop] = useState(0);
   const [headerLabelTop, setHeaderLabelTop] = useState(0);
   const renderFields = useCallback(
-    (rows: PacketVizField[][]) => {
-      return rows.map((row) => (
-        <div className={styles.row} key={`packet_row_${row[0]?.label ?? ""}`}>
-          {row.map((field) => {
-            return (
-              <Field
-                viz={field}
-                key={field.label}
-                setFieldDesc={setFieldDesc}
-              />
-            );
-          })}
-        </div>
-      ));
+    (rows: PacketViz[]) => {
+      return rows.map((rowO, idx) => {
+        const { row, separator } = rowO;
+        return (
+          <div
+            className={styles.row}
+            key={`packet_row_${row[0]?.label ?? ""}_${idx}`}
+          >
+            {row.map((field, idx) => {
+              return (
+                <Field
+                  viz={field}
+                  key={`${field.label}_${idx}`}
+                  setFieldDesc={setFieldDesc}
+                />
+              );
+            })}
+            {separator && (
+              <div
+                style={{ borderColor: separator.color }}
+                className={styles.packet_separator}
+              >
+                <p style={{ color: separator.color }}>{separator.label}</p>
+              </div>
+            )}
+          </div>
+        );
+      });
     },
     [setFieldDesc]
   );
@@ -93,8 +107,24 @@ export const PacketInteractive: React.FC<PacketVizProps> = (props) => {
     setHeaderLabelTop(height - 2 - labelHeight);
     setSeparatorTop(height);
   }, []);
+
+  const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
+    if (!headerRef.current) {
+      return;
+    }
+    const { currentTarget: container } = e;
+    const { top: containerTop } = container.getBoundingClientRect();
+    const { top: headerTop, height: headerHeight } =
+      headerRef.current.getBoundingClientRect();
+    const { height: labelHeight } =
+      headerLabelRef.current?.getBoundingClientRect() ?? {};
+    setHeaderLabelTop(
+      headerTop - containerTop + headerHeight - 2 - (labelHeight ?? 0)
+    );
+    setSeparatorTop(headerTop - containerTop + headerHeight);
+  };
   return (
-    <div id={styles.packet_container}>
+    <div id={styles.packet_container} onScroll={onScroll}>
       <div id={styles.packet}>
         <div ref={headerRef}>{renderFields(headerRows)}</div>
         {renderFields(bodyRows)}

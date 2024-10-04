@@ -30,3 +30,20 @@ export enum LSType {
    */
   ASExternalLSA,
 }
+
+export const lsTypeToString = (lsType: LSType) => {
+  switch (lsType) {
+    case LSType.RouterLSA:
+      return "Router LSA";
+    case LSType.NetworkLSA:
+      return "Network LSA";
+    case LSType.ASExternalLSA:
+      return "AS External LSA";
+    case LSType.SummaryAsBrLSA:
+      return "Summary LSA (AS - BR)";
+    case LSType.SummaryIpLSA:
+      return "Summary LSA (IP Network)";
+    default:
+      return "";
+  }
+};

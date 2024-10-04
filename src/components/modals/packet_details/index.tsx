@@ -4,10 +4,11 @@ import { PacketInteractive } from "./packet";
 import styles from "./styles.module.css";
 import { PacketType } from "src/entities/ospf/enum";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
-import { getHelloVizRows } from "./descriptions/body";
+import { getDDVizRows, getHelloVizRows } from "./descriptions/body";
 import { HelloPacketBody } from "src/entities/ospf/packets/hello";
 import { getHeaderRows } from "./descriptions/header";
 import { IPPacket } from "src/entities/ip/packets";
+import { DDPacketBody } from "src/entities/ospf/packets/dd";
 
 interface PacketDetailModalProps {
   packet: IPPacket;
@@ -37,6 +38,8 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
     switch (type) {
       case PacketType.Hello:
         return getHelloVizRows(body as HelloPacketBody);
+      case PacketType.DD:
+        return getDDVizRows(body as DDPacketBody);
       default:
         throw new Error("Not Implemented");
     }
@@ -48,7 +51,7 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
       return;
     }
     let maxHeight = -1;
-    [...headerRows, ...bodyRows].forEach((row) => {
+    [...headerRows, ...bodyRows].forEach(({ row }) => {
       row.forEach((field) => {
         const { description } = field;
         const container = document.createElement("div");
@@ -78,7 +81,7 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
       />
       <div className={styles.desc} style={{ height: descHeight }}>
         {(fieldDesc && (
-          <p dangerouslySetInnerHTML={{ __html: fieldDesc }}></p>
+          <div dangerouslySetInnerHTML={{ __html: fieldDesc }}></div>
         )) || (
           <p className={styles.hover_desc}>
             Hover over any field to learn about it.
