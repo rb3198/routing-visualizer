@@ -233,7 +233,6 @@ export class IPLinkInterface {
     const { location: locA } = routerA;
     const { location: locB } = routerB;
     const { theta } = getSlopeAngleDist2D(locA, locB);
-    this.drawIps(context, routerA, routerB);
     context.save();
     context.strokeStyle = "black";
     context.fillStyle = "black";
@@ -256,5 +255,6 @@ export class IPLinkInterface {
     context.fill();
     context.closePath();
     context.restore();
+    this.drawIps(context, routerA, routerB);
   };
 }

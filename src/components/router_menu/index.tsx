@@ -47,24 +47,17 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
   const Controls = useMemo(() => {
     const { turnedOn } = selectedRouter || {};
     const onClick = () => {
-      !controlsDisabled &&
-        toggleRouterPower &&
-        selectedRouter &&
-        toggleRouterPower(selectedRouter);
+      toggleRouterPower && selectedRouter && toggleRouterPower(selectedRouter);
     };
     return (
-      <div
-        id={styles.controls_container}
-        onClick={onClick}
-        data-disabled={controlsDisabled}
-      >
+      <div id={styles.controls_container} onClick={onClick}>
         <div id={styles.power_icon} data-turned-on={turnedOn}>
           <PiPower />
         </div>
         Turn {turnedOn ? "Off" : "On"}
       </div>
     );
-  }, [selectedRouter, controlsDisabled, toggleRouterPower]);
+  }, [selectedRouter, toggleRouterPower]);
 
   const Tables = useMemo(() => {
     const onNeighborTableClick = () => {
@@ -103,7 +96,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
         bottom,
       }}
     >
-      {Controls}
+      {!controlsDisabled && Controls}
       {Tables}
       {(connectionOptions.length > 0 && (
         <>
