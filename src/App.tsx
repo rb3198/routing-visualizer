@@ -22,7 +22,7 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
+    <div className={styles.App}>
       <Provider store={store}>
         <NotificationTooltipContext.Provider
           value={{
@@ -34,8 +34,12 @@ function App() {
           }}
         >
           <Header />
-          <GridManager gridSize={35} />
-          <EventLog showControlPanel classes={styles.event_log} />
+          <GridManager />
+          <EventLog
+            showControlPanel
+            classes={styles.event_log}
+            showExpandToggle
+          />
           <NotificationTooltip />
           <EventModalManager />
         </NotificationTooltipContext.Provider>

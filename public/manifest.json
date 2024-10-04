@@ -1,6 +1,6 @@
 {
-  "short_name": "Routing Visualizer",
-  "name": "Network Routing Visualizer",
+  "short_name": "OSPF Visualizer",
+  "name": "OSPF Routing Visualizer",
   "icons": [
     {
       "src": "favicon.ico",
@@ -15,6 +15,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#324ca8",
   "background_color": "#ffffff"
 }

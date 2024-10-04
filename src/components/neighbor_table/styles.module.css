@@ -30,7 +30,7 @@
 }
 
 #table td, #table th {
-    padding: .236vw .618vw;
+    padding: .236vmax .618vmax;
     text-align: center;
     vertical-align: middle;
     text-transform: capitalize;

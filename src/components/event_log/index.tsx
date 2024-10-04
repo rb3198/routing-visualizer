@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import styles from "./styles.module.css";
@@ -7,6 +7,7 @@ import { bindActionCreators, Dispatch } from "redux";
 import { setEventLogKeepCount } from "src/action_creators";
 import { BiSearch } from "react-icons/bi";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
+import { MdKeyboardArrowUp } from "react-icons/md";
 
 export type EventLogProps = {
   filter?: {
@@ -16,6 +17,9 @@ export type EventLogProps = {
   showControlPanel?: boolean;
   classes?: string;
   hideLinks?: boolean;
+  expanded?: boolean;
+  showExpandToggle?: boolean;
+  noBorders?: boolean;
 };
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -27,8 +31,13 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     showControlPanel,
     classes,
     hideLinks,
+    showExpandToggle,
+    noBorders,
+    expanded: defaultExpanded,
     setEventLogKeepCount,
   } = props;
+
+  const [expanded, setExpanded] = useState(defaultExpanded || false);
 
   const { type, routerId } = filter || {};
 
@@ -56,14 +65,14 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         <div id={styles.log_size_selector_container}>
           <label htmlFor={styles.log_size_selector}>Keep the last:</label>
           <select id={styles.log_size_selector} onChange={changeHandler}>
-            <option value={50} selected={keepCount === 50}>
-              50 Logs
-            </option>
-            <option value={100} selected={keepCount === 100}>
-              100 Logs
-            </option>
             <option value={200} selected={keepCount === 200}>
               200 Logs
+            </option>
+            <option value={600} selected={keepCount === 600}>
+              600 Logs
+            </option>
+            <option value={1000} selected={keepCount === 1000}>
+              1000 Logs
             </option>
           </select>
         </div>
@@ -71,33 +80,53 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     );
   }, [keepCount, setEventLogKeepCount]);
 
+  const toggleEventLog = useCallback(() => {
+    setExpanded((prevExpanded) => !prevExpanded);
+  }, []);
+
   return (
-    <div className={classes || ""}>
-      <h2 id={styles.title}>Recent Events</h2>
-      {(showControlPanel && ControlPanel) || <></>}
-      <ul id={styles.log_list}>
-        {eventLog
-          .filter((event) => {
-            let isValid = true;
-            switch (type) {
-              case "neighbor":
-                isValid &&= event instanceof NeighborTableEvent;
-                if (!isValid) break;
-                if (routerId) {
-                  isValid &&=
-                    (event as NeighborTableEvent).routerId.toString() ===
-                    routerId;
-                }
-                break;
-              default:
-                break;
-            }
-            return isValid;
-          })
-          .map((event) => (
-            <Event event={event} key={event.id} hideLinks={hideLinks} />
-          ))}
-      </ul>
+    <div
+      className={`${classes || ""} ${styles.container} ${
+        expanded ? styles.expanded : ""
+      }`}
+    >
+      {showExpandToggle && (
+        <div id={styles.toggle} onClick={toggleEventLog}>
+          Event Log
+          <MdKeyboardArrowUp
+            className={`${styles.toggle_icon} ${
+              (expanded && styles.expanded) || ""
+            }`}
+          />
+        </div>
+      )}
+      <div id={styles.main} data-no-borders={noBorders}>
+        <h2 id={styles.title}>Recent Events</h2>
+        {(showControlPanel && ControlPanel) || <></>}
+        <ul id={styles.log_list}>
+          {eventLog
+            .filter((event) => {
+              let isValid = true;
+              switch (type) {
+                case "neighbor":
+                  isValid &&= event instanceof NeighborTableEvent;
+                  if (!isValid) break;
+                  if (routerId) {
+                    isValid &&=
+                      (event as NeighborTableEvent).routerId.toString() ===
+                      routerId;
+                  }
+                  break;
+                default:
+                  break;
+              }
+              return isValid;
+            })
+            .map((event) => (
+              <Event event={event} key={event.id} hideLinks={hideLinks} />
+            ))}
+        </ul>
+      </div>
     </div>
   );
 };

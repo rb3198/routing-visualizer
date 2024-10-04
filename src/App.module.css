@@ -1,8 +1,14 @@
 .event_log {
-    width: 25vw;
+    width: 25vmax;
     position: absolute;
-    left: 75vw;
-    overflow-y: scroll;
+    right: 0;
+    z-index: 50;
     min-height: 92.5vh;
     max-height: 92.5vh;
+}
+
+.App {
+    position: relative;
+    overflow-x: hidden;
+    height: 100%;
 }

@@ -10,6 +10,7 @@ import { IPPacket } from "../entities/ip/packets";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { NeighborTableRow } from "src/entities/ospf/tables";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 
 export type VizArgs = {
   color: string;
@@ -137,8 +138,16 @@ export const closeModal: ActionCreator<ModalAction> = () => {
 export const setEventLogKeepCount: ActionCreator<EventLogAction> = (
   keepCount: number
 ) => {
+  localStorage.setItem(EVENT_LOG_STORAGE_COUNT_KEY, keepCount.toString());
   return {
     type: "SET_KEEP_COUNT",
     data: keepCount,
+  };
+};
+
+export const setPropagationDelay = (delay: number) => {
+  return {
+    type: "SET_PROPAGATION_DELAY",
+    value: delay,
   };
 };

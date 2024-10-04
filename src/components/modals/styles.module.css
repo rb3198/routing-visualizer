@@ -14,10 +14,11 @@
     position: absolute;
     background-color: white;
     min-width: 50vw;
+    max-width: 90vw;
     left: 50vw;
     top: 50vh;
     transform: translate(-50%, -50%);
-    padding: 1vw;
+    padding: 1vmax;
     opacity: 0;
     transition: opacity 0.5s;
 }
@@ -33,8 +34,8 @@
     text-align: left;
     justify-content: space-between;
     align-items: center;
-    font-size: 1vw;
-    padding-bottom: 1vw;
+    font-size: 1vmax;
+    padding-bottom: 1vmax;
 }
 
 #close {

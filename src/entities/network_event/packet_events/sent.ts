@@ -1,12 +1,13 @@
-import { openPacketModal } from "../../../action_creators";
-import { PacketColorMap } from "../../../constants/theme";
-import { store } from "../../../store";
-import { IPPacket } from "../../ip/packets";
-import { PacketType } from "../../ospf/enum";
-import { OSPFPacket } from "../../ospf/packets/packet_base";
-import { Router } from "../../router";
+import { openPacketModal } from "src/action_creators";
+import { PacketColorMap } from "src/constants/theme";
+import { store } from "src/store";
+import { IPPacket } from "src/entities/ip/packets";
+import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
+import { Router } from "src/entities/router";
 import { NetworkEventCallback } from "../base";
 import { PacketEvent } from "./base";
+import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
+import { IPAddresses } from "src/constants/ip_addresses";
 
 export class PacketSentEvent extends PacketEvent {
   src: Router;
@@ -24,10 +25,10 @@ export class PacketSentEvent extends PacketEvent {
     if (!(packet.body instanceof OSPFPacket)) {
       throw new Error("OSPF Packet expected.");
     }
-    const packetType =
-      Object.keys(PacketType)[
-        Object.values(PacketType).indexOf(packet.body.header.type)
-      ];
+    const { body } = packet;
+    const { header } = body || {};
+    const { type } = header || {};
+    const packetType = getPacketTypeString(type);
     const links = [
       {
         label: `What is a ${packetType} Packet?`,
@@ -40,7 +41,7 @@ export class PacketSentEvent extends PacketEvent {
         },
       },
     ];
-    super(packet.body, links, callback);
+    super(body, links, callback);
     this.packetType = packetType;
     this.ipPacket = packet;
     this.src = src;
@@ -57,6 +58,14 @@ export class PacketSentEvent extends PacketEvent {
       type
     )}; font-weight: bold">${
       this.packetType
-    } packet</span> <i>sent</i> by router <b>${routerId.toString()}</b> to destination <b>${destination.toString()}</b>.`;
+    } packet</span> <i>sent</i> by router <b>${routerId.toString()}</b> to destination <b>${
+      destination.equals(IPAddresses.OSPFBroadcast)
+        ? IPAddresses.OSPFBroadcast
+        : this.dest.id
+    } ${
+      (destination.equals(IPAddresses.OSPFBroadcast) &&
+        "(OSPF Broadcast Address)") ||
+      ""
+    }</b>.`;
   }
 }

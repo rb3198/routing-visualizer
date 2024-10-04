@@ -13,7 +13,7 @@ import { IPLinkInterface } from "../../ip/link_interface";
 import { BACKBONE_AREA_ID, VERSION } from "../../ospf/constants";
 import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
-import { emitEvent, setLiveNeighborTable } from "../../../action_creators";
+import { emitEvent, setLiveNeighborTable } from "src/action_creators";
 import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
 import { getIpPacketDropReason } from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
@@ -21,18 +21,46 @@ import {
   NeighborTableEvent,
   NeighborTableEventType,
 } from "src/entities/network_event/neighbor_table_event";
-import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
+import { LSAHeader } from "src/entities/ospf/lsa";
+import { LSRequest } from "src/entities/ospf/packets/ls_request";
+import { LSRequestPacket } from "src/entities/ospf/packets";
+import { LsDb } from "./ls_db";
+import { LSUpdatePacket } from "src/entities/ospf/packets";
+import {
+  DDPacketHandler,
+  HelloPacketHandler,
+  LsRequestPacketHandler,
+  LsUpdatePacketHandler,
+  LsAckPacketHandler,
+} from "./packet_handlers";
+import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
 
 export class OSPFInterface {
   config: OSPFConfig;
   router: Router;
   neighborTable: Record<string, NeighborTableRow>;
+  lsDb: LsDb;
   routingTable: Map<string, RoutingTableRow>;
+  packetHandlerFactory: {
+    [PacketType.Hello]: HelloPacketHandler;
+    [PacketType.DD]: DDPacketHandler;
+    [PacketType.LinkStateRequest]: LsRequestPacketHandler;
+    [PacketType.LinkStateUpdate]: LsUpdatePacketHandler;
+    [PacketType.LinkStateAck]: LsAckPacketHandler;
+  };
   constructor(router: Router, config: OSPFConfig) {
     this.router = router;
     this.neighborTable = {};
     this.routingTable = new Map();
     this.config = config;
+    this.packetHandlerFactory = {
+      [PacketType.Hello]: new HelloPacketHandler(this),
+      [PacketType.DD]: new DDPacketHandler(this),
+      [PacketType.LinkStateRequest]: new LsRequestPacketHandler(this),
+      [PacketType.LinkStateUpdate]: new LsUpdatePacketHandler(this),
+      [PacketType.LinkStateAck]: new LsAckPacketHandler(this),
+    };
+    this.lsDb = new LsDb(this);
   }
 
   dropPacket = (ipPacket: IPPacket, reason: string) => {
@@ -76,29 +104,7 @@ export class OSPFInterface {
     return { ok, reason };
   };
 
-  /**
-   * Checks if the router should process the hello packet.
-   *
-   * A hello packet should be processed only if all the network params match.
-   * @param packet
-   */
-  private shouldProcessHelloPacket = (packet: HelloPacket) => {
-    const { config, router } = this;
-    const { body } = packet;
-    const { helloInterval, deadInterval, networkMask } = body;
-    const [, , , , routerMask] = router.id.bytes;
-    return (
-      helloInterval === config.helloInterval &&
-      deadInterval === config.deadInterval &&
-      networkMask === routerMask
-    );
-  };
-
-  receivePacket = (
-    interfaceId: string,
-    ipSrc: IPv4Address,
-    packet: IPPacket
-  ) => {
+  receivePacket = (interfaceId: string, packet: IPPacket) => {
     if (!(packet.body instanceof OSPFPacket)) {
       throw new Error("OSPF Packet expected to be received on OSPF Interface");
     }
@@ -119,56 +125,67 @@ export class OSPFInterface {
         console.error("Expected Hello Packet");
         return;
       }
-      return this.helloPacketHandler(packet, ipSrc, interfaceId, ospfPacket);
+      return this.packetHandlerFactory[PacketType.Hello].handle(
+        interfaceId,
+        packet,
+        ospfPacket
+      );
     }
     if (!this.neighborTable[packetSource.toString()]) {
-      console.log(
-        `Dropping packet with ID ${ipPacketId} since the source is not in the neighbor list of router ${routerId.toString()}`
-      );
       return this.dropPacket(
         packet,
         `Source of the packet is not in the neighbor list of router ${routerId.toString()}`
       );
     }
-    switch (packetType) {
-      // Add code to handle other types of packets here.
-      case PacketType.DD:
-        return this.ddPacketHandler(
-          packet,
-          ospfPacket as DDPacket,
-          interfaceId
-        );
-      default:
-        break;
-    }
+    return this.packetHandlerFactory[packetType].handle(
+      interfaceId,
+      packet,
+      // @ts-ignore
+      ospfPacket
+    );
   };
 
   setNeighbor = (neighbor: NeighborTableRow, description: string) => {
     const { modalState } = store.getState();
     const { active, data } = modalState;
+    const { routerId: neighborId } = neighbor;
     const prevTable = {
       ...this.neighborTable,
     };
-    const eventType: NeighborTableEventType = prevTable[
-      neighbor.routerId.toString()
-    ]
+    const prevNeighbor = this.neighborTable[neighborId.toString()];
+    prevNeighbor &&
+      neighbor &&
+      Object.keys(prevNeighbor).forEach((key) => {
+        // @ts-ignore
+        prevNeighbor[key] = neighbor[key];
+      });
+    console.log(
+      `neighbor ${neighborId} retransmission list set by ${this.router.id}:`
+    );
+    neighbor.linkStateRetransmissionList.forEach(({ header }, idx) => {
+      console.log(
+        `${idx}: ${header.lsType}; ${header.advertisingRouter}; ${header.linkStateId}; Seq No: ${header.lsSeqNumber}`
+      );
+    });
+    const eventType: NeighborTableEventType = prevNeighbor
       ? "column_updated"
       : "added";
     this.neighborTable = {
       ...this.neighborTable,
       [neighbor.routerId.toString()]: neighbor,
     };
-    emitEvent({
-      eventName: "neighborTableEvent",
-      event: new NeighborTableEvent(
-        Date.now(),
-        prevTable,
-        this.router,
-        neighbor.routerId.toString(),
-        eventType,
-        description
-      ),
-    })(store.dispatch);
+    description &&
+      emitEvent({
+        eventName: "neighborTableEvent",
+        event: new NeighborTableEvent(
+          Date.now(),
+          prevTable,
+          this.router,
+          neighbor.routerId.toString(),
+          eventType,
+          description
+        ),
+      })(store.dispatch);
     if (
       active === "neighbor_table_live" &&
       data.routerId.equals(this.router.id)
@@ -178,191 +195,54 @@ export class OSPFInterface {
     }
   };
 
-  private addToNeighborTable = (
+  /**
+   * - Clears the previous interval-based timer to send LS Request packets, if any.
+   * - If the new list is empty, does not set a new timer, and emits an event saying all 'LS Requests satisfied'
+   * Else, sets the list and a new timer to request again.
+   * - Called by LS Update packet handler in states >= `Loading`, or DD packet handler when state < `Loading`.
+   * @param neighbor
+   * @param list
+   */
+  setNeighborLsRequestList = (
+    neighbor: NeighborTableRow,
+    list: LSAHeader[]
+  ) => {
+    const { routerId: neighborId } = neighbor;
+    let desc = `Router received all the required Link State Adverts required from neighbor ${neighborId}.
+    Hence, the router is clearing the Link State Request List.`;
+    if (list.length) {
+      desc = `
+        Router spotted a new / updated LSA in the area. Updated the Link State Request List for neighbor <b>${neighborId}</b>
+        `;
+    }
+    this.setNeighbor(
+      {
+        ...neighbor,
+        linkStateRequestList: list,
+      },
+      desc
+    );
+  };
+
+  addToNeighborTable = (
     routerId: IPv4Address,
+    areaId: number,
     ipSrc: IPv4Address,
     interfaceId: string
   ) => {
     const neighbor = new NeighborTableRow(
       routerId,
+      areaId,
       State.Down,
       ipSrc,
       interfaceId
     );
+    !this.lsDb.getLsaListByArea(areaId).length &&
+      this.lsDb.originateRouterLsa(areaId);
     const eventDesc = `Router ${routerId} <i>added to</i> the OSPF Neighbor Table since
     its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
     It belonged to the same area or the backbone area (Area 0)`;
     this.setNeighbor(neighbor, eventDesc);
-  };
-
-  helloPacketHandler = (
-    ipPacket: IPPacket,
-    ipSrc: IPv4Address,
-    interfaceId: string,
-    packet: HelloPacket
-  ) => {
-    const { header, body } = packet;
-    const { neighborList } = body;
-    const { routerId } = header;
-    const { neighborTable } = this;
-    if (!this.shouldProcessHelloPacket(packet)) {
-      return this.dropPacket(ipPacket, "Hello packet config mismatch.");
-    }
-    // Router ID is derived from the router ID contained in the OSPF Header.
-    if (!neighborTable[routerId.ip]) {
-      this.addToNeighborTable(routerId, ipSrc, interfaceId);
-    }
-    this.neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
-    const presentInNeighborList = neighborList.has(this.router.id.toString());
-    this.neighborStateMachine(
-      routerId.ip,
-      presentInNeighborList
-        ? NeighborSMEvent.TwoWayReceived
-        : NeighborSMEvent.OneWay
-    );
-    if (!presentInNeighborList) {
-      return;
-    }
-    /*
-    Potential TODO:
-    Create Interface State Machine, and Handle change in neighbor's router Priority Field.
-    */
-  };
-
-  private isNeighborMasterOrSlave = (ddPacket: DDPacket) => {
-    const { header, body } = ddPacket;
-    const { routerId: neighborId } = header;
-    const { init, master, m, lsaList, ddSeqNumber } = body;
-    const neighbor = this.neighborTable[neighborId.toString()];
-    if (!neighbor) {
-      console.warn(
-        "Checking Master / Slave config of a router which is not the neighbor of ",
-        this.router.id
-      );
-      return { isNeighborMaster: false, isNeighborSlave: false };
-    }
-    const isNeighborMaster =
-      init &&
-      master &&
-      m &&
-      !lsaList.length &&
-      neighborId.compare(this.router.id) > 0;
-    const isNeighborSlave =
-      !init &&
-      !master &&
-      ddSeqNumber === neighbor.ddSeqNumber &&
-      neighborId.compare(this.router.id) < 0;
-    return { isNeighborMaster, isNeighborSlave };
-  };
-
-  private shouldProcessDdPacket = (
-    packet: DDPacket,
-    lastReceived?: DDPacketSummary
-  ) => {
-    if (!lastReceived) {
-      return true;
-    }
-    const { body } = packet;
-    const { init, ddSeqNumber, m, master } = body;
-    const identical =
-      init === lastReceived.init &&
-      ddSeqNumber === lastReceived.ddSeqNumber &&
-      m === lastReceived.m &&
-      master === lastReceived.master;
-    return !identical;
-  };
-
-  ddPacketHandler = (
-    ipPacket: IPPacket,
-    packet: DDPacket,
-    interfaceId: string
-  ) => {
-    const { header, body } = packet;
-    const { routerId } = header;
-    const { init, ddSeqNumber, m, master } = body;
-    const neighbor = this.neighborTable[routerId.toString()];
-    if (!neighbor) {
-      console.warn(
-        "DD Packet received from a router which is not the neighbor of ",
-        this.router.id
-      );
-      return;
-    }
-    const {
-      state,
-      routerId: neighborId,
-      rxmtTimer,
-      lastReceivedDdPacket,
-    } = neighbor;
-    let packetAccepted = false;
-    if (!this.shouldProcessDdPacket(packet, lastReceivedDdPacket)) {
-      this.dropPacket(
-        ipPacket,
-        `The DD Packet was detected to be a duplicate.
-        <ul>
-          <li>The DD Sequence Number of the packet was the same as the last recorded DD packet sent by the neighbor</li>
-          <li>The <i>Init</i>, <i>More</i>, and <i>Master</i> bits all matched with the last recorded DD Packet sent by
-          the neighbor </li>
-        </ul>
-        `
-      );
-    }
-    switch (state) {
-      case State.Down:
-        return this.dropPacket(
-          ipPacket,
-          "Received a DD packet from a neighbor which was in the DOWN state."
-        );
-      case State.Init:
-        this.neighborStateMachine(
-          neighborId.toString(),
-          NeighborSMEvent.TwoWayReceived
-        );
-        return;
-      case State.ExStart:
-        const { isNeighborMaster, isNeighborSlave } =
-          this.isNeighborMasterOrSlave(packet);
-        if (isNeighborMaster || isNeighborSlave) {
-          packetAccepted = true;
-          clearInterval(rxmtTimer);
-          this.neighborTable = {
-            ...this.neighborTable,
-            [neighbor.routerId.toString()]: {
-              ...neighbor,
-              master: !isNeighborMaster,
-              ddSeqNumber: isNeighborMaster
-                ? body.ddSeqNumber
-                : neighbor.ddSeqNumber,
-            },
-          };
-          this.neighborStateMachine(
-            neighbor.routerId.toString(),
-            NeighborSMEvent.NegotiationDone
-          );
-        }
-        break;
-      case State.Exchange:
-        // TODO
-        break;
-      default:
-        break;
-    }
-    if (packetAccepted) {
-      // The DD Packet has been accepted and processed. Save it in the neighbor table.
-      const neighbor = this.neighborTable[neighborId.toString()];
-      this.setNeighbor(
-        {
-          ...neighbor,
-          lastReceivedDdPacket: new DDPacketSummary({
-            init,
-            ddSeqNumber,
-            m,
-            master,
-          }),
-        },
-        `The new DD packet sent by the neighbor ${neighborId} was recorded in the table's "Last DD Packet"`
-      );
-    }
   };
 
   neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
@@ -428,7 +308,7 @@ export class OSPFInterface {
       console.warn("Didn't find the neighbor to send DD Packet to.");
       return;
     }
-    const { state, interfaceId, address } = neighbor;
+    const { state, interfaceId, address, areaId } = neighbor;
     if (state < State.ExStart) {
       console.warn(
         "Should not be sending DD packets in states less than ExStart."
@@ -443,7 +323,7 @@ export class OSPFInterface {
       }
       const ddPacket = new DDPacket(
         this.router.id,
-        this.getAreaId(ipInterface),
+        areaId,
         neighbor.ddSeqNumber,
         true,
         true,
@@ -459,14 +339,17 @@ export class OSPFInterface {
       );
     } else {
       const { ddSeqNumber, master } = neighbor;
+      const lsaHeaders = this.lsDb
+        .getLsaListByArea(areaId)
+        .map((lsa) => lsa.header);
       const ddPacket = new DDPacket(
         this.router.id,
-        this.getAreaId(ipInterface),
-        master ? ddSeqNumber ?? 0 + 1 : ddSeqNumber,
+        areaId,
+        ddSeqNumber,
         false,
-        false, // TODO: Base it on number of items in LSA Header List
+        false,
         master,
-        [] // TODO: Send complete DD packets in Exchange state.
+        lsaHeaders
       );
       ipInterface?.sendMessage(
         router,
@@ -476,5 +359,94 @@ export class OSPFInterface {
         Colors.dd
       );
     }
+  };
+
+  sendLSUpdatePacket = (neighborId: IPv4Address) => {
+    const neighbor = this.neighborTable[neighborId.toString()];
+    const { id: routerId, ipInterfaces } = this.router;
+    const { rxmtInterval } = this.config;
+    if (!neighbor) {
+      console.warn("sendLSUpdate called for a neighbor which doesn't exist!");
+      return;
+    }
+    const { interfaceId, address, areaId, linkStateRetransmissionList } =
+      neighbor;
+    if (!linkStateRetransmissionList.length) {
+      this.setNeighbor(
+        {
+          ...neighbor,
+          lsRetransmissionRxmtTimer: undefined,
+        },
+        "Link State retransmission timer cleared."
+      );
+      console.log("Triggered send LSU with an empty list"); // TODO: Remove
+      return;
+    }
+    const { ipInterface } = ipInterfaces.get(interfaceId) || {};
+    ipInterface?.sendMessage(
+      this.router,
+      address,
+      IPProtocolNumber.ospf,
+      new LSUpdatePacket(routerId, areaId, linkStateRetransmissionList),
+      Colors.lsUpdate
+    );
+    this.setNeighbor(
+      {
+        ...neighbor,
+        lsRetransmissionRxmtTimer: setTimeout(
+          () => this.sendLSUpdatePacket(neighborId),
+          rxmtInterval
+        ),
+      },
+      `Timer set to trigger retransmission of Update packets to neighbor ${neighborId}`
+    );
+  };
+
+  sendLSRequestPacket = (neighborId: IPv4Address) => {
+    const neighbor = this.neighborTable[neighborId.toString()];
+    if (
+      !neighbor ||
+      !neighbor.linkStateRequestList.length ||
+      neighbor.state !== State.Loading
+    ) {
+      return;
+    }
+    const { linkStateRequestList, interfaceId, address } = neighbor;
+    const { ipInterfaces } = this.router;
+    const { ipInterface } = ipInterfaces.get(interfaceId) || {};
+    const requests = linkStateRequestList.map((header) =>
+      LSRequest.fromLSAHeader(header)
+    );
+    const lsRequestPacket = new LSRequestPacket(
+      this.router.id,
+      this.getAreaId(ipInterface),
+      requests
+    );
+    ipInterface?.sendMessage(
+      this.router,
+      address,
+      IPProtocolNumber.ospf,
+      lsRequestPacket,
+      Colors.lsRequest
+    );
+  };
+
+  sendLSAckPacket = (
+    neighborId: IPv4Address,
+    acknowledgements: LSAHeader[]
+  ) => {
+    const neighbor = this.neighborTable[neighborId.toString()];
+    const { interfaceId, areaId, address } = neighbor || {};
+    const { ipInterface } = this.router.ipInterfaces.get(interfaceId) || {};
+    if (!neighbor || !ipInterface) {
+      return;
+    }
+    ipInterface.sendMessage(
+      this.router,
+      address,
+      IPProtocolNumber.ospf,
+      new LSAckPacket(this.router.id, areaId, acknowledgements),
+      Colors.lsAck
+    );
   };
 }

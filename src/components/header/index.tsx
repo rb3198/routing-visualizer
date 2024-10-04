@@ -9,7 +9,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
     <header id={styles["header"]}>
       <div id={styles["header-title"]}>
         <HeaderIcon color="white" />
-        <h2>Routing Visualizer</h2>
+        <h2>OSPF Visualizer</h2>
       </div>
       <nav>
         <ul>

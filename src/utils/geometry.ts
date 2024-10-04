@@ -83,3 +83,8 @@ export const getTravelDirection = (start: Point2D, end: Point2D) => {
     endY === startY ? "none" : endY < startY ? "top" : "bottom";
   return { directionX, directionY };
 };
+
+export const vmax = (units: number) => {
+  const { innerWidth, innerHeight } = window;
+  return (units * Math.max(innerWidth, innerHeight)) / 100;
+};
