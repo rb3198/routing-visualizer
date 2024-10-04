@@ -95,9 +95,9 @@ export class IPLinkInterface {
     to: IPv4Address,
     protocol: IPProtocolNumber,
     message: IPacket,
-    color: string = Colors.accent,
-    duration: number = 2000
+    color: string = Colors.accent
   ) => {
+    const { propagationDelay: duration } = store.getState();
     const fromIpStr = this.routers.getKey(from);
     if (!fromIpStr) {
       throw new Error(
@@ -207,7 +207,7 @@ export class IPLinkInterface {
       context.save();
       context.font = ".85vmin sans-serif";
       context.strokeStyle = "white";
-      context.fillStyle = "black"; // TODO
+      context.fillStyle = "black";
       context.translate(x, y);
       context.rotate(theta + offset + Math.PI / 2);
       context.translate(-textWidth / 2, 0);

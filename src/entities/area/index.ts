@@ -6,6 +6,7 @@ import { GridCell } from "../geometry/grid_cell";
 import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
+import { getRxmtInterval } from "../ospf/constants";
 
 export class OSPFArea {
   /**
@@ -69,7 +70,9 @@ export class OSPFArea {
     this.id = id;
     this.name = `Area ${id}`;
     this.ip = new IPv4Address(byte1, byte2, 0, 0, areaSubnetMask);
-    this.ospfConfig = new OSPFConfig(id);
+    const { propagationDelay } = store.getState();
+    const rxmtInterval = getRxmtInterval(propagationDelay);
+    this.ospfConfig = new OSPFConfig(id, undefined, rxmtInterval);
     this.routerLocations = routerLocations
       ? new Map(
           routerLocations.map(([x, y]) => [

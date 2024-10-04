@@ -29,7 +29,7 @@ import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
-import { setLiveNeighborTable } from "src/action_creators";
+import { setLiveNeighborTable, setPropagationDelay } from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -66,7 +66,13 @@ type ReduxProps = ConnectedProps<typeof connector>;
 export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   props
 ) => {
-  const { gridRect, defaultAreaSize, setLiveNeighborTable } = props;
+  const {
+    gridRect,
+    defaultAreaSize,
+    propagationDelay,
+    setPropagationDelay,
+    setLiveNeighborTable,
+  } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
   const areaLayerHoverLocation = useRef<Point2D>();
   const areaTree = useRef<AreaTree>(new AreaTree());
@@ -567,9 +573,12 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         toggleRouterPower={toggleRouterPower}
       />
       <AnimationToolbar
+        playing={simulationPlaying}
+        propagationDelay={propagationDelay}
+        setPropagationDelay={setPropagationDelay}
         startSimulation={startSimulation}
         pauseSimulation={pauseSimulation}
-        playing={simulationPlaying}
+        showTooltip={openNotificationTooltip}
       />
       <PacketLegend />
     </>
@@ -577,15 +586,17 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 };
 
 const mapStateToProps = (state: IRootReducer) => {
-  const { eventLog } = state;
+  const { eventLog, propagationDelay } = state;
   return {
     eventLog,
+    propagationDelay,
   };
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
+    setPropagationDelay: bindActionCreators(setPropagationDelay, dispatch),
   };
 };
 

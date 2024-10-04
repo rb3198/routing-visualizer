@@ -6,6 +6,7 @@ import { LSA } from "src/entities/ospf/lsa";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/tables";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { store } from "src/store";
 
 export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
   private getDescription = (neighborId: IPv4Address, lsaList: LSA[]) => {
@@ -45,6 +46,7 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
       neighborStateMachine,
       sendLSUpdatePacket,
     } = this.ospfInterface;
+    const { propagationDelay } = store.getState();
     const { ipInterfaces } = router;
     const { header, body: lsRequests } = packet;
     const { areaId, routerId: neighborId } = header;
@@ -75,7 +77,7 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
         ...lsa,
         header: {
           ...header,
-          lsAge: lsAge + 2, // TODO: Use Propagation Delay stored in store to age LSA.
+          lsAge: lsAge + parseFloat((propagationDelay / 1000).toFixed(2)),
         },
       });
     });

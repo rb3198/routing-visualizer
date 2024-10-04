@@ -144,3 +144,10 @@ export const setEventLogKeepCount: ActionCreator<EventLogAction> = (
     data: keepCount,
   };
 };
+
+export const setPropagationDelay = (delay: number) => {
+  return {
+    type: "SET_PROPAGATION_DELAY",
+    value: delay,
+  };
+};

@@ -22,11 +22,56 @@
 }
 
 #container svg {
-    width: 1vmax;
+    width: 1rem;
 }
 
 #container > div:last-of-type {
     margin-right: 0;
+}
+
+#prop_slider_container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.delay_label {
+    color: #aaa;
+    font-size: .764rem;
+    width: 100%;
+    margin-bottom: .309rem;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+
+.delay_label > span {
+    color: #324ca8;
+    font-weight: bold;
+    margin-left: .25vw;
+}
+
+#prop_slider {
+    accent-color: #324ca8;
+    cursor: pointer;
+}
+
+#prop_slider:disabled {
+    cursor: initial;
+    accent-color: #ccc;
+    outline: none !important;
+    border: none !important;
+    background-color: white;
+}
+
+#disabled_slider_overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: initial;
 }
 
 @media screen and (max-width: 600px) {
