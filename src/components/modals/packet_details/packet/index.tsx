@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
 import { getHeaderRows } from "../descriptions/header";
@@ -62,8 +56,6 @@ export const PacketInteractive: React.FC<PacketVizProps> = (props) => {
   const headerRef = useRef<HTMLDivElement>(null);
   const headerLabelRef = useRef<HTMLParagraphElement>(null);
   const headerRows = useMemo(() => getHeaderRows(header), [header]);
-  const [separatorTop, setSeparatorTop] = useState(0);
-  const [headerLabelTop, setHeaderLabelTop] = useState(0);
   const renderFields = useCallback(
     (rows: PacketViz[]) => {
       return rows.map((rowO, idx) => {
@@ -97,52 +89,24 @@ export const PacketInteractive: React.FC<PacketVizProps> = (props) => {
     [setFieldDesc]
   );
 
-  useLayoutEffect(() => {
-    if (!headerRef.current || !headerLabelRef.current) {
-      return;
-    }
-    const { height } = headerRef.current.getBoundingClientRect();
-    const { height: labelHeight } =
-      headerLabelRef.current.getBoundingClientRect();
-    setHeaderLabelTop(height - 2 - labelHeight);
-    setSeparatorTop(height);
-  }, []);
-
-  const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
-    if (!headerRef.current) {
-      return;
-    }
-    const { currentTarget: container } = e;
-    const { top: containerTop } = container.getBoundingClientRect();
-    const { top: headerTop, height: headerHeight } =
-      headerRef.current.getBoundingClientRect();
-    const { height: labelHeight } =
-      headerLabelRef.current?.getBoundingClientRect() ?? {};
-    setHeaderLabelTop(
-      headerTop - containerTop + headerHeight - 2 - (labelHeight ?? 0)
-    );
-    setSeparatorTop(headerTop - containerTop + headerHeight);
-  };
   return (
-    <div id={styles.packet_container} onScroll={onScroll}>
+    <div id={styles.packet_container}>
       <div id={styles.packet}>
-        <div ref={headerRef}>{renderFields(headerRows)}</div>
+        <div ref={headerRef} id={styles.header}>
+          {renderFields(headerRows)}
+          <div id={styles.separator}>
+            <p
+              className={styles.packet_component_label}
+              id={styles.header_text}
+              ref={headerLabelRef}
+            >
+              OSPF Header
+            </p>
+            <p className={styles.packet_component_label}>OSPF Body</p>
+          </div>
+        </div>
         {renderFields(bodyRows)}
       </div>
-      <p
-        className={styles.packet_component_label}
-        style={{ top: headerLabelTop }}
-        ref={headerLabelRef}
-      >
-        OSPF Header
-      </p>
-      <hr id={styles.separator} style={{ top: separatorTop }}></hr>
-      <p
-        className={styles.packet_component_label}
-        style={{ top: separatorTop + 2 }}
-      >
-        OSPF Body
-      </p>
     </div>
   );
 };

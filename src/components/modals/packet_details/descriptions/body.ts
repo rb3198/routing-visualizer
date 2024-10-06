@@ -121,7 +121,8 @@ const getLSAHeaderRows = (
               )}</td>
             </tr>
             `
-            )}
+            )
+            .join("")}
           </tbody>
         </table>
         `,
