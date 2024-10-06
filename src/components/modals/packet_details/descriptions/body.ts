@@ -4,22 +4,36 @@ import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
 import { DDPacketBody } from "src/entities/ospf/packets/dd";
 import { LSAHeader } from "src/entities/ospf/lsa";
 import { LSType, lsTypeToString } from "src/entities/ospf/enum/ls_type";
+import {
+  linkDataSummary,
+  linkIdSummary,
+  lsIdDescription,
+  lsIdSummary,
+  lsTypeDescriptions,
+} from "src/entities/ospf/constants/descriptions";
 import { Colors } from "src/constants/theme";
 import { LSRequest } from "src/entities/ospf/packets/ls_request";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { LSUpdatePacketBody } from "src/entities/ospf/packets/ls_update";
+import { RouterLink, RouterLSABody } from "src/entities/ospf/lsa/router_lsa";
+import { RouterLinkType } from "src/entities/ospf/enum";
+import { routerLinkTypeToString } from "src/entities/ospf/enum/router_link_type";
 
 const getLsTypeColumn = (lsType: LSType, flexGrow: number): PacketVizField => {
   return {
     flexGrow,
     value: lsTypeToString(lsType),
     description: `
-        The type of the LSA. This LSA is of type ${lsType}. Each LSA type has a separate advertisement format.
-        The possible types are as follows:
-        <table style="border-collapse: collapse; margin-top: .764rem">
+        <p style="font-size: .764rem">
+          The type of the LSA. This LSA is of type ${lsType}. Each LSA type has a separate advertisement format.<br>
+          The possible types are as follows:
+        </p>
+        <table>
           <tbody>
           <tr>
-            <th style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">LS Type</th>
-            <th style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">Description</th>
+            <th>LS Type</th>
+            <th>Meaning</th>
+            <th>Description</th>
           </tr>
           ${Object.keys(LSType)
             .filter((key) => isNaN(parseInt(key)))
@@ -27,10 +41,13 @@ const getLsTypeColumn = (lsType: LSType, flexGrow: number): PacketVizField => {
               (type) =>
                 `
             <tr>
-              <td style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">${
+              <td style="text-align: center">${
                 LSType[type as keyof typeof LSType]
               }</td>
-              <td style="border: 1px solid #ccc; padding: .764rem; vertical-align: middle;">${lsTypeToString(
+              <td style="border: 1px solid #ccc; padding: .309rem; vertical-align: middle;">${lsTypeToString(
+                LSType[type as keyof typeof LSType]
+              )}</td>
+              <td style="border: 1px solid #ccc; padding: .309rem; vertical-align: middle;">${lsTypeDescriptions(
                 LSType[type as keyof typeof LSType]
               )}</td>
             </tr>
@@ -44,13 +61,47 @@ const getLsTypeColumn = (lsType: LSType, flexGrow: number): PacketVizField => {
   };
 };
 
-const getLinkStateIdColumn = (lsId: IPv4Address): PacketVizField => {
+const getLinkStateIdColumn = (
+  lsId: IPv4Address,
+  lsType: LSType
+): PacketVizField => {
   return {
     flexGrow: 1,
     label: "Link State ID",
-    description: `This field identifies the portion of the internet environment
-        that is being described by the LSA.  The contents of this field
-        depend on the LSA's LS type.`, // TODO: Add table
+    description: `
+        <p style="font-size: .764rem">
+        This field identifies the portion of the internet environment
+        that is being described by the LSA.  <b>The contents of this field
+        depend on the LSA's <i>LS type</i></b>.
+        </p>
+        <table>
+          <tbody>
+            <tr>
+              <th>
+                LS Type
+              </th>
+              <th>
+                Description
+              </th>
+            </tr>
+          ${Object.keys(LSType)
+            .filter((key) => isNaN(parseInt(key)))
+            .map(
+              (type) =>
+                `
+            <tr>
+              <td>${lsTypeToString(LSType[type as keyof typeof LSType])}</td>
+              <td>${lsIdDescription(LSType[type as keyof typeof LSType])}</td>
+            </tr>
+            `
+            )
+            .join("")}
+          </tbody>
+        </table>
+        <p style="margin-top: .764rem; font-size: 1rem; text-align: center">Since this is a ${lsTypeToString(
+          lsType
+        )}, ${lsId} refers to the ${lsIdSummary(lsType)}</p>
+        `,
     value: lsId.toString(),
   };
 };
@@ -157,7 +208,7 @@ const getLSAHeaderRows = (
       ],
     },
     {
-      row: [getLinkStateIdColumn(linkStateId)],
+      row: [getLinkStateIdColumn(linkStateId, lsType)],
     },
     {
       row: [getAdvertisingRouterColumn(advertisingRouter)],
@@ -321,11 +372,246 @@ export const getLSRequestRows = (requests: LSRequest[]): PacketViz[] => {
       },
     });
     rows.push({
-      row: [getLinkStateIdColumn(linkStateId)],
+      row: [getLinkStateIdColumn(linkStateId, lsType)],
     });
     rows.push({
       row: [getAdvertisingRouterColumn(advertisingRouter)],
     });
+  });
+  return rows;
+};
+
+const getRouterLinkRows = (link: RouterLink, idx: number): PacketViz[] => {
+  const { type, metric, id, data } = link;
+  return [
+    {
+      row: [
+        {
+          flexGrow: 1,
+          description: `
+          <p style="font-size: .764rem">Identifies the object that this router link connects to. Its value depends on the link's type.</p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Link Type</th>
+                <th>Link State ID Refers To</th>
+              </tr>
+              ${Object.keys(RouterLinkType)
+                .filter((key) => !isNaN(parseInt(key)))
+                .map(
+                  (type) =>
+                    `
+                <tr>
+                  <td style="text-align: center">${type}</td>
+                  <td>${linkIdSummary(parseInt(type))}</td>
+                </tr>
+                `
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <p style="text-align: center; font-size: 1rem; margin-top: .309rem">
+          Since this link is a type ${type} link, <b>${id} is the ${linkIdSummary(
+            type
+          )}</b>
+          </p>
+          `,
+          label: "Link ID",
+          value: id.toString(),
+        },
+      ],
+      separator: {
+        label: `Router Link ${idx + 1}`,
+        color: Colors.dd,
+      },
+    },
+    {
+      row: [
+        {
+          flexGrow: 1,
+          label: "Link Data",
+          description: `
+            <p style="font-size: .764rem">The value depends on the Link Type:</p>
+            <table>
+              <tbody>
+                <tr>
+                  <th>Link Type</th>
+                  <th>Link Data refers to</th>
+                </tr>
+                ${Object.keys(RouterLinkType)
+                  .filter((key) => isNaN(parseInt(key)))
+                  .map(
+                    (type) =>
+                      `
+                      <tr>
+                        <td>${type}</td>
+                        <td>${linkDataSummary(
+                          RouterLinkType[type as keyof typeof RouterLinkType]
+                        )}</td>
+                      </tr>
+                      `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+            <p style="text-align: center; margin-top: .764rem">
+            Since this link is of type ${type}, <b>${data} is the ${linkDataSummary(
+            type
+          )}</b>
+            </p>
+          `,
+          value: data.toString(),
+        },
+      ],
+    },
+    {
+      row: [
+        {
+          flexGrow: 0.5,
+          label: "Type",
+          description: `
+          <p style="font-size: 0.764rem">A quick description of the router link. Describes what this link refers to, and hence
+          describes the meaning of the Link State ID and Link State Data.</p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Link Type</th>
+                <th>Description</th>
+                <th>Link State ID Refers to</th>
+                <th>Link Data Refers to</th>
+              </tr>
+              ${Object.keys(RouterLinkType)
+                .filter((key) => !isNaN(parseInt(key)))
+                .map(
+                  (type) =>
+                    `
+                <tr>
+                  <td style="text-align: center">${type}</td>
+                  <td>${routerLinkTypeToString(parseInt(type))}</td>
+                  <td>${linkIdSummary(parseInt(type))}</td>
+                  <td>${linkDataSummary(parseInt(type))}</td>
+                </tr>
+                `
+                )
+                .join("")}
+            </tbody>
+          </table>
+          `,
+          value: type,
+        },
+        {
+          flexGrow: 0.5,
+          label: "# TOS",
+          description: `The number of different TOS metrics given for this link, not
+        counting the required link metric`,
+          value: NOT_IMPLEMENTED,
+        },
+        {
+          flexGrow: 1,
+          label: "Metric",
+          description: `<p>Refers to the cost of using this router link.
+            (The <i><b>Euclidean distance</i></b> in this simulation).</p>`,
+          value: metric,
+        },
+      ],
+    },
+  ];
+};
+
+const getRouterLSARows = (body: RouterLSABody): PacketViz[] => {
+  const { e, b, v, nLinks, links } = body;
+  const rows: PacketViz[] = [
+    {
+      row: [
+        {
+          label: "",
+          description: "Padding",
+          flexGrow: 0.25,
+          value: 0,
+        },
+        {
+          label: "V",
+          description:
+            "When set, the router is an endpoint of one or more fully adjacent virtual links having the described area as Transit area",
+          flexGrow: 0.1,
+          value: v ? 1 : 0,
+        },
+        {
+          label: "E",
+          description:
+            "E stands for external - This bit is set <b>when the router is an AS Boundary router</b>",
+          flexGrow: 0.1,
+          value: e ? 1 : 0,
+        },
+        {
+          label: "B",
+          description:
+            "B stands for border - This bit is set <b>when the router is an Area Boundary Router</b>",
+          flexGrow: 0.1,
+          value: b ? 1 : 0,
+        },
+        {
+          label: "",
+          description: "Padding",
+          flexGrow: 0.25,
+          value: 0,
+        },
+        {
+          label: "# Links",
+          description: `Describes the number of links that this LSA contains. For Router LSAs,
+          this must be the total collection of router links (i.e., interfaces) to the area. (If the router has 3 neighbors)`,
+          flexGrow: 0.8,
+          value: nLinks,
+        },
+      ],
+    },
+  ];
+  links.forEach((link, idx) => {
+    rows.push(...getRouterLinkRows(link, idx));
+  });
+  return rows;
+};
+
+export const getLSUpdateRows = (body: LSUpdatePacketBody): PacketViz[] => {
+  const { lsaList, nLsa } = body;
+  const rows: PacketViz[] = [
+    {
+      row: [
+        {
+          flexGrow: 1,
+          label: "# LSAs",
+          description: "The number of LSAs included in this update.",
+          value: nLsa,
+        },
+      ],
+    },
+  ];
+  lsaList.forEach((lsa, idx) => {
+    const { header, body } = lsa;
+    const headerRows = getLSAHeaderRows(header);
+    headerRows[0].separator = {
+      color: Colors.lsUpdate,
+      label: `LSA ${idx + 1}`,
+    };
+    rows.push(...headerRows);
+    if ("nLinks" in body && "links" in body) {
+      rows.push(...getRouterLSARows(body));
+    }
+  });
+  return rows;
+};
+
+export const getLSAckRows = (acknowledgements: LSAHeader[]): PacketViz[] => {
+  const rows: PacketViz[] = [];
+  acknowledgements.forEach((header, idx) => {
+    const headerRows = getLSAHeaderRows(header);
+    if (headerRows[0]) {
+      headerRows[0].separator = {
+        label: `LS Ack ${idx + 1}`,
+        color: Colors.lsAck,
+      };
+    }
+    rows.push(...headerRows);
   });
   return rows;
 };
