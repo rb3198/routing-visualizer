@@ -76,7 +76,8 @@
 }
 
 .packet_separator p {
-    left: 0;
+    right: 0;
+    position: absolute;
     font-weight: bold;
     font-size: .764rem;
 }

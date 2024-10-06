@@ -4,11 +4,16 @@ import { PacketInteractive } from "./packet";
 import styles from "./styles.module.css";
 import { PacketType } from "src/entities/ospf/enum";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
-import { getDDVizRows, getHelloVizRows } from "./descriptions/body";
+import {
+  getDDVizRows,
+  getHelloVizRows,
+  getLSRequestRows,
+} from "./descriptions/body";
 import { HelloPacketBody } from "src/entities/ospf/packets/hello";
 import { getHeaderRows } from "./descriptions/header";
 import { IPPacket } from "src/entities/ip/packets";
 import { DDPacketBody } from "src/entities/ospf/packets/dd";
+import { LSRequest } from "src/entities/ospf/packets/ls_request";
 
 interface PacketDetailModalProps {
   packet: IPPacket;
@@ -40,6 +45,8 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
         return getHelloVizRows(body as HelloPacketBody);
       case PacketType.DD:
         return getDDVizRows(body as DDPacketBody);
+      case PacketType.LinkStateRequest:
+        return getLSRequestRows(body as LSRequest[]);
       default:
         throw new Error("Not Implemented");
     }

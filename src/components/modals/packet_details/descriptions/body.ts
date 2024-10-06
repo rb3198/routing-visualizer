@@ -1,10 +1,68 @@
 import { HelloPacketBody } from "src/entities/ospf/packets/hello";
-import { PacketSeparator, PacketViz } from "./types";
+import { PacketSeparator, PacketViz, PacketVizField } from "./types";
 import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
 import { DDPacketBody } from "src/entities/ospf/packets/dd";
 import { LSAHeader } from "src/entities/ospf/lsa";
 import { LSType, lsTypeToString } from "src/entities/ospf/enum/ls_type";
 import { Colors } from "src/constants/theme";
+import { LSRequest } from "src/entities/ospf/packets/ls_request";
+import { IPv4Address } from "src/entities/ip/ipv4_address";
+
+const getLsTypeColumn = (lsType: LSType, flexGrow: number): PacketVizField => {
+  return {
+    flexGrow,
+    value: lsTypeToString(lsType),
+    description: `
+        The type of the LSA. This LSA is of type ${lsType}. Each LSA type has a separate advertisement format.
+        The possible types are as follows:
+        <table style="border-collapse: collapse; margin-top: .764rem">
+          <tbody>
+          <tr>
+            <th style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">LS Type</th>
+            <th style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">Description</th>
+          </tr>
+          ${Object.keys(LSType)
+            .filter((key) => isNaN(parseInt(key)))
+            .map(
+              (type) =>
+                `
+            <tr>
+              <td style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">${
+                LSType[type as keyof typeof LSType]
+              }</td>
+              <td style="border: 1px solid #ccc; padding: .764rem; vertical-align: middle;">${lsTypeToString(
+                LSType[type as keyof typeof LSType]
+              )}</td>
+            </tr>
+            `
+            )
+            .join("")}
+          </tbody>
+        </table>
+        `,
+    label: "LS Type",
+  };
+};
+
+const getLinkStateIdColumn = (lsId: IPv4Address): PacketVizField => {
+  return {
+    flexGrow: 1,
+    label: "Link State ID",
+    description: `This field identifies the portion of the internet environment
+        that is being described by the LSA.  The contents of this field
+        depend on the LSA's LS type.`, // TODO: Add table
+    value: lsId.toString(),
+  };
+};
+
+const getAdvertisingRouterColumn = (advRouter: IPv4Address): PacketVizField => {
+  return {
+    flexGrow: 1,
+    label: "Advertising Router",
+    description: `The Router ID of the router that originated the LSA.`,
+    value: advRouter.toString(),
+  };
+};
 
 export const getHelloVizRows = (body: HelloPacketBody): PacketViz[] => {
   const { deadInterval, helloInterval, neighborList, networkMask } = body;
@@ -95,62 +153,14 @@ const getLSAHeaderRows = (
             "Optional capabilities supported by the described portion of the routing domain.",
           value: NOT_IMPLEMENTED,
         },
-        {
-          flexGrow: 0.5,
-          label: "LS Type",
-          description: `
-        The type of the LSA. This LSA is of type ${lsType}. Each LSA type has a separate advertisement format.
-        The possible types are as follows:
-        <table style="border-collapse: collapse; margin-top: .764rem">
-          <tbody>
-          <tr>
-            <th style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">LS Type</th>
-            <th style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">Description</th>
-          </tr>
-          ${Object.keys(LSType)
-            .filter((key) => isNaN(parseInt(key)))
-            .map(
-              (type) =>
-                `
-            <tr>
-              <td style="border: 1px solid #ccc; padding: .764rem; text-align: center; vertical-align: middle;">${
-                LSType[type as keyof typeof LSType]
-              }</td>
-              <td style="border: 1px solid #ccc; padding: .764rem; vertical-align: middle;">${lsTypeToString(
-                LSType[type as keyof typeof LSType]
-              )}</td>
-            </tr>
-            `
-            )
-            .join("")}
-          </tbody>
-        </table>
-        `,
-          value: lsTypeToString(lsType),
-        },
+        getLsTypeColumn(lsType, 0.5),
       ],
     },
     {
-      row: [
-        {
-          flexGrow: 1,
-          label: "Link State ID",
-          description: `This field identifies the portion of the internet environment
-        that is being described by the LSA.  The contents of this field
-        depend on the LSA's LS type.`, // TODO: Add table
-          value: linkStateId.toString(),
-        },
-      ],
+      row: [getLinkStateIdColumn(linkStateId)],
     },
     {
-      row: [
-        {
-          flexGrow: 1,
-          label: "Advertising Router",
-          description: `The Router ID of the router that originated the LSA.`,
-          value: advertisingRouter.toString(),
-        },
-      ],
+      row: [getAdvertisingRouterColumn(advertisingRouter)],
     },
     {
       row: [
@@ -294,6 +304,27 @@ export const getDDVizRows = (body: DDPacketBody): PacketViz[] => {
         ...row,
         separator,
       });
+    });
+  });
+  return rows;
+};
+
+export const getLSRequestRows = (requests: LSRequest[]): PacketViz[] => {
+  const rows: PacketViz[] = [];
+  requests.forEach((request, idx) => {
+    const { advertisingRouter, linkStateId, lsType } = request;
+    rows.push({
+      row: [getLsTypeColumn(lsType, 1)],
+      separator: {
+        color: Colors.lsRequest,
+        label: `LS Request ${idx + 1}`,
+      },
+    });
+    rows.push({
+      row: [getLinkStateIdColumn(linkStateId)],
+    });
+    rows.push({
+      row: [getAdvertisingRouterColumn(advertisingRouter)],
     });
   });
   return rows;
