@@ -1,8 +1,10 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import styles from "./styles.module.css";
 import { CiRouter, CiViewTable } from "react-icons/ci";
 import { Router } from "../../entities/router";
 import { PiPower } from "react-icons/pi";
+import { GoDatabase } from "react-icons/go";
+import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 
 export interface ConnectionPickerProps {
   selectedRouter?: Router;
@@ -19,6 +21,7 @@ export interface ConnectionPickerProps {
   }[];
   controlsDisabled?: boolean;
   openNeighborTable: (router: Router) => unknown;
+  openLsDbModal: (lsDb: LsDb) => any;
   addRouterConnection?: (routerA: Router, routerB: Router) => any;
   /**
    * Turns the router ON or OFF.
@@ -40,6 +43,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
     selectedRouter,
     controlsDisabled,
     openNeighborTable,
+    openLsDbModal,
     addRouterConnection,
     toggleRouterPower,
   } = props;
@@ -59,7 +63,16 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
     );
   }, [selectedRouter, toggleRouterPower]);
 
-  const Tables = useMemo(() => {
+  const openLsDb = useCallback(() => {
+    if (!selectedRouter) {
+      return;
+    }
+    const { ospf } = selectedRouter;
+    const { lsDb } = ospf;
+    openLsDbModal(lsDb);
+  }, [selectedRouter, openLsDbModal]);
+
+  const Data = useMemo(() => {
     const onNeighborTableClick = () => {
       selectedRouter && openNeighborTable(selectedRouter);
     };
@@ -79,10 +92,16 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
             </div>
             Routing Table
           </li>
+          <li onClick={openLsDb}>
+            <div className={styles.iconContainer}>
+              <GoDatabase className={styles.icon} />
+            </div>
+            Link State Database
+          </li>
         </ul>
       </>
     );
-  }, [selectedRouter, openNeighborTable]);
+  }, [selectedRouter, openNeighborTable, openLsDb]);
   const { top, left, bottom } = position;
   return (
     <div
@@ -97,7 +116,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
       }}
     >
       {!controlsDisabled && Controls}
-      {Tables}
+      {Data}
       {(connectionOptions.length > 0 && (
         <>
           <p className={styles.description}>Connect to...</p>
