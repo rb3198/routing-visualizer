@@ -1,19 +1,13 @@
-import React, {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
 import { getHeaderRows } from "../descriptions/header";
 import styles from "./styles.module.css";
-import { PacketVizField } from "../descriptions/types";
+import { PacketViz, PacketVizField } from "../descriptions/types";
 
 interface PacketVizProps {
   packet: OSPFPacket;
-  bodyRows: PacketVizField[][];
+  bodyRows: PacketViz[];
   setFieldDesc: React.Dispatch<React.SetStateAction<string>>;
 }
 
@@ -38,7 +32,7 @@ const Field: React.FC<{
       onMouseOver={onMouseOver}
       onMouseLeave={onMouseLeave}
     >
-      {value !== NOT_IMPLEMENTED && value && (
+      {value !== NOT_IMPLEMENTED && typeof value !== "undefined" && (
         <p className={styles.fieldLabel}>{label}</p>
       )}
       <p
@@ -47,7 +41,7 @@ const Field: React.FC<{
           __html:
             value === NOT_IMPLEMENTED
               ? `${label} (Not Simulated)`
-              : !value
+              : typeof value === "undefined"
               ? label
               : value.toString(),
         }}
@@ -62,57 +56,57 @@ export const PacketInteractive: React.FC<PacketVizProps> = (props) => {
   const headerRef = useRef<HTMLDivElement>(null);
   const headerLabelRef = useRef<HTMLParagraphElement>(null);
   const headerRows = useMemo(() => getHeaderRows(header), [header]);
-  const [separatorTop, setSeparatorTop] = useState(0);
-  const [headerLabelTop, setHeaderLabelTop] = useState(0);
   const renderFields = useCallback(
-    (rows: PacketVizField[][]) => {
-      return rows.map((row) => (
-        <div className={styles.row} key={`packet_row_${row[0]?.label ?? ""}`}>
-          {row.map((field) => {
-            return (
-              <Field
-                viz={field}
-                key={field.label}
-                setFieldDesc={setFieldDesc}
-              />
-            );
-          })}
-        </div>
-      ));
+    (rows: PacketViz[]) => {
+      return rows.map((rowO, idx) => {
+        const { row, separator } = rowO;
+        return (
+          <div
+            className={styles.row}
+            key={`packet_row_${row[0]?.label ?? ""}_${idx}`}
+          >
+            {row.map((field, idx) => {
+              return (
+                <Field
+                  viz={field}
+                  key={`${field.label}_${idx}`}
+                  setFieldDesc={setFieldDesc}
+                />
+              );
+            })}
+            {separator && (
+              <div
+                style={{ borderColor: separator.color }}
+                className={styles.packet_separator}
+              >
+                <p style={{ color: separator.color }}>{separator.label}</p>
+              </div>
+            )}
+          </div>
+        );
+      });
     },
     [setFieldDesc]
   );
 
-  useLayoutEffect(() => {
-    if (!headerRef.current || !headerLabelRef.current) {
-      return;
-    }
-    const { height } = headerRef.current.getBoundingClientRect();
-    const { height: labelHeight } =
-      headerLabelRef.current.getBoundingClientRect();
-    setHeaderLabelTop(height - 2 - labelHeight);
-    setSeparatorTop(height);
-  }, []);
   return (
     <div id={styles.packet_container}>
       <div id={styles.packet}>
-        <div ref={headerRef}>{renderFields(headerRows)}</div>
+        <div ref={headerRef} id={styles.header}>
+          {renderFields(headerRows)}
+          <div id={styles.separator}>
+            <p
+              className={styles.packet_component_label}
+              id={styles.header_text}
+              ref={headerLabelRef}
+            >
+              OSPF Header
+            </p>
+            <p className={styles.packet_component_label}>OSPF Body</p>
+          </div>
+        </div>
         {renderFields(bodyRows)}
       </div>
-      <p
-        className={styles.packet_component_label}
-        style={{ top: headerLabelTop }}
-        ref={headerLabelRef}
-      >
-        OSPF Header
-      </p>
-      <hr id={styles.separator} style={{ top: separatorTop }}></hr>
-      <p
-        className={styles.packet_component_label}
-        style={{ top: separatorTop + 2 }}
-      >
-        OSPF Body
-      </p>
     </div>
   );
 };

@@ -3,7 +3,6 @@
     background-color: #181818;
     color: white;
     position: absolute;
-    width: 12.5vmax;
     overflow: hidden;
     transition: opacity .25s ease;
     transition-delay: left .5s;
@@ -17,8 +16,9 @@
     display: flex;
     cursor: pointer;
     align-items: center;
-    font-size: .75vmax;
+    font-size: 1rem;
     border-bottom: 2px solid #484848;
+    padding-right: .5rem;
 }
 
 #container ul li:last-of-type {
@@ -32,19 +32,19 @@
 .iconContainer {
     background-color: #A8324C;
     height: 100%;
-    padding: .5vmax .5vmax;
-    margin-right: .5vmax;
+    padding: .5rem .5rem;
+    margin-right: .5rem;
 }
 
 .icon {
-    width: 1.25vmax;
-    height: 1.25vmax;
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .description {
     text-align: left;
     margin-left: .5vmax;
-    font-size: .764vmax;
+    font-size: .764rem;
     padding: .25vmax 0;
     font-style: italic;
     color: #aaa;
@@ -57,11 +57,10 @@
 
 #controls_container {
     display: flex;
-    height: 2vmax;
     align-items: center;
-    padding: 0 .5vmax;
+    padding: 0.5rem .5rem;
     cursor: pointer;
-    font-size: 1vmax;
+    font-size: 1rem;
 }
 
 #controls_container[data-disabled="true"] {

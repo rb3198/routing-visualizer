@@ -9,9 +9,10 @@ import { IPPacket } from "src/entities/ip/packets";
 import { NeighborTableModalBody } from "./neighbor_table";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
-import { getKey } from "src/utils/common";
-import { PacketType } from "src/entities/ospf/enum";
 import { LiveNeighborTableState } from "src/reducers/modals";
+import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
+import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { LsDbModalBody } from "./ls_db";
 
 type ReduxProps = ConnectedProps<typeof connector>;
 
@@ -26,7 +27,9 @@ const Manager: React.FC<ReduxProps> = (props) => {
         const { header, body } = data as IPPacket;
         const { id } = header;
         return `${
-          body instanceof OSPFPacket ? getKey(PacketType, body.header.type) : ""
+          body instanceof OSPFPacket
+            ? getPacketTypeString(body.header.type)
+            : ""
         } Packet (ID ${id})`;
       case "neighbor_table_snapshot":
         const { routerId, timestamp } = data as NeighborTableEvent;
@@ -36,6 +39,11 @@ const Manager: React.FC<ReduxProps> = (props) => {
       case "neighbor_table_live":
         const { routerId: liveRouterId } = data as LiveNeighborTableState;
         return `${liveRouterId}'s Neighbor Table`;
+      case "ls_db":
+        const { ospfInterface } = data as LsDb;
+        const { router } = ospfInterface;
+        const { id: lsRouterId } = router;
+        return `${lsRouterId}'s Link State Database`;
       default:
         return "";
     }
@@ -68,6 +76,10 @@ const Manager: React.FC<ReduxProps> = (props) => {
             modalRef={modalRef}
           />
         );
+      case "ls_db":
+        const { db, ospfInterface } = data as LsDb;
+        const { router } = ospfInterface;
+        return <LsDbModalBody db={db} routerId={router.id} />;
       default:
         return null;
     }

@@ -1,16 +1,25 @@
 #packet_container {
     display: flex;
     justify-content: center;
+    max-height: 65vh;
+    overflow-y: scroll;
 }
 
 #packet {
     width: 75%;
     border-left: 3px solid #aaa;
     border-bottom: 3px solid #aaa;
+    height: min-content;
+}
+
+#header {
+    position: relative;
 }
 
 .row {
     display: flex;
+    position: relative;
+    overflow: visible;
 }
 
 .field {
@@ -31,21 +40,46 @@
 }
 
 .value {
-    font-size: .764vmax;
+    font-size: .764rem;
     font-weight: bold;
 }
 
 .fieldLabel {
     opacity: .75;
-    font-size: .618vmax;
+    font-size: .618rem;
 }
 
 #separator {
     height: 0;
-    width: 100%;
+    width: 130%;
+    left: -15%;
     border-top: 4px dashed #324ca8aa;
     position: absolute;
     z-index: 2;
+    bottom: 0;
+}
+
+#separator #header_text {
+    top: 0;
+    transform: translateY(-125%);
+    position: absolute;
+}
+
+.packet_separator {
+    position: absolute;
+    top: 0;
+    padding-top: .309rem;
+    width: 130%;
+    border-top: 4px dashed;
+    z-index: 2;
+    left: -15%;
+}
+
+.packet_separator p {
+    right: 0;
+    position: absolute;
+    font-weight: bold;
+    font-size: .764rem;
 }
 
 .packet_component_label {
@@ -53,5 +87,5 @@
     left: 0;
     color: #324ca8aa;
     font-weight: bold;
-    font-size: .764vmax;
+    font-size: .764rem;
 }

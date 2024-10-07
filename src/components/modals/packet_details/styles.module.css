@@ -1,13 +1,36 @@
 .desc {
-    font-size: .764vmax;
+    font-size: .764rem;
     margin-top: 1vmax;
     display: flex;
+    justify-content: center;
     align-items: center;
     text-align: justify;
+    flex-shrink: 0;
+    flex-direction: column;
+    list-style-position: inside;
+    font-size: 1rem;
+}
+
+.desc table {
+    border-collapse: collapse;
+    margin-top: .309rem;
+    font-size: .764rem;
+}
+
+.desc table th, .desc table td {
+    border: 1px solid #ccc;
+    padding: .309rem;
+    vertical-align: middle;    
+}
+
+.desc table th {
+    text-align: center;
 }
 
 .hover_desc {
     text-align: center;
     width: 100%;
     font-style: italic;
+    font-size: 1rem;
+    font-weight: bold;
 }

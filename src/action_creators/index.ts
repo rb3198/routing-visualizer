@@ -11,6 +11,7 @@ import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_ev
 import { NeighborTableRow } from "src/entities/ospf/tables";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
+import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 
 export type VizArgs = {
   color: string;
@@ -102,6 +103,14 @@ export const openPacketModal: ActionCreator<ModalAction> = (data: IPPacket) => {
   return {
     type: "OPEN_MODAL",
     active: "packet",
+    data,
+  };
+};
+
+export const openLsDbModal: ActionCreator<ModalAction> = (data: LsDb) => {
+  return {
+    type: "OPEN_MODAL",
+    active: "ls_db",
     data,
   };
 };

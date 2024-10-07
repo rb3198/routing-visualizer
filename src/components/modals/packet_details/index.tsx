@@ -1,13 +1,23 @@
-import React, { useLayoutEffect, useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HelloPacket } from "../../../entities/ospf/packets";
 import { PacketInteractive } from "./packet";
 import styles from "./styles.module.css";
 import { PacketType } from "src/entities/ospf/enum";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
-import { getHelloVizRows } from "./descriptions/body";
+import {
+  getDDVizRows,
+  getHelloVizRows,
+  getLSAckRows,
+  getLSRequestRows,
+  getLSUpdateRows,
+} from "./descriptions/body";
 import { HelloPacketBody } from "src/entities/ospf/packets/hello";
 import { getHeaderRows } from "./descriptions/header";
 import { IPPacket } from "src/entities/ip/packets";
+import { DDPacketBody } from "src/entities/ospf/packets/dd";
+import { LSRequest } from "src/entities/ospf/packets/ls_request";
+import { LSAHeader } from "src/entities/ospf/lsa";
+import { LSUpdatePacketBody } from "src/entities/ospf/packets/ls_update";
 
 interface PacketDetailModalProps {
   packet: IPPacket;
@@ -19,6 +29,7 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
   const { packet, modalRef } = props;
   const [fieldDesc, setFieldDesc] = useState("");
   const [descHeight, setDescHeight] = useState(0);
+  const hoverPRef = useRef<HTMLParagraphElement>(null);
   const { body: ipBody } = packet || {};
 
   const headerRows = useMemo(() => {
@@ -37,6 +48,14 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
     switch (type) {
       case PacketType.Hello:
         return getHelloVizRows(body as HelloPacketBody);
+      case PacketType.DD:
+        return getDDVizRows(body as DDPacketBody);
+      case PacketType.LinkStateRequest:
+        return getLSRequestRows(body as LSRequest[]);
+      case PacketType.LinkStateUpdate:
+        return getLSUpdateRows(body as LSUpdatePacketBody);
+      case PacketType.LinkStateAck:
+        return getLSAckRows(body as LSAHeader[]);
       default:
         throw new Error("Not Implemented");
     }
@@ -44,11 +63,14 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
 
   useLayoutEffect(() => {
     // Set the height of the description box to the max possible height among all description strings.
-    if (!bodyRows.length || !modalRef.current) {
+    if (!bodyRows.length || !modalRef.current || !hoverPRef.current) {
       return;
     }
     let maxHeight = -1;
-    [...headerRows, ...bodyRows].forEach((row) => {
+    const pParent = hoverPRef.current.parentNode;
+    pParent?.removeChild(hoverPRef.current);
+
+    [...headerRows, ...bodyRows].forEach(({ row }) => {
       row.forEach((field) => {
         const { description } = field;
         const container = document.createElement("div");
@@ -63,6 +85,7 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
         container.parentNode?.removeChild(container);
       });
     });
+    pParent?.appendChild(hoverPRef.current);
     setDescHeight(maxHeight);
   }, [headerRows, bodyRows, modalRef]);
 
@@ -78,9 +101,9 @@ export const PacketDetailModalBody: React.FC<PacketDetailModalProps> = (
       />
       <div className={styles.desc} style={{ height: descHeight }}>
         {(fieldDesc && (
-          <p dangerouslySetInnerHTML={{ __html: fieldDesc }}></p>
+          <div dangerouslySetInnerHTML={{ __html: fieldDesc }}></div>
         )) || (
-          <p className={styles.hover_desc}>
+          <p className={styles.hover_desc} ref={hoverPRef}>
             Hover over any field to learn about it.
           </p>
         )}

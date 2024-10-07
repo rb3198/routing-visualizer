@@ -29,7 +29,11 @@ import { BACKBONE_AREA_ID } from "../../entities/ospf/constants";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
-import { setLiveNeighborTable, setPropagationDelay } from "src/action_creators";
+import {
+  openLsDbModal,
+  setLiveNeighborTable,
+  setPropagationDelay,
+} from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -72,6 +76,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     propagationDelay,
     setPropagationDelay,
     setLiveNeighborTable,
+    openLsDbModal,
   } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
   const areaLayerHoverLocation = useRef<Point2D>();
@@ -495,11 +500,14 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       .forEach(([, ar]) => {
         const { routerLocations } = ar;
         for (const router of routerLocations.values()) {
-          router.turnOn();
+          const newRouter = router.turnOn();
+          if (router === selectedRouter) {
+            setSelectedRouter(newRouter);
+          }
         }
       });
     return true;
-  }, [openNotificationTooltip]);
+  }, [openNotificationTooltip, selectedRouter]);
 
   const pauseSimulation = useCallback(() => {
     setSimulationPlaying(false);
@@ -571,6 +579,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
         toggleRouterPower={toggleRouterPower}
+        openLsDbModal={openLsDbModal}
       />
       <AnimationToolbar
         playing={simulationPlaying}
@@ -596,6 +605,7 @@ const mapStateToProps = (state: IRootReducer) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
+    openLsDbModal: bindActionCreators(openLsDbModal, dispatch),
     setPropagationDelay: bindActionCreators(setPropagationDelay, dispatch),
   };
 };
