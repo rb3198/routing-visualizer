@@ -183,7 +183,7 @@ export const getHelloVizRows = (body: HelloPacketBody): PacketViz[] => {
   ];
 };
 
-const getLSAHeaderRows = (
+export const getLSAHeaderRows = (
   header: LSAHeader,
   showIgnoredRow?: boolean
 ): PacketViz[] => {
@@ -518,7 +518,7 @@ const getRouterLinkRows = (link: RouterLink, idx: number): PacketViz[] => {
   ];
 };
 
-const getRouterLSARows = (body: RouterLSABody): PacketViz[] => {
+export const getRouterLSARows = (body: RouterLSABody): PacketViz[] => {
   const { e, b, v, nLinks, links } = body;
   const rows: PacketViz[] = [
     {
