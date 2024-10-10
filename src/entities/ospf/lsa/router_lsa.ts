@@ -65,20 +65,14 @@ export class RouterLSABody {
           neighbor.areaId === areaId && neighbor.state !== State.Down
       )
       .forEach((row) => {
-        const { routerId, state, interfaceId } = row;
+        const { routerId, state, interfaceId, address } = row;
         const { ipInterface } = ipInterfaces.get(interfaceId) || {};
-        const { cost, routers } = ipInterface || {};
-        const address = routers?.getKey(router);
+        const { cost } = ipInterface || {};
         // Adding a Type 1 link for the full neighbor
         state === State.Full &&
           address &&
           this.links.push(
-            new RouterLink(
-              routerId,
-              IPv4Address.fromString(address),
-              cost ?? 0,
-              RouterLinkType.P2P
-            )
+            new RouterLink(routerId, address, cost ?? 0, RouterLinkType.P2P)
           );
         // Assuming that the state of the interface is always Point To Point
         // Adding a Type 3 link for the neighbor, regardless of its state.
@@ -86,7 +80,7 @@ export class RouterLSABody {
         address &&
           this.links.push(
             new RouterLink(
-              IPv4Address.fromString(address),
+              address,
               new IPv4Address(255, 255, 255, 255, 32), // Link DAta is the subnet mask in Type 3 link
               cost ?? 0,
               RouterLinkType.Stub

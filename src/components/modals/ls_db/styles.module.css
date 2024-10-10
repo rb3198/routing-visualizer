@@ -71,6 +71,10 @@
     margin-bottom: 0;
 }
 
+#lsa_viewer_container {
+    overflow-y: scroll;
+}
+
 #lsa_viewer {
     display: flex;
     align-items: center;

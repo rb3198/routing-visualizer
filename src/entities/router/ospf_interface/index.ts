@@ -162,11 +162,6 @@ export class OSPFInterface {
     console.log(
       `neighbor ${neighborId} retransmission list set by ${this.router.id}:`
     );
-    neighbor.linkStateRetransmissionList.forEach(({ header }, idx) => {
-      console.log(
-        `${idx}: ${header.lsType}; ${header.advertisingRouter}; ${header.linkStateId}; Seq No: ${header.lsSeqNumber}`
-      );
-    });
     const eventType: NeighborTableEventType = prevNeighbor
       ? "column_updated"
       : "added";

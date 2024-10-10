@@ -187,7 +187,7 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
               />
             )}
           </div>
-          <div>
+          <div id={styles.lsa_viewer_container}>
             <h3 className={styles.header}>LSA Viewer</h3>
             <div id={styles.lsa_viewer}>
               {!activeLsa && (

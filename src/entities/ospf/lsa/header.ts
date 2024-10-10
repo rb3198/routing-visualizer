@@ -56,6 +56,9 @@ export class LSAHeader {
     // Sequence Number is Equal
 
     // If one of the instances has its age == `MaxAge`, it's considered to be more recent.
+    if (lsAge === comparedLsAge) {
+      return 0;
+    }
     if (lsAge === MaxAge) {
       return -1;
     }

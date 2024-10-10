@@ -4,12 +4,24 @@ import { PacketType } from "../enum";
 import { LSA } from "../lsa";
 import { OSPFHeader } from "./header";
 import { OSPFPacket } from "./packet_base";
+import { store } from "src/store";
+import { MaxAge } from "../lsa/constants";
 
 export class LSUpdatePacketBody {
   nLsa: number;
   lsaList: LSA[];
   constructor(lsaList: LSA[]) {
-    this.lsaList = lsaList;
+    const { propagationDelay } = store.getState();
+    this.lsaList = lsaList.map((lsa) => {
+      const { header } = lsa;
+      const { lsAge } = header;
+      // Age all the LSAs by InfTransDelay (animation delay) before sending them on the link
+      header.lsAge = Math.min(
+        MaxAge,
+        lsAge + Math.round(propagationDelay / 1000)
+      );
+      return lsa;
+    });
     this.nLsa = lsaList.length;
   }
 }

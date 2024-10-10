@@ -2,7 +2,11 @@ import { LSA, LSAHeader } from "src/entities/ospf/lsa";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { LSType, State } from "src/entities/ospf/enum";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
-import { LSRefreshTime, MinLSInterval } from "src/entities/ospf/lsa/constants";
+import {
+  LSRefreshTime,
+  MaxAge,
+  MinLSInterval,
+} from "src/entities/ospf/lsa/constants";
 import { OSPFInterface } from "..";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/tables";
@@ -82,13 +86,17 @@ export class LsDb {
           },
         };
         if (
-          newLsAge === LSRefreshTime / 1000 &&
+          newLsAge % (LSRefreshTime / 1000) === 0 &&
           advertisingRouter.equals(routerId)
         ) {
           // Time to refresh the LSA
           toRefresh.push({ areaId, lsa: newLsa });
         }
-        // TODO: Handle MaxAge LSAs (Section 14).
+        if (newLsAge === MaxAge) {
+          // Flood this LSA out. When receiving ACKs, check if no retransmission list contains this LSA.
+          // If not, delete the LSA from the DB.
+          this.floodLsa(areaId, newLsa);
+        }
       });
     });
     toRefresh.forEach(({ areaId, lsa }) => {
