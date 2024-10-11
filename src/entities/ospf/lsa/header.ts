@@ -41,7 +41,7 @@ export class LSAHeader {
    * - **-1** if This LSA is younger than the `comparedLsa`
    * - **1** if This LSA is older than the `comparedLsa`
    */
-  compareAge = (comparedLsa: LSAHeader | LSA) => {
+  compareAge(comparedLsa: LSAHeader | LSA) {
     const comparedHeader =
       comparedLsa instanceof LSA ? comparedLsa.header : comparedLsa;
     const { lsAge, lsSeqNumber } = this;
@@ -71,14 +71,14 @@ export class LSAHeader {
       return lsAge > comparedLsAge ? 1 : -1;
     }
     return 0;
-  };
+  }
 
   /**
    * Given an LSA Header to compare, determines if both pertain to some instance of the same LSA.
    * **Note**: Does not take age or sequence number into account
    * @param comparedLsa
    */
-  isInstanceOf = (comparedLsa: LSA | LSAHeader) => {
+  isInstanceOf(comparedLsa: LSA | LSAHeader) {
     const comparedHeader =
       "lsAge" in comparedLsa ? comparedLsa : comparedLsa.header;
     const { advertisingRouter, linkStateId, lsType } = this;
@@ -87,20 +87,20 @@ export class LSAHeader {
       advertisingRouter.equals(comparedHeader.advertisingRouter) &&
       linkStateId.equals(comparedHeader.linkStateId)
     );
-  };
+  }
 
   /**
    * Checks for exact equality with the compared LSA, including age and Sequence number.
    * @param comparedLsa
    * @returns
    */
-  equals = (comparedLsa: LSA | LSAHeader) => {
+  equals(comparedLsa: LSA | LSAHeader) {
     const comparedHeader =
       comparedLsa instanceof LSAHeader ? comparedLsa : comparedLsa.header;
     return (
       this.isInstanceOf(comparedHeader) && this.compareAge(comparedHeader) === 0
     );
-  };
+  }
 
   static from = (header: LSAHeader) => {
     const { lsAge, lsSeqNumber, lsType, linkStateId, advertisingRouter } =

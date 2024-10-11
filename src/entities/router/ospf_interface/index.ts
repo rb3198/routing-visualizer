@@ -90,12 +90,6 @@ export class OSPFInterface {
     const versionOk = version === VERSION;
     const sourceOk = !router.id.equals(packetSource); // The Hello packet originated from this router itself.
     const areaIdOk = srcAreaId === areaId || srcAreaId === BACKBONE_AREA_ID; // Optionally add virtual link check if you implement virtual links
-    console.log(
-      `For packet ID ${ipPacketId} received by router ${this.router.id.toString()}`
-    );
-    console.log(
-      `VersionOK = ${versionOk}, SourceOK = ${sourceOk}, AreaOK = ${areaIdOk}`
-    );
     let reason = "";
     const ok = versionOk && sourceOk && areaIdOk;
     if (!ok) {
@@ -159,16 +153,10 @@ export class OSPFInterface {
         // @ts-ignore
         prevNeighbor[key] = neighbor[key];
       });
-    console.log(
-      `neighbor ${neighborId} retransmission list set by ${this.router.id}:`
-    );
     const eventType: NeighborTableEventType = prevNeighbor
       ? "column_updated"
       : "added";
-    this.neighborTable = {
-      ...this.neighborTable,
-      [neighbor.routerId.toString()]: neighbor,
-    };
+    this.neighborTable[neighbor.routerId.toString()] = neighbor;
     description &&
       emitEvent({
         eventName: "neighborTableEvent",

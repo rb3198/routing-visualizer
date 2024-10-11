@@ -45,10 +45,7 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
       const routerLsaList: RouterLSA[] = [];
       //   TODO: When implementing summary LSAs, create a new Summary LSA list and display it
       Object.values(areaDb).forEach((lsa) => {
-        if (
-          lsa instanceof RouterLSA ||
-          ("b" in lsa.body && "links" in lsa.body && "nLinks" in lsa.body)
-        ) {
+        if (RouterLSA.isRouterLsa(lsa)) {
           routerLsaList.push(lsa);
           return;
         }

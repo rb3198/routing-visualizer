@@ -9,7 +9,7 @@ export const MaxSequenceNumber = 2 ** 31 - 1;
  *
  * The LS Refresh Time in OSPF is always 1,800,000 ms, i.e. 30 minutes.
  */
-export const LSRefreshTime = 1800000;
+export const LSRefreshTime = 1800; // TODO: Make adjustable
 
 /**
  * The minimum time between distinct originations of any particular LSA.
@@ -32,7 +32,7 @@ export const MinLSArrival = 1000;
  *
  * The `MaxAge` is always 1 hour.
  */
-export const MaxAge = 3600000;
+export const MaxAge = 3600; // TODO: Make adjustable
 
 /**
  * The maximum time dispersion that can occur, as an LSA is flooded throughout the AS. 

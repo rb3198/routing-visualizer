@@ -28,6 +28,7 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
       {
         ...neighbor,
         linkStateRetransmissionList: lsaList,
+        lsRetransmissionRxmtTimer: undefined,
       },
       desc
     );

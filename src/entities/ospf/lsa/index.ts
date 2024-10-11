@@ -17,14 +17,20 @@ export abstract class LSA {
    * Given an LSA to compare, determines if it is one of the instances of this one.
    * @param comparedLsa
    */
-  isInstanceOf = (comparedLsa: LSA) => this.header.isInstanceOf(comparedLsa);
+  isInstanceOf(comparedLsa: LSA) {
+    return this.header.isInstanceOf(comparedLsa);
+  }
 
   /**
    * Checks for exact equality with the compared LSA, including age and Sequence number.
    * @param comparedLsa
    * @returns
    */
-  equals = (comparedLsa: LSA) => this.header.equals(comparedLsa);
+  equals(comparedLsa: LSA) {
+    return this.header.equals(comparedLsa);
+  }
 
-  referenceEquals = (comparedLsa: LSA) => this === comparedLsa;
+  referenceEquals(comparedLsa: LSA) {
+    return this === comparedLsa;
+  }
 }

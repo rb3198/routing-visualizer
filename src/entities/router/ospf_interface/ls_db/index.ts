@@ -10,6 +10,7 @@ import {
 import { OSPFInterface } from "..";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/tables";
+import { copyLsa } from "src/utils/common";
 
 export type LsId = {
   lsType: LSType;
@@ -30,7 +31,7 @@ export class LsDb {
   constructor(ospfInterface: OSPFInterface) {
     this.db = {};
     this.ospfInterface = ospfInterface;
-    this.agingTimer = setInterval(this.ageLSAs, 1000);
+    this.agingTimer = setTimeout(this.ageLSAs, 1000);
   }
 
   /**
@@ -70,32 +71,22 @@ export class LsDb {
         const lsa = areaDb[lsaKey];
         const { header } = lsa;
         const { lsAge, advertisingRouter } = header;
-        const newLsAge = lsAge + 1;
-        const newLsa: LSA = {
-          ...lsa,
-          header: {
-            ...header,
-            lsAge: newLsAge,
-          },
-        };
-        this.db = {
-          ...this.db,
-          [areaId]: {
-            ...this.db[areaId],
-            [lsaKey]: newLsa,
-          },
-        };
+        if (lsAge === MaxAge) {
+          return;
+        }
+        header.lsAge += 1;
+        const newLsAge = header.lsAge;
         if (
-          newLsAge % (LSRefreshTime / 1000) === 0 &&
+          newLsAge % LSRefreshTime === 0 &&
           advertisingRouter.equals(routerId)
         ) {
           // Time to refresh the LSA
-          toRefresh.push({ areaId, lsa: newLsa });
+          toRefresh.push({ areaId, lsa });
         }
         if (newLsAge === MaxAge) {
           // Flood this LSA out. When receiving ACKs, check if no retransmission list contains this LSA.
           // If not, delete the LSA from the DB.
-          this.floodLsa(areaId, newLsa);
+          this.floodLsa(areaId, lsa);
         }
       });
     });
@@ -112,14 +103,15 @@ export class LsDb {
           break;
       }
     });
+    this.agingTimer = setTimeout(this.ageLSAs, 1000);
   };
 
   clearTimers = () => {
-    clearInterval(this.agingTimer);
+    clearTimeout(this.agingTimer);
   };
 
   startTimers = () => {
-    this.agingTimer = setInterval(this.ageLSAs, 1000);
+    this.agingTimer = setTimeout(this.ageLSAs, 1000);
   };
 
   /**
@@ -174,7 +166,7 @@ export class LsDb {
     const oldRouterLsa = this.db[areaId] && this.db[areaId][key];
     const { header } = oldRouterLsa || {};
     const { lsSeqNumber } = header || {};
-    return new RouterLSA(
+    return RouterLSA.fromRouter(
       router,
       areaId,
       lsSeqNumber ? lsSeqNumber + 1 : undefined
@@ -287,13 +279,14 @@ export class LsDb {
       if (receivedFrom && neighborId.equals(receivedFrom)) {
         continue;
       }
+      linkStateRetransmissionList.push(copyLsa(lsa));
       setNeighbor(
         {
           ...neighbor,
           lsRetransmissionRxmtTimer:
             lsRetransmissionRxmtTimer ??
             setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval),
-          linkStateRetransmissionList: [...linkStateRetransmissionList, lsa],
+          linkStateRetransmissionList,
         },
         `LSA added to neighbor ${neighborId}'s retransmission list`
       );
@@ -319,17 +312,46 @@ export class LsDb {
     const oldCopy = this.getLsa(areaId, header);
     oldCopy && this.removeOldLsaFromRetransmissionLists(oldCopy);
     lsa.updatedOn = Date.now();
-    this.db = {
-      ...this.db,
-      [areaId]: {
-        ...this.db[areaId],
-        [key]: lsa,
-      },
-    };
+    this.db[areaId][key] = lsa;
     flood && this.floodLsa(areaId, lsa, receivedFrom);
     // TODO: Compare the bodies of the old and new copies. Calculate routing tables on LSA change.
     const isDifferent = !!oldCopy;
     if (isDifferent) {
+    }
+  };
+
+  removeMaxAgeLsas = (areaId: number, maxAgeLsaList: LSA[]) => {
+    const { neighborTable } = this.ospfInterface;
+    if (!maxAgeLsaList || !maxAgeLsaList.length) {
+      return;
+    }
+    const areaNeighbors = Object.values(neighborTable).filter(
+      (neighbor) => neighbor.areaId === areaId
+    );
+    for (let maxAgeLsa of maxAgeLsaList) {
+      let toDelete = true;
+      const { header } = maxAgeLsa;
+      const { advertisingRouter, lsType } = header;
+      for (let neighbor of areaNeighbors) {
+        const { linkStateRetransmissionList } = neighbor;
+        for (let lsRetransmit of linkStateRetransmissionList) {
+          if (lsRetransmit.equals(maxAgeLsa)) {
+            toDelete = false;
+            break;
+          }
+        }
+        if (!toDelete) {
+          break;
+        }
+      }
+      if (toDelete) {
+        const areaDb = this.db[areaId];
+        if (advertisingRouter.equals(this.ospfInterface.router.id)) {
+          lsType === LSType.RouterLSA && this.originateRouterLsa(areaId, true);
+        } else {
+          delete areaDb[this.getLsDbKey(header)];
+        }
+      }
     }
   };
 

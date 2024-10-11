@@ -3,6 +3,7 @@ import { PacketHandlerBase } from "./base";
 import { IPPacket } from "src/entities/ip/packets";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { LSA, LSAHeader } from "src/entities/ospf/lsa";
+import { MaxAge } from "src/entities/ospf/lsa/constants";
 
 export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
   // TODO: Remove this function when prod
@@ -33,7 +34,7 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
     const { id: routerId } = router;
     const { rxmtInterval } = config;
     const { header, body: acknowledgements } = packet;
-    const { routerId: neighborId } = header;
+    const { routerId: neighborId, areaId } = header;
     const neighbor = neighborTable[neighborId.toString()];
     if (!neighbor) {
       return;
@@ -43,18 +44,22 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
       lsRetransmissionRxmtTimer: prevTimer,
     } = neighbor;
     debug && this.printDebug(routerId, neighborId, linkStateRetransmissionList);
-    const newLsRetransmitList = [...linkStateRetransmissionList];
+    const ackedMaxAgeLsaList: LSA[] = [];
     acknowledgements.forEach((ack, idx) => {
       debug && this.printAck(idx, ack);
-      const lsIdx = newLsRetransmitList.findIndex((lsa) =>
+      const lsIdx = linkStateRetransmissionList.findIndex((lsa) =>
         lsa.header.equals(LSAHeader.from(ack))
       );
       if (lsIdx !== -1) {
-        newLsRetransmitList.splice(lsIdx, 1);
+        const lsa = linkStateRetransmissionList[lsIdx];
+        const { header } = lsa;
+        const { lsAge } = header;
+        linkStateRetransmissionList.splice(lsIdx, 1);
+        lsAge === MaxAge && ackedMaxAgeLsaList.push(lsa);
       }
     });
     let newTimer: NodeJS.Timeout | undefined = undefined;
-    if (!newLsRetransmitList.length) {
+    if (!linkStateRetransmissionList.length) {
       clearTimeout(prevTimer);
     } else {
       newTimer =
@@ -64,12 +69,13 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
     setNeighbor(
       {
         ...neighbor,
-        linkStateRetransmissionList: newLsRetransmitList,
+        linkStateRetransmissionList,
         lsRetransmissionRxmtTimer: newTimer,
       },
       `Neighbor ${neighborId}'s retransmission list updated since ${
-        newLsRetransmitList.length ? "some" : "all"
+        linkStateRetransmissionList.length ? "some" : "all"
       } of the LSAs sent to the neighbor and acknowledged by it.`
     );
+    this.ospfInterface.lsDb.removeMaxAgeLsas(areaId, ackedMaxAgeLsaList);
   };
 }
