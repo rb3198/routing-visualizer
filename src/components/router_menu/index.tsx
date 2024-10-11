@@ -51,14 +51,17 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
   const Controls = useMemo(() => {
     const { turnedOn } = selectedRouter || {};
     const onClick = () => {
-      toggleRouterPower && selectedRouter && toggleRouterPower(selectedRouter);
+      toggleRouterPower &&
+        selectedRouter &&
+        turnedOn !== "turning_off" &&
+        toggleRouterPower(selectedRouter);
     };
     return (
       <div id={styles.controls_container} onClick={onClick}>
-        <div id={styles.power_icon} data-turned-on={turnedOn}>
+        <div id={styles.power_icon} data-status={turnedOn}>
           <PiPower />
         </div>
-        Turn {turnedOn ? "Off" : "On"}
+        Turn {turnedOn === true ? " Off" : turnedOn ? "ing Off" : " On"}
       </div>
     );
   }, [selectedRouter, toggleRouterPower]);

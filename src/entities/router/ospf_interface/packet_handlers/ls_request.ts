@@ -6,6 +6,7 @@ import { LSA } from "src/entities/ospf/lsa";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/tables";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { copyLsa } from "src/utils/common";
 
 export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
   private getDescription = (neighborId: IPv4Address, lsaList: LSA[]) => {
@@ -69,7 +70,7 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
         isBadLsReq = true;
         return;
       }
-      lsaResponseList.push(lsa);
+      lsaResponseList.push(copyLsa(lsa));
     });
     this.setNeighborRetransmissionList(neighbor, lsaResponseList);
     sendLSUpdatePacket(neighborId);

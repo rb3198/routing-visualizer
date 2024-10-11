@@ -40,7 +40,7 @@ export const MaxAge = 3600; // TODO: Make adjustable
     
  * The value of `MaxAgeDiff` is set to 15 minutes.
  */
-export const MaxAgeDiff = 15 * 60000;
+export const MaxAgeDiff = 15 * 60;
 
 /**
  * The metric value indicating that the destination described by an LSA is unreachable.

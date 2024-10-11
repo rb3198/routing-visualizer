@@ -24,14 +24,13 @@ export class LsDb {
    */
   db: Record<number, Record<string, LSA>>;
 
-  agingTimer: NodeJS.Timeout;
+  agingTimer?: NodeJS.Timeout;
 
   ospfInterface: OSPFInterface;
 
   constructor(ospfInterface: OSPFInterface) {
     this.db = {};
     this.ospfInterface = ospfInterface;
-    this.agingTimer = setTimeout(this.ageLSAs, 1000);
   }
 
   /**
@@ -108,6 +107,7 @@ export class LsDb {
 
   clearTimers = () => {
     clearTimeout(this.agingTimer);
+    this.agingTimer = undefined;
   };
 
   startTimers = () => {
@@ -321,7 +321,7 @@ export class LsDb {
   };
 
   removeMaxAgeLsas = (areaId: number, maxAgeLsaList: LSA[]) => {
-    const { neighborTable } = this.ospfInterface;
+    const { neighborTable, router } = this.ospfInterface;
     if (!maxAgeLsaList || !maxAgeLsaList.length) {
       return;
     }
@@ -346,7 +346,10 @@ export class LsDb {
       }
       if (toDelete) {
         const areaDb = this.db[areaId];
-        if (advertisingRouter.equals(this.ospfInterface.router.id)) {
+        if (
+          advertisingRouter.equals(this.ospfInterface.router.id) &&
+          router.turnedOn === true
+        ) {
           lsType === LSType.RouterLSA && this.originateRouterLsa(areaId, true);
         } else {
           delete areaDb[this.getLsDbKey(header)];
@@ -396,5 +399,41 @@ export class LsDb {
         originateLsa();
       }
     }
+  };
+
+  clearDb = async (graceful?: boolean) => {
+    const { router } = this.ospfInterface;
+    const { id: routerId } = router;
+    if (graceful) {
+      const routerLsaKey = this.getLsDbKey({
+        advertisingRouter: routerId,
+        lsType: LSType.RouterLSA,
+        linkStateId: routerId,
+      });
+      // Flood MaxAged self-originated router LSAs.
+      for (let [areaId, areaDb] of Object.entries(this.db)) {
+        const routerLsa = areaDb[routerLsaKey];
+        routerLsa.header.lsAge = MaxAge;
+        this.floodLsa(parseInt(areaId), routerLsa);
+      }
+      await new Promise((resolve) => {
+        const check = () => {
+          let shouldResolve = true;
+          for (let [, areaDb] of Object.entries(this.db)) {
+            if (areaDb[routerLsaKey]) {
+              shouldResolve = false;
+              break;
+            }
+          }
+          if (shouldResolve) {
+            resolve(true);
+          } else {
+            setTimeout(check, 1000);
+          }
+        };
+        setTimeout(check, 1000);
+      });
+    }
+    this.db = {};
   };
 }

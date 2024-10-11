@@ -33,7 +33,7 @@ export class Router {
   /**
    * Boolean to indicate if the router is turned on.
    */
-  turnedOn: boolean;
+  turnedOn: boolean | "turning_off";
 
   constructor(
     key: string,
@@ -60,7 +60,7 @@ export class Router {
       eventName: "interfaceEvent",
       event: new InterfaceNetworkEvent("added", this),
     })(store.dispatch);
-    if (this.turnedOn) {
+    if (this.turnedOn === true) {
       // IF turnedOn send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
       helloTimer = setInterval(() => {
@@ -110,9 +110,9 @@ export class Router {
   };
 
   turnOn = () => {
-    const { config } = this.ospf;
+    const { config, lsDb } = this.ospf;
     const { helloInterval } = config;
-    if (this.turnedOn) {
+    if (this.turnedOn === true) {
       return;
     }
     this.turnedOn = true;
@@ -126,12 +126,14 @@ export class Router {
         helloTimer,
       });
     }
+    lsDb.startTimers();
     return { ...this };
   };
 
-  turnOff = () => {
-    this.turnedOn = false;
+  turnOff = async () => {
+    this.turnedOn = "turning_off";
     this.ospf.lsDb.clearTimers();
+    await this.ospf.lsDb.clearDb(true);
     Object.values(this.ospf.neighborTable).forEach(
       ({
         deadTimer,
@@ -149,6 +151,7 @@ export class Router {
     [...this.ipInterfaces.values()].forEach(({ helloTimer }) => {
       clearInterval(helloTimer);
     });
+    this.turnedOn = false;
     return { ...this };
   };
 }

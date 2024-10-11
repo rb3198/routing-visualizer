@@ -87,6 +87,7 @@ export class RouterLSABody {
             )
           );
       });
+    body.nLinks = body.links.length;
     return body;
   };
 }
