@@ -14,6 +14,39 @@ import { getKey } from "src/utils/common";
 import { State } from "src/entities/ospf/enum";
 import { columnNames } from "./descriptions";
 import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
+import { LSAHeader } from "src/entities/ospf/lsa";
+
+const renderLSAHeader = (header: LSAHeader) => {
+  const { advertisingRouter, linkStateId, lsSeqNumber } = header;
+  const cols = [
+    {
+      label: "Advertising Router",
+      value: advertisingRouter,
+    },
+    {
+      label: "Link State ID",
+      value: linkStateId,
+    },
+    {
+      label: "LS Seq. Number",
+      value: lsSeqNumber,
+    },
+  ];
+  return `
+  <div class=${styles.lsa_header}>
+    ${cols
+      .map(
+        ({ label, value }) => `
+      <div>
+        <p class=${styles.lsa_header_label}>${label}</p>
+        <p class=${styles.lsa_header_value}>${value}</p>
+      </div>
+    `
+      )
+      .join("")}
+  </div>
+  `;
+};
 
 const getValue = (
   neighborTable: Record<string, NeighborTableRow>,
@@ -37,10 +70,36 @@ const getValue = (
     case "ddSeqNumber":
       return state > State.ExStart ? row[key]?.toString() : "Not Negotiated";
     case "dbSummaryList":
+      const { dbSummaryList } = row;
+      return !dbSummaryList.length
+        ? "[ ]"
+        : `
+        <div>
+          ${dbSummaryList.map((summary) => renderLSAHeader(summary)).join("")}
+        </div>
+      `;
     case "linkStateRequestList":
+      const { linkStateRequestList } = row;
+      return !linkStateRequestList.length
+        ? "[ ]"
+        : `
+        <div>
+          ${linkStateRequestList
+            .map((header) => renderLSAHeader(header))
+            .join("")}
+        </div>
+      `;
     case "linkStateRetransmissionList":
-      const arr = row[key];
-      return `[ ${arr.join("<br>")} ]`;
+      const { linkStateRetransmissionList } = row;
+      return !linkStateRetransmissionList.length
+        ? "[ ]"
+        : `
+        <div>
+          ${linkStateRetransmissionList
+            .map((lsa) => renderLSAHeader(lsa.header))
+            .join("")}
+        </div>
+      `;
     case "deadTimer":
     case "ddRxmtTimer":
     case "lsRequestRxmtTimer":

@@ -111,7 +111,6 @@
 
 .td[data-active="true"] {
     background-color: #324ca8;
-    color: white;
 }
 
 .th, .td {
@@ -129,6 +128,31 @@
     color: white;
     display: flex;
     align-items: center;
+}
+
+.lsa_header {
+    display: flex;
+    border: 1px solid #ccc;
+}
+
+.lsa_header > div {
+    padding: .318rem .764rem;
+    border-right: 1px solid #ccc;
+    background-color: white;
+}
+
+.lsa_header > div:last-of-type {
+    border-right: none;
+}
+
+.lsa_header_label {
+    opacity: .75;
+    font-size: .618rem;
+}
+
+.lsa_header_value {
+    font-weight: bold;
+    font-size: .764rem;
 }
 
 #packet {
@@ -155,7 +179,7 @@
     cursor: pointer;
 }
 
-.packet_field:hover {
+.packet_field:hover, .packet_field[data-selected="true"] {
     background-color: #324ca8;
     color: white;
 }

@@ -124,3 +124,27 @@
         transform: translateY(0);
     }
 }
+
+.lsa_header {
+    display: flex;
+    border: 1px solid #aaa;
+}
+
+.lsa_header > div {
+    padding: .318rem .764rem;
+    border-right: 1px solid #aaa;
+}
+
+.lsa_header>div:last-of-type {
+    border-right: none;
+}
+
+.lsa_header_label {
+    opacity: .75;
+    font-size: .618rem;
+}
+
+.lsa_header_value {
+    font-weight: bold;
+    font-size: .764rem;
+}
