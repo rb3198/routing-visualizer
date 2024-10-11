@@ -197,7 +197,8 @@ const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
 const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
   const { config } = this;
   const { rxmtInterval } = config;
-  const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer } = neighbor;
+  const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer, areaId } =
+    neighbor;
   clearInterval(lsRequestRxmtTimer);
   clearTimeout(lsRetransmissionRxmtTimer);
   if (state >= State.Exchange) {
@@ -217,6 +218,7 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
       },
       ""
     );
+    this.lsDb.originateRouterLsa(areaId, true);
   }
 };
 
@@ -241,7 +243,7 @@ const badLsRequest: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const killNeighbor: NeighborEventHandler = function (neighbor) {
-  const { deadTimer, routerId: neighborId } = neighbor;
+  const { deadTimer, routerId: neighborId, areaId } = neighbor;
   clearTimeout(deadTimer);
   this.setNeighbor(
     {
@@ -256,6 +258,7 @@ const killNeighbor: NeighborEventHandler = function (neighbor) {
   Dead timer of ${neighborId} triggered. The neighbor is being set to the DOWN state.
   `
   );
+  this.lsDb.originateRouterLsa(areaId, true);
   this.onOspfNeighborDown();
 };
 
