@@ -23,7 +23,7 @@ export class InterfaceNetworkEvent extends NetworkEventBase {
       case "added":
         return `<b>Interface added to the router with ID ${id.toString()}</b>.<br> 
                 The router ${
-                  turnedOn ? "" : ", when turned on,"
+                  turnedOn === true ? "" : ", when turned on,"
                 } will now send Hello Packets to this interface every <i>helloInterval</i>
                 (${
                   helloInterval / 1000

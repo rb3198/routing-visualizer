@@ -51,7 +51,7 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
  * @param neighbor  The OSPF Neighbor
  */
 const oneWayReceived: NeighborEventHandler = function (neighbor) {
-  const { state, routerId: neighborId } = neighbor;
+  const { state, routerId: neighborId, areaId } = neighbor;
   if (state >= State.TwoWay) {
     this.setNeighbor(
       {
@@ -68,6 +68,9 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
         <li>All the lists reset.</li>
       </ul>`
     );
+  }
+  if (state === State.Full) {
+    this.lsDb.originateRouterLsa(areaId, true);
   }
 };
 
@@ -197,7 +200,8 @@ const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
 const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
   const { config } = this;
   const { rxmtInterval } = config;
-  const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer } = neighbor;
+  const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer, areaId } =
+    neighbor;
   clearInterval(lsRequestRxmtTimer);
   clearTimeout(lsRetransmissionRxmtTimer);
   if (state >= State.Exchange) {
@@ -212,11 +216,13 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
           this.sendDDPacket.bind(this, neighbor.routerId),
           rxmtInterval
         ),
+        lastReceivedDdPacket: undefined,
         lsRequestRxmtTimer: undefined,
         lsRetransmissionRxmtTimer: undefined,
       },
       ""
     );
+    this.lsDb.originateRouterLsa(areaId, true);
   }
 };
 
@@ -241,7 +247,7 @@ const badLsRequest: NeighborEventHandler = function (neighbor) {
  * @param neighbor The OSPF Neighbor
  */
 const killNeighbor: NeighborEventHandler = function (neighbor) {
-  const { deadTimer, routerId: neighborId } = neighbor;
+  const { deadTimer, routerId: neighborId, areaId } = neighbor;
   clearTimeout(deadTimer);
   this.setNeighbor(
     {
@@ -251,11 +257,13 @@ const killNeighbor: NeighborEventHandler = function (neighbor) {
       linkStateRetransmissionList: [],
       dbSummaryList: [],
       deadTimer: undefined,
+      lastReceivedDdPacket: undefined,
     },
     `
   Dead timer of ${neighborId} triggered. The neighbor is being set to the DOWN state.
   `
   );
+  this.lsDb.originateRouterLsa(areaId, true);
   this.onOspfNeighborDown();
 };
 

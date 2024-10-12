@@ -79,6 +79,12 @@
     align-items: center;
 }
 
-#power_icon[data-turned-on="true"] {
+#power_icon[data-status="true"] {
     background-color: red;
+}
+
+#power_icon[data-status="turning_off"] {
+    background-color: yellow;
+    opacity: .5;
+    cursor: initial;
 }

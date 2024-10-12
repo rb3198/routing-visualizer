@@ -133,7 +133,7 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
       let requestLsa = false;
       if (lsa) {
         // LSA Exists, compare which one is newer.
-        requestLsa = header.compareAge(lsa) > 0;
+        requestLsa = header.compareAge(lsa) < 0;
       } else {
         // This is a new LSA.
         requestLsa = true;

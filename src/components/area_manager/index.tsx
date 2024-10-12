@@ -524,13 +524,13 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     [setLiveNeighborTable]
   );
 
-  const toggleRouterPower = useCallback(() => {
+  const toggleRouterPower = useCallback(async () => {
     if (!selectedRouter) {
       return;
     }
     const { turnedOn, turnOff, turnOn } = selectedRouter;
     if (turnedOn) {
-      setSelectedRouter(turnOff());
+      setSelectedRouter(await turnOff());
     } else {
       setSelectedRouter(turnOn());
     }

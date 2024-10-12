@@ -93,7 +93,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     // If LSA is a summary LSA and router's routing table does not have a route to that destination, FLUSH the LSA
     // Else the following code:
     const setRouterLsa = () => {
-      const newLsa = new RouterLSA(router, areaId, lsSeqNumber + 1);
+      const newLsa = RouterLSA.fromRouter(router, areaId, lsSeqNumber + 1);
       lsDb.installLsa(areaId, newLsa, undefined, true);
     };
     switch (lsType) {
@@ -183,21 +183,33 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       if (dbCopy.equals(lsa)) {
         // Received LSA is the same instance as the database copy.
         if (
-          linkStateRetransmissionList.some(
-            (neighborLsa) => neighborLsa.equals(lsa) //changed here from isInstanceof
+          linkStateRetransmissionList.some((neighborLsa) =>
+            neighborLsa.equals(lsa)
           )
         ) {
+          const { header } = lsa;
+          const { lsAge } = header;
+          const { lsRetransmissionRxmtTimer } = neighbor;
+          let newTimer = lsRetransmissionRxmtTimer;
           // Implied Acknowledgement.
           const newRetransmissionList = linkStateRetransmissionList.filter(
             (neighborLsa) => !neighborLsa.equals(lsa)
           );
+          if (!newRetransmissionList.length) {
+            clearTimeout(lsRetransmissionRxmtTimer);
+            newTimer = undefined;
+          }
           this.ospfInterface.setNeighbor(
             {
               ...neighbor,
               linkStateRetransmissionList: newRetransmissionList,
+              lsRetransmissionRxmtTimer: newTimer,
             },
             `Retransmission list of neighbor ${neighborId} truncated, since it sent an LSA packet which was to be sent to it.`
           );
+          if (lsAge === MaxAge) {
+            lsDb.removeMaxAgeLsas(areaId, [lsa]);
+          }
           // No ACK to be sent back to the neighbor.
           continue;
         }
