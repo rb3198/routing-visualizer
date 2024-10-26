@@ -6,7 +6,7 @@ import { PacketType, State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
 import { DDPacket, HelloPacket } from "../../ospf/packets";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
-import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
+import { NeighborTableRow, RoutingTableRow } from "../../ospf/table_rows";
 import neighborEventHandlerFactory from "./neighbor_event_handlers";
 import { IPAddresses } from "../../../constants/ip_addresses";
 import { IPLinkInterface } from "../../ip/link_interface";

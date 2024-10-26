@@ -9,7 +9,7 @@ import {
 } from "src/entities/ospf/lsa/constants";
 import { OSPFInterface } from "..";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
-import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { copyLsa } from "src/utils/common";
 
 export type LsId = {

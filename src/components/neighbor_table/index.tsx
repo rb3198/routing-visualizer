@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
-import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import styles from "./styles.module.css";
 import { getKey } from "src/utils/common";
 import { State } from "src/entities/ospf/enum";

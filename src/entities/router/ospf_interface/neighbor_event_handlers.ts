@@ -1,7 +1,7 @@
 import { OSPFInterface } from ".";
 import { State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
-import { NeighborTableRow } from "../../ospf/tables";
+import { NeighborTableRow } from "../../ospf/table_rows";
 import { deadTimerFactory } from "./timer_factories";
 
 type NeighborEventHandler = (

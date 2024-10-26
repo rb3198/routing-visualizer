@@ -4,7 +4,7 @@ import { IPPacket } from "src/entities/ip/packets";
 import { State } from "src/entities/ospf/enum";
 import { LSA } from "src/entities/ospf/lsa";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
-import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { copyLsa } from "src/utils/common";
 
