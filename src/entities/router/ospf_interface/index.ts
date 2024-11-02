@@ -6,7 +6,7 @@ import { PacketType, State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
 import { DDPacket, HelloPacket } from "../../ospf/packets";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
-import { NeighborTableRow, RoutingTableRow } from "../../ospf/table_rows";
+import { NeighborTableRow } from "../../ospf/table_rows";
 import neighborEventHandlerFactory from "./neighbor_event_handlers";
 import { IPAddresses } from "../../../constants/ip_addresses";
 import { IPLinkInterface } from "../../ip/link_interface";
@@ -34,13 +34,14 @@ import {
   LsAckPacketHandler,
 } from "./packet_handlers";
 import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
+import { RoutingTableManager } from "./routing_table";
 
 export class OSPFInterface {
   config: OSPFConfig;
   router: Router;
   neighborTable: Record<string, NeighborTableRow>;
   lsDb: LsDb;
-  routingTable: Map<string, RoutingTableRow>;
+  routingTableManager: RoutingTableManager;
   packetHandlerFactory: {
     [PacketType.Hello]: HelloPacketHandler;
     [PacketType.DD]: DDPacketHandler;
@@ -51,7 +52,7 @@ export class OSPFInterface {
   constructor(router: Router, config: OSPFConfig) {
     this.router = router;
     this.neighborTable = {};
-    this.routingTable = new Map();
+    this.routingTableManager = new RoutingTableManager(this);
     this.config = config;
     this.packetHandlerFactory = {
       [PacketType.Hello]: new HelloPacketHandler(this),

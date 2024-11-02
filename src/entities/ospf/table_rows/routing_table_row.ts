@@ -22,3 +22,5 @@ export class RoutingTableRow {
     this.interface = _interface;
   }
 }
+
+export type RoutingTable = RoutingTableRow[];
