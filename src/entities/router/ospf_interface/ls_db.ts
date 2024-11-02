@@ -314,9 +314,10 @@ export class LsDb {
     lsa.updatedOn = Date.now();
     this.db[areaId][key] = lsa;
     flood && this.floodLsa(areaId, lsa, receivedFrom);
-    // TODO: Compare the bodies of the old and new copies. Calculate routing tables on LSA change.
-    const isDifferent = !!oldCopy;
+    const isDifferent =
+      !oldCopy || JSON.stringify(oldCopy.body) !== JSON.stringify(lsa.body);
     if (isDifferent) {
+      this.ospfInterface.routingTableManager.calculate();
     }
   };
 
