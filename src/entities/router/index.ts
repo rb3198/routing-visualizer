@@ -52,7 +52,6 @@ export class Router {
   }
 
   addInterface = (ipInterface: IPLinkInterface) => {
-    const { id } = ipInterface;
     const { config } = this.ospf;
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
@@ -67,7 +66,7 @@ export class Router {
         this.ospf.sendHelloPacket(ipInterface);
       }, helloInterval);
     }
-    this.ipInterfaces.set(id, {
+    this.ipInterfaces.set(ipInterface.getSelfIpAddress(this) ?? "", {
       ipInterface,
       helloTimer,
     });

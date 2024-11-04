@@ -82,6 +82,10 @@ export class IPLinkInterface {
     return routers[0];
   };
 
+  getSelfIpAddress = (self: Router) => {
+    return this.routers.getKey(self);
+  };
+
   /**
    * Sends a message to a destination IP address. the destination must be connected to this link interface.
    * @param from
@@ -109,7 +113,6 @@ export class IPLinkInterface {
       case IPProtocolNumber.ospf:
         ospfMessageHandler.call(
           this,
-          this.id,
           fromIp,
           to,
           message,

@@ -38,7 +38,6 @@ const sendPacketToDest = async (
 
 export const ospfMessageHandler: MessageHandler = async function (
   this: IPLinkInterface,
-  interfaceId,
   source,
   destination,
   message,
@@ -69,7 +68,8 @@ export const ospfMessageHandler: MessageHandler = async function (
     for (const dest of Array.from(listeners.values()).sort((a, b) =>
       a === sourceRouter ? -1 : 0
     )) {
-      await sendPacketToDest(sourceRouter, dest, ipPacket, interfaceId, {
+      const interfaceId = listeners.getKey(dest);
+      await sendPacketToDest(sourceRouter, dest, ipPacket, interfaceId!, {
         color,
         context,
         duration,
@@ -85,7 +85,7 @@ export const ospfMessageHandler: MessageHandler = async function (
     );
     return;
   }
-  await sendPacketToDest(sourceRouter, dest, ipPacket, interfaceId, {
+  await sendPacketToDest(sourceRouter, dest, ipPacket, destIp, {
     color,
     context,
     duration,

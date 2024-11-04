@@ -6,6 +6,13 @@ import { InitialSequenceNumber } from "./constants";
 
 export class RouterLink {
   id: IPv4Address;
+  /**
+   * For connections to
+      stub networks, Link Data specifies the network's IP address
+      mask. For unnumbered point-to-point connections, it specifies
+      the interface's MIB-II [Ref8] ifIndex value. For the other link
+      types it specifies the router interface's IP address (self's IP address on the interface).
+   */
   data: IPv4Address;
   metric: number;
   type: RouterLinkType;
@@ -70,9 +77,14 @@ export class RouterLSABody {
         const { cost } = ipInterface || {};
         // Adding a Type 1 link for the full neighbor
         state === State.Full &&
-          address &&
+          interfaceId &&
           body.links.push(
-            new RouterLink(routerId, address, cost ?? 0, RouterLinkType.P2P)
+            new RouterLink(
+              routerId,
+              IPv4Address.fromString(interfaceId),
+              cost ?? 0,
+              RouterLinkType.P2P
+            )
           );
         // Assuming that the state of the interface is always Point To Point
         // Adding a Type 3 link for the neighbor, regardless of its state.

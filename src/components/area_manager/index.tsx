@@ -151,11 +151,12 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
             id,
             name,
             connectionOptions: [...routerLocations].filter(([loc, router]) => {
-              const { ipInterfaces } = router;
               // If the same interfaces exist on the router, it means that they're connected already.
-              const routerIpInterfaces = new Set(ipInterfaces.keys());
               const isConnectedToRouter = selectedRouterIpInterfaces.some(
-                (interfaceId) => routerIpInterfaces.has(interfaceId)
+                (interfaceId) =>
+                  selectedRouter.ipInterfaces
+                    .get(interfaceId)!
+                    .ipInterface.getOppositeRouter(selectedRouter) === router
               );
               return loc !== selectedRouterKey && !isConnectedToRouter;
             }),
