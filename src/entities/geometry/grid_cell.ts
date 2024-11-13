@@ -108,7 +108,7 @@ export class GridCell {
     context.stroke();
     context.closePath();
     context.fillStyle = "white";
-    context.font = `${size / 5.5}px sans-serif`;
+    context.font = `${size / 4.5}px sans-serif`;
     const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
       context.measureText(routerIp);
     const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;

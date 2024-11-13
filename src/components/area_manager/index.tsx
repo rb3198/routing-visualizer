@@ -297,8 +297,14 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     if (!context) {
       return;
     }
+    let nGlobalRouters = 0;
+    areaTree.current
+      .inOrderTraversal(areaTree.current.root)
+      .forEach(([, area]) =>
+        area.routerLocations.forEach(() => nGlobalRouters++)
+      );
     const rect = gridRect[row][col];
-    const router = placeRouter(row, col, simulationPlaying);
+    const router = placeRouter(row, col, nGlobalRouters, simulationPlaying);
     rect.drawRouter(context, router.id.ip);
     managePreviousHover(row, col);
     closeComponentPicker();

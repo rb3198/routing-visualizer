@@ -40,8 +40,7 @@ export class IPLinkInterface {
     this.cost = parseInt(distance.toFixed(2));
   }
 
-  private assignIps = (routers: [Router, Router], b3Init: number) => {
-    let b3 = b3Init * 2;
+  private assignIps = (routers: [Router, Router], b3: number) => {
     let backboneRouterPresent = false;
     if (routers && routers.length > 0) {
       routers.forEach((router) => {
@@ -51,7 +50,7 @@ export class IPLinkInterface {
         backboneRouterPresent =
           backboneRouterPresent || areaId === BACKBONE_AREA_ID;
       });
-      routers.forEach((router) => {
+      routers.forEach((router, idx) => {
         const { ospf } = router;
         const { config } = ospf;
         const { areaId, connectedToBackbone } = config;
@@ -61,9 +60,9 @@ export class IPLinkInterface {
         const interfaceIp = new IPv4Address(
           this.ipMsb,
           (backboneRouterPresent ? 0 : areaId) + 1,
-          b3++,
-          0,
-          16
+          b3,
+          idx + 1,
+          24
         );
         this.routers.set(interfaceIp.toString(), router);
       });
