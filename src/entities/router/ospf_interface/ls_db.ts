@@ -98,7 +98,6 @@ export class LsDb {
           this.originateRouterLsa(areaId, true);
           break;
         default:
-          // TODO Summary LSAs
           break;
       }
     });
@@ -173,10 +172,17 @@ export class LsDb {
     );
   };
 
-  removeOldLsaFromRetransmissionLists = (oldCopy: LSA) => {
+  removeOldLsaFromRetransmissionLists = (areaId: number, oldCopy: LSA) => {
     const { neighborTable, setNeighbor } = this.ospfInterface;
     Object.values(neighborTable).forEach((neighbor) => {
-      const { linkStateRetransmissionList, routerId: neighborId } = neighbor;
+      const {
+        linkStateRetransmissionList,
+        routerId: neighborId,
+        areaId: neighborAreaId,
+      } = neighbor;
+      if (neighborAreaId !== areaId) {
+        return;
+      }
       const newRetransmissionList = linkStateRetransmissionList.filter(
         (lsa) => !lsa.isInstanceOf(oldCopy)
       );
@@ -293,6 +299,8 @@ export class LsDb {
       console.log(
         `LSA ${lsa.header.advertisingRouter} of type ${
           lsa.header.lsType
+        } seq # ${
+          lsa.header.lsSeqNumber
         } added to neighbor ${neighborId}'s retransmission list in state ${
           Object.keys(State)[Object.values(State).indexOf(state)]
         }`
@@ -310,7 +318,7 @@ export class LsDb {
     const { header } = lsa;
     const key = LsDb.getLsDbKey(header);
     const oldCopy = this.getLsa(areaId, header);
-    oldCopy && this.removeOldLsaFromRetransmissionLists(oldCopy);
+    oldCopy && this.removeOldLsaFromRetransmissionLists(areaId, oldCopy);
     lsa.updatedOn = Date.now();
     this.db[areaId][key] = lsa;
     flood && this.floodLsa(areaId, lsa, receivedFrom);
@@ -394,7 +402,6 @@ export class LsDb {
         timeSinceInception > 0 &&
         timeSinceInception < MinLSInterval
       ) {
-        console.log("Waiting before generating a new router LSA.");
         setTimeout(originateLsa, MinLSInterval - timeSinceInception);
       } else {
         originateLsa();
