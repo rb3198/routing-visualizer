@@ -74,7 +74,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     gridRect,
     defaultAreaSize,
     propagationDelay,
-    setPropagationDelay,
+    setPropagationDelayInStore,
     setLiveNeighborTable,
     openLsDbModal,
   } = props;
@@ -537,6 +537,18 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     }
   }, [selectedRouter]);
 
+  const setPropagationDelay = (delay: number) => {
+    if (!areaTree.current) {
+      return;
+    }
+    areaTree.current
+      .inOrderTraversal(areaTree.current.root)
+      .forEach(([, area]) => {
+        area.setPropagationDelay(delay);
+      });
+    setPropagationDelayInStore(delay);
+  };
+
   return (
     <>
       <canvas
@@ -607,7 +619,10 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
     openLsDbModal: bindActionCreators(openLsDbModal, dispatch),
-    setPropagationDelay: bindActionCreators(setPropagationDelay, dispatch),
+    setPropagationDelayInStore: bindActionCreators(
+      setPropagationDelay,
+      dispatch
+    ),
   };
 };
 

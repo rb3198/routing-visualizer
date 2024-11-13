@@ -54,13 +54,7 @@ export class OSPFArea {
    * @param id ID to assign to this OSPF Area. Will be labelled on the canvas.
    * @param routerLocations Point2D Locations of routers, if any, in the OSPF Area.
    */
-  constructor(
-    low: Point2D,
-    high: Point2D,
-    id: number,
-    ip: IPv4Address,
-    routerLocations?: Point2D[]
-  ) {
+  constructor(low: Point2D, high: Point2D, id: number, ip: IPv4Address) {
     // 2 bytes for identifying the OSPF Area, 3rd byte for the router,
     // and the 4th byte to identify devices connected to the router.
     const [byte1, byte2] = ip.bytes;
@@ -73,31 +67,28 @@ export class OSPFArea {
     const { propagationDelay } = store.getState();
     const rxmtInterval = getRxmtInterval(propagationDelay);
     this.ospfConfig = new OSPFConfig(id, undefined, rxmtInterval);
-    this.routerLocations = routerLocations
-      ? new Map(
-          routerLocations.map(([x, y]) => [
-            this.getRouterLocationKey(x, y),
-            new Router(
-              this.getRouterLocationKey(x, y),
-              [x, y],
-              new IPv4Address(byte1, byte2, 0, this.routerSubnetMask),
-              this.ospfConfig
-            ),
-          ])
-        )
-      : new Map();
+    this.routerLocations = new Map();
   }
 
   getRouterLocationKey = (row: number, col: number) => `${row}_${col}`;
 
-  placeRouter = (row: number, col: number, simulationPlaying?: boolean) => {
+  placeRouter = (
+    row: number,
+    col: number,
+    nGlobalRouters: number,
+    simulationPlaying?: boolean
+  ) => {
     const key = this.getRouterLocationKey(row, col);
-    const [byte1, byte2] = this.ip.bytes;
-    const nRouters = this.routerLocations.size;
     const router = new Router(
       key,
       [col, row],
-      new IPv4Address(byte1, byte2, nRouters, 0, this.routerSubnetMask),
+      new IPv4Address(
+        nGlobalRouters + 1,
+        nGlobalRouters + 1,
+        nGlobalRouters + 1,
+        nGlobalRouters + 1,
+        32
+      ),
       this.ospfConfig,
       simulationPlaying // new router is turned on if the simulation is playing
     );
@@ -161,5 +152,12 @@ export class OSPFArea {
       gridRect[row][col] &&
         gridRect[row][col].drawRouter(context, router.id.ip);
     }
+  };
+
+  setPropagationDelay = (delay: number) => {
+    const rxmtInterval = getRxmtInterval(delay);
+    this.routerLocations.forEach((router) => {
+      router.ospf.config.rxmtInterval = rxmtInterval;
+    });
   };
 }
