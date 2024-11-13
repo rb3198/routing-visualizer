@@ -113,7 +113,8 @@ const calculateNextHops = (
   if (hasRouterInPath(vNode, root)) {
     // If there is a router vertex in the path between the root and the current vertex,
     // the current vertex simply inherits the set of next hops from the parent.
-    return v.nextHops;
+    // Returning like this to create a referentially new array.
+    return [...v.nextHops.map((nextHop) => ({ ...nextHop }))];
   }
   if (v.lsa.header.lsType === LSType.NetworkLSA) {
     // The parent node is a network directly connecting the router to the destination.
@@ -279,7 +280,7 @@ const calculateIntraAreaTable = (
     if (!vNode || !vNode.parents.size) {
       break;
     }
-    const { lsa: vLsa, nextHops, distance: cost } = vNode.data;
+    const { lsa: vLsa, nextHops, distance: cost, vertexId: vId } = vNode.data;
     if (vLsa?.body?.b || vLsa?.body?.e) {
       // If the vertex just added is an ABR or AS-BR, add it to the table
       table.push(
@@ -287,7 +288,7 @@ const calculateIntraAreaTable = (
           destType: "router",
           area: areaId,
           cost,
-          destinationId: routerId,
+          destinationId: vId,
           linkStateOrigin: vLsa,
           nextHops,
           pathType: "intra-area",
@@ -361,11 +362,14 @@ const calculateIntraAreaTable = (
           table.splice(existingEntryIdx, 1);
           table.push(wEntry);
           return;
-        }
-        cost === existingEntry.cost &&
+        } else if (cost === existingEntry.cost) {
+          console.warn(
+            `For root ${routerId}, Equal cost found to network ${wEntry.destinationId}, through ${vNode.data.vertexId}`
+          );
           existingEntry.nextHops.push(
             ...calculateNextHops(shortestPathTree.root, vNode, wNode)
           );
+        }
       });
   }
   // Stage 3 - Adding Inter area routes
