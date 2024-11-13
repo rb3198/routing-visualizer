@@ -1,37 +1,42 @@
 import { RoutingTableManager } from "src/entities/router/ospf_interface/routing_table";
 import { MAX_WORKERS_PER_POOL } from "../n_workers";
-import routingCalcWorker from "./routing_table_calc_worker";
-// import { LSA } from "src/entities/ospf/lsa";
-// import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
-
-// type TableCalculationSources = {
-//   lsDb: Record<number, Record<string, LSA>>;
-//   prevTable: RoutingTable;
-// };
+import { RoutingTableCalculationResult } from "src/types/ospf/routing_table_calc_result";
 
 class RoutingTableCalculationWorkerPool {
   nWorkers: number;
   workerPool: Worker[];
-  queue: { tableRef: RoutingTableManager }[];
+  queue: { tableRef: RoutingTableManager; areaId: number }[];
   constructor() {
     this.nWorkers = MAX_WORKERS_PER_POOL;
     this.workerPool = [];
     this.queue = [];
     for (let i = 0; i < this.nWorkers; i++) {
-      this.workerPool.push(new Worker(routingCalcWorker));
+      this.workerPool.push(
+        // @ts-ignore
+        new Worker(new URL("./routing_table_calc.worker.ts", import.meta.url))
+      );
     }
   }
 
   getOnMessageCallback = (worker: Worker, tableRef: RoutingTableManager) => {
-    return (e: MessageEvent) => {
+    return (e: MessageEvent<RoutingTableCalculationResult>) => {
       tableRef.onCalculation(e);
       const task = this.queue.shift();
       if (task) {
-        const { ospfInterface, prevTable } = task.tableRef;
-        const { lsDb } = ospfInterface;
+        const { ospfInterface, prevTableMap } = task.tableRef;
+        const { lsDb, router, neighborTable } = ospfInterface;
         worker.onmessage = this.getOnMessageCallback(worker, task.tableRef);
         worker.postMessage(
-          JSON.parse(JSON.stringify({ lsDb: lsDb.db, prevTable }))
+          JSON.parse(
+            JSON.stringify({
+              lsDb: lsDb.db[task.areaId],
+              prevTable: prevTableMap[task.areaId],
+              areaId: task.areaId,
+              neighborTable,
+              routerId: router.id.toString(),
+              routerInterfaces: Array.from(router.ipInterfaces.keys()),
+            })
+          )
         );
       } else {
         this.workerPool.push(worker);
@@ -39,17 +44,26 @@ class RoutingTableCalculationWorkerPool {
     };
   };
 
-  calculate(tableRef: RoutingTableManager) {
+  calculate(tableRef: RoutingTableManager, areaId: number) {
     const worker = this.workerPool.shift();
     if (worker) {
-      const { ospfInterface, prevTable } = tableRef;
-      const { lsDb } = ospfInterface;
+      const { ospfInterface, prevTableMap } = tableRef;
+      const { lsDb, router, neighborTable } = ospfInterface;
       worker.onmessage = this.getOnMessageCallback(worker, tableRef);
       worker.postMessage(
-        JSON.parse(JSON.stringify({ lsDb: lsDb.db, prevTable }))
+        JSON.parse(
+          JSON.stringify({
+            lsDb: lsDb.db[areaId],
+            prevTable: prevTableMap[areaId] ?? [],
+            areaId,
+            neighborTable,
+            routerInterfaces: Array.from(router.ipInterfaces.keys()),
+            routerId: router.id.toString(),
+          })
+        )
       );
     } else {
-      this.queue.push({ tableRef });
+      this.queue.push({ tableRef, areaId });
     }
   }
 }
