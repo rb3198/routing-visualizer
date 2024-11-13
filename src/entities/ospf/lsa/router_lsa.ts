@@ -88,12 +88,18 @@ export class RouterLSABody {
           );
         // Assuming that the state of the interface is always Point To Point
         // Adding a Type 3 link for the neighbor, regardless of its state.
-        // The neighbor's IP address is always known. It is considered to be a link to a stub subnet.
+        // The IP link's subnet is the subnet advertised as reachable with the configured cost.
         address &&
           body.links.push(
             new RouterLink(
-              address,
-              new IPv4Address(255, 255, 255, 255, 32), // Link DAta is the subnet mask in Type 3 link
+              new IPv4Address(
+                address.bytes[0],
+                address.bytes[1],
+                address.bytes[2],
+                0,
+                24
+              ),
+              new IPv4Address(255, 255, 255, 0), // Link Data is the subnet mask in Type 3 link
               cost ?? 0,
               RouterLinkType.Stub
             )
