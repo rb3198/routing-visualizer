@@ -40,7 +40,7 @@ export class LsDb {
    * @returns `true` if the LSA exists, `false` otherwise.
    */
   lsaExists = (areaId: number, header: LSAHeader) => {
-    const key = this.getLsDbKey(header);
+    const key = LsDb.getLsDbKey(header);
     return !!(this.db[areaId] && this.db[areaId][key]);
   };
 
@@ -49,7 +49,7 @@ export class LsDb {
    * @param header
    * @returns
    */
-  private getLsDbKey = (header: LsId) => {
+  static getLsDbKey = (header: LsId) => {
     const { lsType, linkStateId, advertisingRouter } = header;
     return `${lsType}_${linkStateId}_${advertisingRouter}`;
   };
@@ -128,7 +128,7 @@ export class LsDb {
    * @param lsKey
    */
   getLsa = (areaId: number, header: LsId): LSA | undefined => {
-    const lsKey = this.getLsDbKey(header);
+    const lsKey = LsDb.getLsDbKey(header);
     return (this.db[areaId] && this.db[areaId][lsKey]) || undefined;
   };
 
@@ -158,7 +158,7 @@ export class LsDb {
   private createRouterLsa = (areaId: number) => {
     const { router } = this.ospfInterface;
     const { id: routerId } = router;
-    const key = this.getLsDbKey({
+    const key = LsDb.getLsDbKey({
       lsType: LSType.RouterLSA,
       linkStateId: routerId,
       advertisingRouter: routerId,
@@ -308,7 +308,7 @@ export class LsDb {
     flood?: boolean
   ) => {
     const { header } = lsa;
-    const key = this.getLsDbKey(header);
+    const key = LsDb.getLsDbKey(header);
     const oldCopy = this.getLsa(areaId, header);
     oldCopy && this.removeOldLsaFromRetransmissionLists(oldCopy);
     lsa.updatedOn = Date.now();
@@ -317,7 +317,7 @@ export class LsDb {
     const isDifferent =
       !oldCopy || JSON.stringify(oldCopy.body) !== JSON.stringify(lsa.body);
     if (isDifferent) {
-      this.ospfInterface.routingTableManager.calculate();
+      this.ospfInterface.routingTableManager.calculate(areaId);
     }
   };
 
@@ -353,7 +353,7 @@ export class LsDb {
         ) {
           lsType === LSType.RouterLSA && this.originateRouterLsa(areaId, true);
         } else {
-          delete areaDb[this.getLsDbKey(header)];
+          delete areaDb[LsDb.getLsDbKey(header)];
         }
       }
     }
@@ -406,7 +406,7 @@ export class LsDb {
     const { router } = this.ospfInterface;
     const { id: routerId } = router;
     if (graceful) {
-      const routerLsaKey = this.getLsDbKey({
+      const routerLsaKey = LsDb.getLsDbKey({
         advertisingRouter: routerId,
         lsType: LSType.RouterLSA,
         linkStateId: routerId,
