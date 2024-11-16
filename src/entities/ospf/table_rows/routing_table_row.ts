@@ -1,4 +1,3 @@
-import { Router } from "../../router";
 import { IPv4Address } from "../../ip/ipv4_address";
 import { LSA } from "../lsa";
 import { NextHop } from "../shortest_path_tree/transit_vertex_data";
@@ -30,7 +29,7 @@ export class RoutingTableRow {
    * Valid only for inter-area and AS external paths.  This field indicates the Router ID of
    * the router advertising the summary-LSA or AS-external-LSA that led to this path.
    */
-  advRouter?: Router;
+  advertisingRouter?: IPv4Address;
 
   constructor({
     destType,
@@ -42,7 +41,7 @@ export class RoutingTableRow {
     type2cost,
     linkStateOrigin,
     nextHops,
-    advRouter,
+    advertisingRouter,
   }: RoutingTableRow) {
     this.destType = destType;
     this.destinationId = destinationId;
@@ -53,7 +52,7 @@ export class RoutingTableRow {
     this.type2cost = type2cost;
     this.linkStateOrigin = linkStateOrigin;
     this.nextHops = nextHops;
-    this.advRouter = advRouter;
+    this.advertisingRouter = advertisingRouter;
   }
 }
 
