@@ -17,7 +17,6 @@ import { ComponentPicker, PickerOption } from "../picker";
 import { RouterMenu } from "../router_menu";
 import { CiRouter } from "react-icons/ci";
 import { PiRectangleDashed } from "react-icons/pi";
-import { IPv4Address } from "../../entities/ip/ipv4_address";
 import { OSPFArea } from "../../entities/area";
 import { Colors } from "../../constants/theme";
 import { Rect2D } from "../../entities/geometry/Rect2D";
@@ -35,6 +34,7 @@ import {
   setPropagationDelay,
 } from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
+import { getAreaIp } from "src/utils/common";
 interface AreaManagerProps {
   gridRect: GridCell[][];
   defaultAreaSize: number;
@@ -63,8 +63,6 @@ const defaultPickerState = {
     left: -200,
   },
 };
-
-const rootIp = new IPv4Address(192, 0, 0, 0, 8);
 
 type ReduxProps = ConnectedProps<typeof connector>;
 export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
@@ -258,16 +256,10 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       return;
     }
     const { low, high } = arBounds;
-    const [byte1] = rootIp.bytes;
     const nAreas = areaTree.current.inOrderTraversal(
       areaTree.current.root
     ).length;
-    const area = new OSPFArea(
-      low,
-      high,
-      nAreas,
-      new IPv4Address(byte1, nAreas + 1, 0, 0, 16)
-    );
+    const area = new OSPFArea(low, high, nAreas, getAreaIp(nAreas));
     const { boundingBox } = area;
     const { centroid: areaCentroid } = boundingBox;
     const areaFillColor = Colors.accent + "55";

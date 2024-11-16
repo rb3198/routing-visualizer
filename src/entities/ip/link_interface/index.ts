@@ -12,6 +12,7 @@ import {
 } from "../../../utils/drawing";
 import { store } from "../../../store";
 import { getTravelDirection, vmax } from "src/utils/geometry";
+import { getAreaIp } from "src/utils/common";
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
@@ -59,7 +60,7 @@ export class IPLinkInterface {
           (connectedToBackbone || backboneRouterPresent);
         const interfaceIp = new IPv4Address(
           this.ipMsb,
-          (backboneRouterPresent ? 0 : areaId) + 1,
+          getAreaIp(backboneRouterPresent ? 0 : areaId).bytes[1],
           b3,
           idx + 1,
           24

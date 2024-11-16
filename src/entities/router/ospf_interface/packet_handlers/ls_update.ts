@@ -107,7 +107,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         break;
       default:
         throw new Error(
-          "Not Implemented handling Special Action for types other than Router LSA."
+          `Not Implemented handling Special Action for ${lsType}.`
         );
     }
     return true;
