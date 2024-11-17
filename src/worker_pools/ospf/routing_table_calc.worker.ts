@@ -2,8 +2,9 @@ import { CANDIDATE_LIST_DEGREE } from "src/constants/routing_table";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { LSType, RouterLinkType } from "src/entities/ospf/enum";
 import { LSA } from "src/entities/ospf/lsa";
-import { MaxAge } from "src/entities/ospf/lsa/constants";
+import { LSInfinity, MaxAge } from "src/entities/ospf/lsa/constants";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
+import { SummaryLSABody } from "src/entities/ospf/lsa/summary_lsa";
 import {
   NextHop,
   TransitVertexData,
@@ -14,6 +15,7 @@ import {
   RoutingTableRow,
 } from "src/entities/ospf/table_rows/routing_table_row";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { getAreaIp } from "src/utils/common";
 import {
   PriorityQueue,
   PriorityQueueFactory,
@@ -25,6 +27,75 @@ type TableCalculationSources = {
   prevTable: RoutingTable;
   areaId: number;
   routerInterfaces: string[];
+};
+
+const addInterAreaRoutes = (
+  routerId: IPv4Address,
+  areaId: number,
+  table: RoutingTable,
+  lsDb: Record<string, LSA>
+) => {
+  const areaIp = getAreaIp(areaId);
+  for (const lsa of Object.values(lsDb)) {
+    const { header, body } = lsa;
+    const { lsAge, lsType, linkStateId } = header;
+    if (lsType !== LSType.SummaryIpLSA && lsType !== LSType.SummaryAsBrLSA) {
+      continue;
+    }
+    const destinationIp = new IPv4Address(...linkStateId.bytes);
+    const advertisingRouter = new IPv4Address(
+      ...header.advertisingRouter.bytes
+    );
+    const { metric: costFromBrToDest, networkMask } = body as SummaryLSABody;
+    if (
+      areaIp.equals(destinationIp) ||
+      routerId.equals(advertisingRouter) ||
+      lsAge === MaxAge ||
+      costFromBrToDest === LSInfinity
+    ) {
+      continue;
+    }
+    const br = advertisingRouter;
+    const routeToBr = table.find(
+      (row) => row.destType === "router" && row.destinationId.equals(br)
+    );
+    if (!routeToBr) {
+      continue;
+    }
+    const { nextHops: nextHopsToBr } = routeToBr;
+    const { cost: costToBr } = routeToBr;
+    const cost = costToBr + costFromBrToDest;
+    const destType = lsType === LSType.SummaryAsBrLSA ? "router" : "network";
+    const existingRouteIdx = table.findIndex(
+      (row) =>
+        row.destType === destType && row.destinationId.equals(destinationIp)
+    );
+    const newRow = new RoutingTableRow({
+      destType,
+      area: areaId,
+      cost,
+      destinationId: destinationIp,
+      advertisingRouter: br,
+      addressMask: networkMask,
+      nextHops: nextHopsToBr,
+      pathType: "inter-area",
+      linkStateOrigin: null,
+    });
+    if (existingRouteIdx === -1) {
+      table.push(newRow);
+      continue;
+    }
+    const existingRoute = table[existingRouteIdx];
+    const { pathType: existingPathType, cost: existingCost } = existingRoute;
+    if (existingPathType === "intra-area") {
+      continue;
+    }
+    if (existingPathType !== "inter-area" || cost < existingCost) {
+      table[existingRouteIdx] = newRow;
+      continue;
+    }
+    existingRoute.nextHops.push(...nextHopsToBr);
+  }
 };
 
 /**
@@ -156,7 +227,7 @@ const processRouterLinks = (
   const v = vNode.data;
   let { lsa: vLsa, vertexId: vId } = v;
   vId = new IPv4Address(...vId.bytes);
-  const { body: vLsaBody } = vLsa as RouterLSA;
+  const { body: vLsaBody } = vLsa;
   const { links } = vLsaBody;
   for (let potentialW of links) {
     let { type, id: wRouterId, metric: vwCost } = potentialW;
@@ -169,7 +240,7 @@ const processRouterLinks = (
       linkStateId: wRouterId,
       lsType: LSType.RouterLSA,
     });
-    const wRouterLsa = lsDb[wLsaKey];
+    const wRouterLsa = lsDb[wLsaKey] as RouterLSA; // Specifically queried for Router LSA.
     if (!wRouterLsa) {
       continue;
     }
@@ -249,7 +320,7 @@ const initTree = (routerId: IPv4Address, lsDb: Record<string, LSA>) => {
   if (!selfRouterLsa) {
     return null;
   }
-  const table: RoutingTableRow[] = [];
+  const table: RoutingTable = [];
   const queue: PriorityQueue<TreeNode<TransitVertexData>> =
     PriorityQueueFactory(CANDIDATE_LIST_DEGREE);
   const rootData = new TransitVertexData({
@@ -363,9 +434,6 @@ const calculateIntraAreaTable = (
           table.push(wEntry);
           return;
         } else if (cost === existingEntry.cost) {
-          console.warn(
-            `For root ${routerId}, Equal cost found to network ${wEntry.destinationId}, through ${vNode.data.vertexId}`
-          );
           existingEntry.nextHops.push(
             ...calculateNextHops(shortestPathTree.root, vNode, wNode)
           );
@@ -373,6 +441,7 @@ const calculateIntraAreaTable = (
       });
   }
   // Stage 3 - Adding Inter area routes
+  addInterAreaRoutes(routerId, areaId, table, lsDb);
   return { tree: shortestPathTree, table };
 };
 
