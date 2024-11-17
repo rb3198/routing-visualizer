@@ -66,6 +66,7 @@ export class RoutingTableManager {
     const isAreaBorderRouter = Object.keys(lsDb.db).length > 1;
     if (isAreaBorderRouter) {
       // generate summary LSAs for the area
+      lsDb.originateSummaryLsas(areaId);
     }
     this.calculatingMap[areaId] = false;
     if (this.calculationScheduledMap[areaId]) {
@@ -83,5 +84,17 @@ export class RoutingTableManager {
     // // Step 1: Invalidate the current routing table.
     this.prevTableMap[areaId] = [...(this.tableMap[areaId] ?? [])];
     routingTableCalcWorkerPool.calculate(this, areaId);
+  };
+
+  getFullTables = () => {
+    const table: RoutingTable = [];
+    const prevTable: RoutingTable = [];
+    Object.keys(this.tableMap).forEach((areaId) => {
+      table.push(...(this.tableMap[parseInt(areaId)] ?? []));
+    });
+    Object.keys(this.prevTableMap).forEach((areaId) => {
+      prevTable.push(...(this.prevTableMap[parseInt(areaId)] ?? []));
+    });
+    return { table, prevTable };
   };
 }

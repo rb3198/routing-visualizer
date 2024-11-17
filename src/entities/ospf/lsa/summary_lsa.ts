@@ -25,7 +25,7 @@ export class SummaryLSA extends LSA {
    * The Summary LSA Constructor.
    * @param linkStateId Represents **IP Address of networks** for IP-Summary LSAs,
    * Represents **OSPF Router ID Of the AS BR** for AS-BR Summary LSAs.
-   * @param advertisingRouter The IP Address of the Area Border Router generating this LSA.
+   * @param advertisingRouter The OSPF Router ID of the Area Border Router generating this LSA.
    * @param lsType IP Summary or AS BR Summary LSA.
    * @param networkMask - For Type 3 (IP) summary-LSAs, this indicates the destination network's IP address mask.
      - For Type 4 (AS-BR) summary-LSAs, this field is meaningless.
@@ -54,7 +54,30 @@ export class SummaryLSA extends LSA {
   }
 
   static isSummaryLsa = (lsa: LSA) => {
-    const { body } = lsa;
-    return "networkMask" in body && "metric" in body;
+    const { header, body } = lsa;
+    const { lsType } = header;
+    return (
+      "networkMask" in body &&
+      "metric" in body &&
+      (lsType === LSType.SummaryAsBrLSA || lsType === LSType.SummaryIpLSA)
+    );
+  };
+
+  static isIdentical = (lsa1: SummaryLSA, lsa2: SummaryLSA) => {
+    const { header, body } = lsa1;
+    const { linkStateId, advertisingRouter, lsType } = header;
+    const { header: header2, body: body2 } = lsa2;
+    const {
+      linkStateId: linkStateId2,
+      advertisingRouter: advertisingRouter2,
+      lsType: lsType2,
+    } = header2;
+    return (
+      lsType === lsType2 &&
+      linkStateId.equals(linkStateId2) &&
+      advertisingRouter.equals(advertisingRouter2) &&
+      body.metric === body2.metric &&
+      body.networkMask.equals(body2.networkMask)
+    );
   };
 }
