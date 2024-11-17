@@ -5,10 +5,11 @@ import styles from "./styles.module.css";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import {
+  getLSABodyRows,
   getLSAHeaderRows,
-  getRouterLSARows,
 } from "../packet_details/descriptions/body";
 import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
+import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
 
 export type LsDBProps = {
   routerId: IPv4Address;
@@ -54,6 +55,41 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
   const [activeField, setActiveField] = useState<[number, number]>();
   const emptyDb = !Object.keys(db).length;
 
+  const renderLsaSummaries = useCallback(
+    (label: string, lsas: LSA[]) => {
+      return (
+        (lsas.length && (
+          <div className={styles.db}>
+            <div className={styles.th}>{label}</div>
+            {lsas.map((lsa) => {
+              const { header } = lsa;
+              const { linkStateId, advertisingRouter } = header;
+              const cols = getCols(header);
+              return (
+                <div
+                  data-active={lsa === activeLsa}
+                  key={`${linkStateId}_${advertisingRouter}`}
+                  className={styles.td}
+                  onClick={() => setActiveLsa(lsa)}
+                >
+                  <div className={styles.lsa_header}>
+                    {cols.map(({ label, value }) => (
+                      <div key={`${label}_${value}`}>
+                        <p className={styles.lsa_header_label}>{label}</p>
+                        <p className={styles.lsa_header_value}>{`${value}`}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )) || <></>
+      );
+    },
+    [activeLsa]
+  );
+
   const renderArea = useCallback(
     (areaId: number) => {
       const areaDb = db[areaId];
@@ -61,11 +97,14 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
         return null;
       }
       const routerLsaList: RouterLSA[] = [];
-      //   TODO: When implementing summary LSAs, create a new Summary LSA list and display it
+      const summaryLsaList: SummaryLSA[] = [];
       Object.values(areaDb).forEach((lsa) => {
         if (RouterLSA.isRouterLsa(lsa)) {
-          routerLsaList.push(lsa);
+          routerLsaList.push(lsa as RouterLSA);
           return;
+        }
+        if (SummaryLSA.isSummaryLsa(lsa)) {
+          summaryLsaList.push(lsa as SummaryLSA);
         }
       });
       const setArea = () => {
@@ -86,35 +125,8 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
 
       const Body = (
         <div className={styles.area_body}>
-          {routerLsaList.length && (
-            <div className={styles.db}>
-              <div className={styles.th}>Router LSAs</div>
-              {routerLsaList.map((lsa) => {
-                const { header } = lsa;
-                const { linkStateId, advertisingRouter } = header;
-                const cols = getCols(header);
-                return (
-                  <div
-                    data-active={lsa === activeLsa}
-                    key={`${linkStateId}_${advertisingRouter}`}
-                    className={styles.td}
-                    onClick={() => setActiveLsa(lsa)}
-                  >
-                    <div className={styles.lsa_header}>
-                      {cols.map(({ label, value }) => (
-                        <div key={`${label}_${value}`}>
-                          <p className={styles.lsa_header_label}>{label}</p>
-                          <p
-                            className={styles.lsa_header_value}
-                          >{`${value}`}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {renderLsaSummaries("Router LSAs", routerLsaList)}
+          {renderLsaSummaries("Summary LSAs", summaryLsaList)}
         </div>
       );
 
@@ -125,7 +137,7 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
         </div>
       );
     },
-    [db, activeArea, activeLsa]
+    [db, activeArea, renderLsaSummaries]
   );
 
   const Lsa = useMemo(() => {
@@ -133,8 +145,9 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
       return null;
     }
     const { header, body } = activeLsa;
+    const { lsType } = header;
     const headerRows = getLSAHeaderRows(header);
-    const bodyRows = getRouterLSARows(body);
+    const bodyRows = getLSABodyRows(lsType, body);
     const rows = [...headerRows, ...bodyRows];
     let nSeparators = 0;
     const [selectedRow, selectedCol] = activeField || [-1, -1];
@@ -188,7 +201,7 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
   const rows = activeLsa
     ? [
         ...getLSAHeaderRows(activeLsa.header),
-        ...getRouterLSARows(activeLsa.body),
+        ...getLSABodyRows(activeLsa.header.lsType, activeLsa.body),
       ]
     : [];
   const desc =
@@ -196,8 +209,11 @@ export const LsDbModalBody: React.FC<LsDBProps> = (props) => {
     rows.length &&
     activeField.length === 2 &&
     rows[activeField[0]]
-      ? rows[activeField[0]].row[activeField[1]].description
+      ? rows[activeField[0]].row[activeField[1]]?.description ?? ""
       : "";
+  if (activeField && !desc) {
+    setActiveField(undefined);
+  }
   return (
     <div id={styles.container}>
       {emptyDb && (

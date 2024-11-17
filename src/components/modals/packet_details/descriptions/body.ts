@@ -2,7 +2,7 @@ import { HelloPacketBody } from "src/entities/ospf/packets/hello";
 import { PacketSeparator, PacketViz, PacketVizField } from "./types";
 import { NOT_IMPLEMENTED } from "src/entities/ospf/constants";
 import { DDPacketBody } from "src/entities/ospf/packets/dd";
-import { LSAHeader } from "src/entities/ospf/lsa";
+import { LSAHeader, LSBody } from "src/entities/ospf/lsa";
 import { LSType, lsTypeToString } from "src/entities/ospf/enum/ls_type";
 import {
   linkDataSummary,
@@ -18,6 +18,7 @@ import { LSUpdatePacketBody } from "src/entities/ospf/packets/ls_update";
 import { RouterLink, RouterLSABody } from "src/entities/ospf/lsa/router_lsa";
 import { RouterLinkType } from "src/entities/ospf/enum";
 import { routerLinkTypeToString } from "src/entities/ospf/enum/router_link_type";
+import { SummaryLSABody } from "src/entities/ospf/lsa/summary_lsa";
 
 const getLsTypeColumn = (lsType: LSType, flexGrow: number): PacketVizField => {
   return {
@@ -518,7 +519,7 @@ const getRouterLinkRows = (link: RouterLink, idx: number): PacketViz[] => {
   ];
 };
 
-export const getRouterLSARows = (body: RouterLSABody): PacketViz[] => {
+const getRouterLSARows = (body: RouterLSABody): PacketViz[] => {
   const { e, b, v, nLinks, links } = body;
   const rows: PacketViz[] = [
     {
@@ -572,6 +573,66 @@ export const getRouterLSARows = (body: RouterLSABody): PacketViz[] => {
   return rows;
 };
 
+const getSummaryLSARows = (
+  lsType: LSType.SummaryIpLSA | LSType.SummaryAsBrLSA,
+  body: SummaryLSABody
+): PacketViz[] => {
+  const { networkMask, metric } = body;
+  return [
+    {
+      row: [
+        {
+          flexGrow: 1,
+          description: `
+          <p style="font-size: .764rem">
+            For Type 3 summary-LSAs, this indicates the destination
+            network's IP address mask.  For example, when advertising the
+            location of a class A network the value 0xff000000 would be
+            used.  This field is not meaningful and must be zero for Type 4
+            summary-LSAs.
+          </p>
+          `,
+          label: "Network Mask",
+          value: `${networkMask}`,
+        },
+      ],
+    },
+    {
+      row: [
+        {
+          flexGrow: 0.2,
+          description: `Padding bits`,
+          value: 0,
+          label: "",
+        },
+        {
+          flexGrow: 1,
+          description: `The cost of the route to the ${
+            lsType === LSType.SummaryIpLSA ? "IP network" : "AS-BR"
+          } described by this LSA.`,
+          label: "Metric",
+          value: `${metric}`,
+        },
+      ],
+    },
+  ];
+};
+
+export const getLSABodyRows = (
+  lsType: LSType,
+  lsaBody: LSBody
+): PacketViz[] => {
+  switch (lsType) {
+    case LSType.RouterLSA:
+      return getRouterLSARows(lsaBody as RouterLSABody);
+    case LSType.SummaryIpLSA:
+    case LSType.SummaryAsBrLSA:
+      return getSummaryLSARows(lsType, lsaBody as SummaryLSABody);
+    default:
+      return [];
+  }
+};
+
 export const getLSUpdateRows = (body: LSUpdatePacketBody): PacketViz[] => {
   const { lsaList, nLsa } = body;
   const rows: PacketViz[] = [
@@ -588,15 +649,14 @@ export const getLSUpdateRows = (body: LSUpdatePacketBody): PacketViz[] => {
   ];
   lsaList.forEach((lsa, idx) => {
     const { header, body } = lsa;
+    const { lsType } = header;
     const headerRows = getLSAHeaderRows(header);
     headerRows[0].separator = {
       color: Colors.lsUpdate,
       label: `LSA ${idx + 1}`,
     };
     rows.push(...headerRows);
-    if ("nLinks" in body && "links" in body) {
-      rows.push(...getRouterLSARows(body));
-    }
+    rows.push(...getLSABodyRows(lsType, body));
   });
   return rows;
 };

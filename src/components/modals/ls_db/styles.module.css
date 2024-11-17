@@ -52,6 +52,7 @@
 
 .area_body {
     display: flex;
+    flex-direction: column;
     max-height: 0;
     opacity: 0;
     transition: max-height .25s ease-in, opacity .25s ease-in;
