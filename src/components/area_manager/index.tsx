@@ -30,6 +30,7 @@ import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import {
   openLsDbModal,
+  openRoutingTable,
   setLiveNeighborTable,
   setPropagationDelay,
 } from "src/action_creators";
@@ -74,6 +75,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     propagationDelay,
     setPropagationDelayInStore,
     setLiveNeighborTable,
+    openRoutingTableInStore,
     openLsDbModal,
   } = props;
   const iconLayerHoverLocation = useRef<Point2D>();
@@ -547,6 +549,19 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     setPropagationDelayInStore(delay);
   };
 
+  const openRoutingTable = (router: Router) => {
+    const { id: routerId, ospf } = router;
+    const { routingTableManager } = ospf;
+    openRoutingTableInStore(
+      routerId,
+      routingTableManager.getFullTables().table
+    );
+    setRouterMenu((prevState) => ({
+      ...prevState,
+      visible: false,
+    }));
+  };
+
   return (
     <>
       <canvas
@@ -591,6 +606,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         selectedRouter={selectedRouter}
         toggleRouterPower={toggleRouterPower}
         openLsDbModal={openLsDbModal}
+        openRoutingTable={openRoutingTable}
       />
       <AnimationToolbar
         playing={simulationPlaying}
@@ -616,6 +632,7 @@ const mapStateToProps = (state: IRootReducer) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
+    openRoutingTableInStore: bindActionCreators(openRoutingTable, dispatch),
     openLsDbModal: bindActionCreators(openLsDbModal, dispatch),
     setPropagationDelayInStore: bindActionCreators(
       setPropagationDelay,

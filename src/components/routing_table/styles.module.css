@@ -1,0 +1,53 @@
+.added td {
+    animation: addedAnim 5s ease-in normal forwards;
+}
+
+.deleted td {
+    animation: deletedAnim 5s ease-in normal forwards;
+}
+
+@keyframes addedAnim {
+    0% {
+        opacity: 0;
+        background-color: inherit;
+    }
+
+    33% {
+        background-color: #a6d1a8;
+        opacity: 1;
+    }
+
+    90% {
+        background-color: #a6d1a8;
+    }
+
+    100% {
+        opacity: 1;
+        background-color: white;
+    }
+}
+
+@keyframes deletedAnim {
+    0% {
+        opacity: 1;
+        background-color: inherit;
+        background-color: #e42b2b;
+    }
+
+    33% {
+        background-color: #d1a6a6;
+        opacity: .75;
+    }
+
+    90% {
+        background-color: #d1a6a6;
+        opacity: 0.25;
+    }
+
+    100% {
+        opacity: 0;
+        max-height: 0;
+        height: 0;
+        background-color: white;
+    }
+}

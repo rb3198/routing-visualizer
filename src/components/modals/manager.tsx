@@ -9,10 +9,14 @@ import { IPPacket } from "src/entities/ip/packets";
 import { NeighborTableModalBody } from "./neighbor_table";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
-import { LiveNeighborTableState } from "src/reducers/modals";
+import {
+  LiveNeighborTableState,
+  LiveRoutingTableState,
+} from "src/reducers/modals";
 import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { LsDbModalBody } from "./ls_db";
+import { RoutingTableModalBody } from "./routing_table";
 
 type ReduxProps = ConnectedProps<typeof connector>;
 
@@ -80,6 +84,16 @@ const Manager: React.FC<ReduxProps> = (props) => {
         const { db, ospfInterface } = data as LsDb;
         const { router } = ospfInterface;
         return <LsDbModalBody db={db} routerId={router.id} />;
+      case "routing_table":
+        const { table: routingTable, routerId: ri } =
+          data as LiveRoutingTableState;
+        return (
+          <RoutingTableModalBody
+            modalRef={modalRef}
+            table={routingTable}
+            routerId={ri}
+          />
+        );
       default:
         return null;
     }

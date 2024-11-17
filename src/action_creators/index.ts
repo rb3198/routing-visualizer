@@ -12,6 +12,7 @@ import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 
 export type VizArgs = {
   color: string;
@@ -136,6 +137,17 @@ export const setLiveNeighborTable: ActionCreator<ModalAction> = (
       routerId,
       neighborTable,
     },
+  };
+};
+
+export const openRoutingTable: ActionCreator<ModalAction> = (
+  routerId: IPv4Address,
+  table: RoutingTable
+) => {
+  return {
+    type: "OPEN_MODAL",
+    active: "routing_table",
+    data: { routerId, table },
   };
 };
 export const closeModal: ActionCreator<ModalAction> = () => {

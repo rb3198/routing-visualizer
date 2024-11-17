@@ -5,12 +5,17 @@ import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_ev
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 
 export type LiveNeighborTableState = {
   routerId: IPv4Address;
   neighborTable: Record<string, NeighborTableRow>;
 };
 
+export type LiveRoutingTableState = {
+  routerId: IPv4Address;
+  table: RoutingTable;
+};
 export type ActiveModalState =
   | {
       active: "packet";
@@ -27,6 +32,10 @@ export type ActiveModalState =
   | {
       active: "ls_db";
       data: LsDb;
+    }
+  | {
+      active: "routing_table";
+      data: LiveRoutingTableState;
     };
 
 export type ModalReducerState =
@@ -74,6 +83,9 @@ export const modalReducer: Reducer<ModalReducerState, ModalAction> = (
           active,
           data,
         };
+      }
+      if (active === "routing_table") {
+        return { active, data };
       }
       return {
         active: "none",

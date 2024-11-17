@@ -22,6 +22,7 @@ export interface ConnectionPickerProps {
   controlsDisabled?: boolean;
   openNeighborTable: (router: Router) => unknown;
   openLsDbModal: (lsDb: LsDb) => any;
+  openRoutingTable: (router: Router) => unknown;
   addRouterConnection?: (routerA: Router, routerB: Router) => any;
   /**
    * Turns the router ON or OFF.
@@ -46,6 +47,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
     openLsDbModal,
     addRouterConnection,
     toggleRouterPower,
+    openRoutingTable,
   } = props;
 
   const Controls = useMemo(() => {
@@ -79,6 +81,9 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
     const onNeighborTableClick = () => {
       selectedRouter && openNeighborTable(selectedRouter);
     };
+    const onRoutingTableClick = () => {
+      selectedRouter && openRoutingTable(selectedRouter);
+    };
     return (
       <>
         <p className={styles.description}>View...</p>
@@ -89,7 +94,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
             </div>
             Neighbor Table
           </li>
-          <li onClick={() => {}}>
+          <li onClick={onRoutingTableClick}>
             <div className={styles.iconContainer}>
               <CiViewTable className={styles.icon} />
             </div>
@@ -104,7 +109,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
         </ul>
       </>
     );
-  }, [selectedRouter, openNeighborTable, openLsDb]);
+  }, [selectedRouter, openNeighborTable, openLsDb, openRoutingTable]);
   const { top, left, bottom } = position;
   return (
     <div

@@ -1,12 +1,4 @@
-import React, {
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import styles from "./styles.module.css";
@@ -14,39 +6,9 @@ import { getKey } from "src/utils/common";
 import { State } from "src/entities/ospf/enum";
 import { columnNames } from "./descriptions";
 import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
-import { LSAHeader } from "src/entities/ospf/lsa";
-
-const renderLSAHeader = (header: LSAHeader) => {
-  const { advertisingRouter, linkStateId, lsSeqNumber } = header;
-  const cols = [
-    {
-      label: "Advertising Router",
-      value: advertisingRouter,
-    },
-    {
-      label: "Link State ID",
-      value: linkStateId,
-    },
-    {
-      label: "LS Seq. Number",
-      value: lsSeqNumber,
-    },
-  ];
-  return `
-  <div class=${styles.lsa_header}>
-    ${cols
-      .map(
-        ({ label, value }) => `
-      <div>
-        <p class=${styles.lsa_header_label}>${label}</p>
-        <p class=${styles.lsa_header_value}>${value}</p>
-      </div>
-    `
-      )
-      .join("")}
-  </div>
-  `;
-};
+import { TC } from "../table/tc";
+import { Table } from "../table";
+import { renderLSAHeader } from "../routing_table/lsa_header";
 
 const getValue = (
   neighborTable: Record<string, NeighborTableRow>,
@@ -154,61 +116,6 @@ type LiveNeighborTableProps = CommonProps & {
 
 type NeighborTableProps = CommonProps &
   (EventNeighborTableProps | LiveNeighborTableProps);
-interface TableCellProps {
-  activeCol: keyof NeighborTableRow | "none";
-  col: keyof NeighborTableRow | "none";
-  idx: number;
-  setActiveCol: React.Dispatch<
-    React.SetStateAction<keyof NeighborTableRow | "none">
-  >;
-  type: "th" | "td";
-}
-
-const TC: React.FC<PropsWithChildren<TableCellProps>> = (props) => {
-  const { idx, col, activeCol, type, children, setActiveCol } = props;
-  const [prevValue, setPrevValue] = useState(children);
-  const wasStale = useRef(false);
-  const [stale, setStale] = useState(false);
-  const onMouseEnter = useCallback(() => {
-    setActiveCol(col);
-  }, [col, setActiveCol]);
-  const onMouseLeave = useCallback(() => {
-    setActiveCol("none");
-  }, [setActiveCol]);
-
-  useLayoutEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (children !== prevValue) {
-      setStale(true);
-      timeout = setTimeout(() => {
-        setStale(false);
-        setPrevValue(children);
-        wasStale.current = true;
-      }, 500);
-    }
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [children, prevValue]);
-
-  const elProps = {
-    className: `${idx === 0 ? styles.fixed : ""} ${
-      activeCol === col ? styles.hovered : ""
-    }`,
-    onMouseEnter,
-    onMouseLeave,
-  };
-  return type === "th" ? (
-    <th {...elProps}>{children}</th>
-  ) : (
-    <td {...elProps}>
-      <div
-        className={stale ? styles.out : wasStale.current ? styles.in : ""}
-        dangerouslySetInnerHTML={{ __html: prevValue?.toString() ?? "" }}
-      ></div>
-    </td>
-  );
-};
 
 const EventTableBody: React.FC<EventNeighborTableProps> = (props) => {
   const { event, activeCol, setActiveCol } = props;
@@ -374,24 +281,22 @@ export const NeighborTable: React.FC<NeighborTableProps> = (props) => {
   };
 
   return (
-    <table id={styles.table}>
-      <tbody>
-        <tr>
-          {columns.map((col, idx) => (
-            <TC
-              key={`neighbor_table_th_${col}`}
-              col={col as keyof NeighborTableRow}
-              activeCol={activeCol}
-              idx={idx}
-              setActiveCol={setActiveCol}
-              type="th"
-            >
-              {columnNames[col as keyof NeighborTableRow]}
-            </TC>
-          ))}
-        </tr>
-        {renderBody()}
-      </tbody>
-    </table>
+    <Table>
+      <tr>
+        {columns.map((col, idx) => (
+          <TC
+            key={`neighbor_table_th_${col}`}
+            col={col as keyof NeighborTableRow}
+            activeCol={activeCol}
+            idx={idx}
+            setActiveCol={setActiveCol}
+            type="th"
+          >
+            {columnNames[col as keyof NeighborTableRow]}
+          </TC>
+        ))}
+      </tr>
+      {renderBody()}
+    </Table>
   );
 };

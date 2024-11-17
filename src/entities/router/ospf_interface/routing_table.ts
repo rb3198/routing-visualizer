@@ -3,6 +3,8 @@ import { routingTableCalcWorkerPool } from "src/worker_pools/ospf/routing_table_
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 import { RoutingTableCalculationResult } from "src/types/ospf/routing_table_calc_result";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { store } from "src/store";
+import { openRoutingTable } from "src/action_creators";
 
 export class RoutingTableManager {
   ospfInterface: OSPFInterface;
@@ -32,7 +34,7 @@ export class RoutingTableManager {
 
   onCalculation = (e: MessageEvent<RoutingTableCalculationResult>) => {
     const { router, lsDb } = this.ospfInterface;
-    const { ipInterfaces } = router;
+    const { ipInterfaces, id: routerId } = router;
     const { areaId, table } = e.data;
     for (const entry of table) {
       const { destinationId, destType } = entry;
@@ -67,6 +69,13 @@ export class RoutingTableManager {
     if (isAreaBorderRouter) {
       // generate summary LSAs for the area
       lsDb.originateSummaryLsas(areaId);
+    }
+    const { modalState } = store.getState();
+    if (
+      modalState.active === "routing_table" &&
+      modalState.data.routerId.equals(routerId)
+    ) {
+      store.dispatch(openRoutingTable(routerId, this.getFullTables().table));
     }
     this.calculatingMap[areaId] = false;
     if (this.calculationScheduledMap[areaId]) {
