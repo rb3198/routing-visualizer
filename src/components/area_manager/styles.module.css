@@ -4,11 +4,11 @@
 }
 
 #add_icon_layer {
-    z-index: 2;
+    z-index: 3;
 }
 
 #area_layer {
-    z-index: 3;
+    z-index: 2;
 }
 
 #router_connection_layer {
