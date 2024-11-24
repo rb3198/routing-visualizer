@@ -25,7 +25,6 @@ export type EmitEventArgs =
   | {
       event: PacketSentEvent;
       eventName: "packetSent";
-      viz: VizArgs;
     }
   | {
       event: PacketDroppedEvent;
@@ -40,22 +39,6 @@ export type EmitEventArgs =
       event: NeighborTableEvent;
       eventName: "neighborTableEvent";
     };
-
-const packetSent = async (event: PacketSentEvent, viz: VizArgs) => {
-  const { src, dest } = event;
-  const { context, duration, packetRect, color } = viz;
-  const { cellSize } = store.getState();
-  context &&
-    (await packetAnimations.packetTransfer(
-      context,
-      cellSize,
-      src,
-      dest,
-      duration,
-      packetRect,
-      color
-    ));
-};
 
 const packetDrop = async (event: PacketDroppedEvent, viz: VizArgs) => {
   const { router } = event;
@@ -81,9 +64,6 @@ export const emitEvent =
       data: event,
     });
     switch (eventName) {
-      case "packetSent":
-        await packetSent(event, args.viz);
-        break;
       case "packetDropped":
         await packetDrop(event, args.viz);
         break;

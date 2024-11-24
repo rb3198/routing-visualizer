@@ -425,11 +425,8 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 };
 
 const mapStateToProps = (state: IRootReducer) => {
-  const { eventLog, propagationDelay } = state;
-  return {
-    eventLog,
-    propagationDelay,
-  };
+  const { propagationDelay } = state;
+  return { propagationDelay };
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {

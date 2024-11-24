@@ -76,6 +76,17 @@ export class IPv4Address {
     return networkId.every((byte, idx) => byte === comparedNetworkId[idx]);
   };
 
+  toBinary = (subnetAddress?: boolean) => {
+    const [byte1, byte2, byte3, byte4, subnetMask] = this.bytes;
+    const address = [
+      byte1.toString(2).padStart(8, "0"),
+      byte2.toString(2).padStart(8, "0"),
+      byte3.toString(2).padStart(8, "0"),
+      byte4.toString(2).padStart(8, "0"),
+    ].join("");
+    return subnetAddress ? address.slice(0, subnetMask) : address;
+  };
+
   referenceEquals = (comparedIp: IPv4Address) => this === comparedIp;
 
   /**

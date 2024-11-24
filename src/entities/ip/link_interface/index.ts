@@ -1,18 +1,26 @@
-import { IPProtocolNumber } from "../enum/ip_protocol_number";
 import { IPv4Address } from "../ipv4_address";
 import { TwoWayMap } from "../../../utils/two_way_map";
-import { IPacket } from "../../interfaces/IPacket";
-import { ospfMessageHandler } from "../../message_handlers/ospf_message_handler";
 import { Router } from "../../router";
 import { BACKBONE_AREA_ID } from "../../ospf/constants";
-import { Colors } from "../../../constants/theme";
-import {
-  getLinkInterfaceCoords,
-  getSlopeAngleDist2D,
-} from "../../../utils/drawing";
+import { Colors, PacketColorMap } from "../../../constants/theme";
+import { getLinkInterfaceCoords } from "../../../utils/drawing";
 import { store } from "../../../store";
-import { getTravelDirection, vmax } from "src/utils/geometry";
-import { getAreaIp } from "src/utils/common";
+import { vmax } from "src/utils/geometry";
+import { IPPacket } from "../packets";
+import { packetAnimations } from "src/animations/packets";
+import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
+import { BROADCAST_ADDRESSES } from "src/constants/ip_addresses";
+
+const getPacketColor = (ipPacket: IPPacket) => {
+  let color = Colors.accent;
+  const { body } = ipPacket;
+  if (body instanceof OSPFPacket) {
+    const { header: ospfHeader } = body;
+    const { type } = ospfHeader;
+    color = PacketColorMap.get(type) ?? color;
+  }
+  return color;
+};
 
 /**
  * The Network layer (IP) link between two routers. Supports sending and receiving network layer IP Messages.
@@ -21,7 +29,7 @@ export class IPLinkInterface {
   id: string;
   routers: TwoWayMap<string, Router>;
   cost: number;
-  ipMsb: number;
+  baseIp: IPv4Address;
   constructor(
     id: string,
     ipMsb: number,
@@ -29,7 +37,7 @@ export class IPLinkInterface {
     routers: [Router, Router]
   ) {
     this.id = id;
-    this.ipMsb = ipMsb;
+    this.baseIp = new IPv4Address(ipMsb, 0, b3Init, 0, 24);
     this.routers = new TwoWayMap();
     this.assignIps(routers, b3Init);
     const [routerA, routerB] = routers;
@@ -51,6 +59,9 @@ export class IPLinkInterface {
         backboneRouterPresent =
           backboneRouterPresent || areaId === BACKBONE_AREA_ID;
       });
+      this.baseIp.bytes[1] = backboneRouterPresent
+        ? 1
+        : routers[0].ospf.config.areaId + 1;
       routers.forEach((router, idx) => {
         const { ospf } = router;
         const { config } = ospf;
@@ -59,8 +70,8 @@ export class IPLinkInterface {
           areaId !== BACKBONE_AREA_ID &&
           (connectedToBackbone || backboneRouterPresent);
         const interfaceIp = new IPv4Address(
-          this.ipMsb,
-          getAreaIp(backboneRouterPresent ? 0 : areaId).bytes[1],
+          this.baseIp.bytes[0],
+          this.baseIp.bytes[1],
           b3,
           idx + 1,
           24
@@ -86,44 +97,32 @@ export class IPLinkInterface {
     return this.routers.getKey(self);
   };
 
-  /**
-   * Sends a message to a destination IP address. the destination must be connected to this link interface.
-   * @param from
-   * @param to
-   * @param protocol
-   * @param message
-   * @param color Color of the packet to be drawn
-   */
-  sendMessage = async (
-    from: Router,
-    to: IPv4Address,
-    protocol: IPProtocolNumber,
-    message: IPacket,
-    color: string = Colors.accent
-  ) => {
-    const { propagationDelay: duration } = store.getState();
-    const fromIpStr = this.routers.getKey(from);
-    if (!fromIpStr) {
-      throw new Error(
-        "Unexpected sendMessage call on Link Interface. Does not connect the said IP address."
+  sendMessage = async (src: Router, ipPacket: IPPacket) => {
+    const { propagationDelay: duration, cellSize } = store.getState();
+    const context = window.elementLayer?.getContext("2d");
+    const dest = this.getOppositeRouter(src);
+    const destIp = this.getSelfIpAddress(dest);
+    if (!destIp) {
+      return;
+    }
+    const color = getPacketColor(ipPacket);
+    if (BROADCAST_ADDRESSES.has(ipPacket.header.destination.toString())) {
+      src.receiveIPPacket(
+        this.getSelfIpAddress(src)?.toString() ?? "",
+        ipPacket
       );
     }
-    const fromIp = IPv4Address.fromString(fromIpStr);
-    switch (protocol) {
-      case IPProtocolNumber.ospf:
-        ospfMessageHandler.call(
-          this,
-          fromIp,
-          to,
-          message,
-          this.routers,
-          color,
-          duration
-        );
-        break;
-      default:
-        break;
-    }
+    context &&
+      (await packetAnimations.packetTransfer(
+        context,
+        cellSize,
+        src,
+        dest,
+        duration,
+        undefined,
+        color
+      ));
+    dest.receiveIPPacket(destIp, ipPacket);
   };
 
   private drawIps = (
@@ -132,83 +131,45 @@ export class IPLinkInterface {
     routerB: Router
   ) => {
     const { cellSize } = store.getState();
-    const ipA = this.routers.getKey(routerA);
-    const ipB = this.routers.getKey(routerB);
-    if (!ipA || !ipB) {
+    const ipAStr = this.routers.getKey(routerA);
+    const ipBStr = this.routers.getKey(routerB);
+    if (!ipAStr || !ipBStr) {
       console.warn("Draw IPs called with unknown routers");
       return;
     }
+    const ipA = IPv4Address.fromString(ipAStr);
+    const ipB = IPv4Address.fromString(ipBStr);
     let { location: start } = routerA;
     let { location: end } = routerB;
-    let { directionX, directionY } = getTravelDirection(start, end);
-    let [startX, startY] = start.map((u) => u * cellSize),
-      [endX, endY] = end.map((u) => u * cellSize);
-    startY += cellSize / 2;
-    endY += cellSize / 2;
-    if (directionX === "right") {
-      startX += cellSize;
-    } else if (directionX === "left") {
-      endX += cellSize;
-    }
-    const { directionX: x, directionY: y } = getTravelDirection(
-      [startX, startY],
-      [endX, endY]
-    );
-    const changed = x !== directionX;
-    directionX = x;
-    directionY = y;
-    const { theta, distance: totalDistance } = getSlopeAngleDist2D(
-      [startX, startY],
-      [endX, endY]
-    );
-    const m = Math.tan(theta);
-    const norm = Math.sqrt(1 + m ** 2);
+    const {
+      startX,
+      startY,
+      endX,
+      endY,
+      startThetaOffset,
+      endThetaOffset,
+      theta,
+    } = getLinkInterfaceCoords(cellSize, start, end, true);
     const padding = vmax(0.1);
-    let startThetaOffset = 0,
-      endThetaOffset = 0;
-    const distOffset = 0.15;
-    if (directionX === "none") {
-      const distance = distOffset * totalDistance;
-      startX += changed ? 0 : cellSize / 2;
-      endX += changed ? 0 : cellSize / 2;
-      if (directionY === "bottom") {
-        endThetaOffset = Math.PI;
-      } else {
-        endThetaOffset = Math.PI;
-      }
-      startY +=
-        directionY === "bottom"
-          ? cellSize / 2 + distance
-          : -cellSize / 2 - distance;
-      endY +=
-        directionY === "bottom"
-          ? -cellSize / 2 - distance
-          : cellSize / 2 + distance;
-    } else if (directionX === "left") {
-      startX -= (distOffset * totalDistance) / norm;
-      startY -= (distOffset * totalDistance * m) / norm;
-      endX += (distOffset * totalDistance) / norm;
-      endY += (distOffset * totalDistance * m) / norm;
-      startThetaOffset = Math.PI;
-    } else {
-      startX += (distOffset * totalDistance) / norm;
-      startY += (distOffset * totalDistance * m) / norm;
-      endX -= (distOffset * totalDistance) / norm;
-      endY -= (distOffset * totalDistance * m) / norm;
-      endThetaOffset = Math.PI;
-    }
     [
-      { x: startX, y: startY, ip: ipA, offset: startThetaOffset },
-      { x: endX, y: endY, ip: ipB, offset: endThetaOffset },
+      {
+        x: startX,
+        y: startY,
+        ip: `.${ipA.bytes[3]}`,
+        offset: startThetaOffset,
+      },
+      { x: endX, y: endY, ip: `.${ipB.bytes[3]}`, offset: endThetaOffset },
     ].forEach(({ x, y, ip, offset }) => {
       const {
-        width: textWidth,
+        actualBoundingBoxLeft: left,
+        actualBoundingBoxRight: right,
         fontBoundingBoxAscent: asc,
         fontBoundingBoxDescent: dsc,
       } = context.measureText(ip);
+      const textWidth = left + right;
       const textHeight = asc + dsc;
       context.save();
-      context.font = ".85vmin sans-serif";
+      context.font = "1vmin sans-serif";
       context.strokeStyle = "white";
       context.fillStyle = "black";
       context.translate(x, y);
@@ -216,12 +177,17 @@ export class IPLinkInterface {
       context.translate(-textWidth / 2, 0);
       context.beginPath();
       context.fillStyle = "black";
-      context.rect(-padding, -textHeight, textWidth, textHeight + 2 * padding);
+      context.rect(
+        0,
+        -textHeight,
+        textWidth + 4 * padding,
+        textHeight + 2 * padding
+      );
       context.fill();
       context.closePath();
       context.beginPath();
       context.fillStyle = "white";
-      context.fillText(ip, 0, 0);
+      context.fillText(ip.toString(), padding, padding);
       context.closePath();
       context.restore();
     });
@@ -235,17 +201,16 @@ export class IPLinkInterface {
     }
     const { location: locA } = routerA;
     const { location: locB } = routerB;
-    const { theta } = getSlopeAngleDist2D(locA, locB);
+    let { startX, startY, endX, endY, theta, directionX } =
+      getLinkInterfaceCoords(cellSize, locA, locB);
+    if (directionX === "none" && locA[0] === locB[0]) {
+      startX += cellSize / 2;
+      endX += cellSize / 2;
+    }
     context.save();
     context.strokeStyle = "black";
     context.fillStyle = "black";
     context.beginPath();
-    const { startX, startY, endX, endY } = getLinkInterfaceCoords(
-      locA,
-      locB,
-      theta,
-      cellSize
-    );
     context.moveTo(startX, startY);
     context.lineTo(endX, endY);
     context.font = "1vmax sans-serif";
@@ -256,6 +221,12 @@ export class IPLinkInterface {
     context.fillText(this.cost.toString(), 0, -5);
     context.stroke();
     context.fill();
+    context.closePath();
+    context.beginPath();
+    context.font = "0.65vmax sans-serif";
+    const { width } = context.measureText(this.baseIp.toString());
+    const x = -width / 2;
+    context.fillText(this.baseIp.toString(), x, 12.5);
     context.closePath();
     context.restore();
     this.drawIps(context, routerA, routerB);
