@@ -31,6 +31,11 @@ export class RoutingTableRow {
    */
   advertisingRouter?: IPv4Address;
 
+  /**
+   * When routing packets, used to load balance if multiple next hops are present.
+   */
+  lastUsedNextHopIdx: number = -1;
+
   constructor({
     destType,
     destinationId,
@@ -42,7 +47,7 @@ export class RoutingTableRow {
     linkStateOrigin,
     nextHops,
     advertisingRouter,
-  }: RoutingTableRow) {
+  }: Omit<RoutingTableRow, "lastUsedNextHopIdx">) {
     this.destType = destType;
     this.destinationId = destinationId;
     this.addressMask = addressMask;

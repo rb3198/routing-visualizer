@@ -12,6 +12,7 @@ export const columnNames: Record<keyof RoutingTableRow, string> = {
   linkStateOrigin: "LS Origin",
   pathType: "Path Type",
   type2cost: "",
+  lastUsedNextHopIdx: "",
 };
 
 const dummyRow = new RoutingTableRow({
@@ -71,5 +72,6 @@ export const getDescriptions = (
     linkStateOrigin: `Valid only for intra-area paths, this field indicates the LSA
         (router-LSA or network-LSA) that directly references the
         destination.`,
+    lastUsedNextHopIdx: "",
   };
 };
