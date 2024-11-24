@@ -33,6 +33,8 @@ import {
 } from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
 import { defaultState, interactiveStateReducer } from "./interaction_manager";
+import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { DestinationSelector } from "../destination_selector";
 interface AreaManagerProps {
   gridRect: GridCell[][];
   defaultAreaSize: number;
@@ -50,13 +52,15 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     setPropagationDelayInStore,
     setLiveNeighborTable,
     openRoutingTableInStore,
-    openLsDbModal,
+    openLsDbModal: openLsDbModalInStore,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
   const areaLayerRef = useRef<HTMLCanvasElement>(null);
   const componentLayerRef = useRef<HTMLCanvasElement>(null);
+  const overlayLayerRef = useRef<HTMLCanvasElement>(null);
+  const interactionLayerRef = useRef<HTMLCanvasElement>(null);
   const routerConnectionLayerRef = useRef<HTMLCanvasElement>(null);
   const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
@@ -77,6 +81,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     cell,
     selectedRouter,
     simulationStatus,
+    state,
   } = interactiveState;
 
   const { visible: componentPickerVisible, option: componentPickerType } =
@@ -96,6 +101,8 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       componentLayerRef.current,
       routerConnectionLayerRef.current,
       elementsLayerRef.current,
+      overlayLayerRef.current,
+      interactionLayerRef.current,
     ].forEach((canvas) => {
       if (canvas) {
         onCanvasLayout(canvas);
@@ -222,7 +229,11 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 
   const onCanvasClick: MouseEventHandler = useCallback(
     (e) => {
-      if (!iconLayerRef.current || !areaLayerRef.current) {
+      if (
+        !iconLayerRef.current ||
+        !areaLayerRef.current ||
+        !overlayLayerRef.current
+      ) {
         return;
       }
       const { clientX, clientY } = e;
@@ -240,6 +251,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         componentPickerComponent: componentPickerRef.current,
         iconLayer: iconLayerRef.current,
         areaTree: areaTree.current,
+        overlayLayer: overlayLayerRef.current,
       });
     },
     [gridRect]
@@ -348,13 +360,72 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   };
 
   const enableDestSelectionMode = useCallback(() => {
-    // setSelectingPacketDest(true);
-    // setRouterMenu((prevState) => ({ ...prevState, visible: false }));
-    // TODO
+    if (!overlayLayerRef.current) {
+      return;
+    }
+    dispatch({
+      type: "send_packet",
+      overlayLayer: overlayLayerRef.current,
+      areaTree: areaTree.current,
+    });
   }, []);
+
+  const openLsDbModal = useCallback(
+    (lsDb: LsDb) => {
+      openLsDbModalInStore(lsDb);
+      dispatch({
+        type: "router_interaction_completed",
+      });
+    },
+    [openLsDbModalInStore]
+  );
 
   //#endregion
 
+  const onConnectionSelect = useCallback((conn: string) => {
+    overlayLayerRef.current &&
+      dispatch({
+        type: "packet_dest_selected",
+        destinationIp: conn,
+        overlayLayer: overlayLayerRef.current,
+      });
+  }, []);
+
+  const renderConnectionOptions = useCallback(
+    (destinationRouter?: Router, connectionOptions?: string[]) => {
+      const connectionsExist =
+        connectionOptions && connectionOptions.length > 0;
+      const headerText = connectionsExist
+        ? "Select the Destination Interface"
+        : "Select the Destination Router";
+      const renderConnectionPicker = connectionsExist || destinationRouter;
+      return (
+        <>
+          <div id={styles.packet_dest_overlay}>
+            <h3>{headerText}</h3>
+            {(selectedRouter && (
+              <p
+                style={{ fontWeight: "bold" }}
+              >{`Source Router: ${selectedRouter.id}`}</p>
+            )) || <></>}
+            {(destinationRouter && (
+              <p
+                style={{ fontWeight: "bold" }}
+              >{`Destination Router: ${destinationRouter.id}`}</p>
+            )) || <></>}
+            <p>Click Anywhere else to cancel this action.</p>
+          </div>
+          {renderConnectionPicker && (
+            <DestinationSelector
+              connectionOptions={connectionOptions ?? []}
+              onSelect={onConnectionSelect}
+            />
+          )}
+        </>
+      );
+    },
+    [onConnectionSelect, selectedRouter]
+  );
   return (
     <>
       <canvas
@@ -381,8 +452,18 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         id={styles.component_layer}
         className={styles.canvas}
         ref={componentLayerRef}
-        onMouseMove={onHover}
+      />
+      <canvas
+        id={styles.overlay_layer}
+        className={styles.canvas}
+        ref={overlayLayerRef}
+      />
+      <canvas
+        id={styles.interaction_layer}
+        className={styles.canvas}
+        ref={interactionLayerRef}
         style={{ cursor }}
+        onMouseMove={onHover}
         onClick={onCanvasClick}
       />
       {(cell && (
@@ -395,6 +476,11 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
           visible={componentPickerVisible}
         />
       )) || <></>}
+      {state === "selecting_packet_dest" &&
+        renderConnectionOptions(
+          interactiveState.destinationRouter,
+          interactiveState.connectionOptions
+        )}
       <RouterMenu
         {...routerMenu}
         areaLayerRef={areaLayerRef}

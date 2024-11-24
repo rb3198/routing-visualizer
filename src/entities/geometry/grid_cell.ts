@@ -121,4 +121,15 @@ export class GridCell {
     this.beforeDraw(context, stroke);
     this.type = "none";
   };
+
+  drawOverlay(context: CanvasRenderingContext2D) {
+    const { x, y, size } = this;
+    context.save();
+    context.fillStyle = "#00000088";
+    context.beginPath();
+    context.rect(x, y, size, size);
+    context.fill();
+    context.closePath();
+    context.restore();
+  }
 }

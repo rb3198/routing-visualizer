@@ -16,6 +16,8 @@ import { IPHeader } from "../ip/packets/header";
 import { BROADCAST_ADDRESSES } from "src/constants/ip_addresses";
 import { OSPFPacket } from "../ospf/packets/packet_base";
 import { PacketSentEvent } from "../network_event/packet_events/sent";
+import { packetAnimations } from "src/animations/packets";
+import { Colors } from "src/constants/theme";
 
 export class Router {
   key: string;
@@ -220,8 +222,23 @@ export class Router {
       }
     } else {
       // forwarding the packet
+      packet.header.ttl--; // Decrement the TTL of the received packet
+      if (packet.header.ttl <= 0) {
+        // Drop the packet. Send ICMP message back to the source that the packet was not deliverable.
+        this.dropPacket();
+        return;
+      }
       this.sendIpPacket(packet);
     }
+  };
+
+  dropPacket = () => {
+    const context = window.elementLayer?.getContext("2d");
+    const { cellSize } = store.getState();
+    if (!context) {
+      return;
+    }
+    packetAnimations.packetDrop(context, cellSize, this, 500, Colors.accent);
   };
 
   turnOn = () => {

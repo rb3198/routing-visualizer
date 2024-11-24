@@ -55,8 +55,10 @@ export type InteractiveState = {
     }
   | {
       simulationStatus: "playing";
-      state: "sending_packet";
+      state: "selecting_packet_dest";
       selectedRouter: Router;
+      destinationRouter?: Router;
+      connectionOptions?: string[];
       componentPicker: DefaultComponentPickerState;
       routerMenu: DefaultRouterMenuState;
     }
@@ -88,6 +90,16 @@ export type InteractiveAction =
       cell?: Point2D;
     }
   | {
+      type: "send_packet";
+      overlayLayer: HTMLCanvasElement;
+      areaTree: AreaTree;
+    }
+  | {
+      type: "packet_dest_selected";
+      destinationIp: string;
+      overlayLayer: HTMLCanvasElement;
+    }
+  | {
       type: "hover";
       cell: Point2D;
       iconLayer: HTMLCanvasElement;
@@ -101,5 +113,6 @@ export type InteractiveAction =
       routerMenuComponent?: HTMLDivElement | null;
       areaLayer: HTMLCanvasElement;
       iconLayer: HTMLCanvasElement;
+      overlayLayer: HTMLCanvasElement;
       areaTree: AreaTree;
     };

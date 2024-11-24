@@ -14,6 +14,8 @@ import { getAreaIp } from "src/utils/common";
 import { Colors } from "src/constants/theme";
 import { Router } from "src/entities/router";
 import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
+import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
 
 export const defaultPickerState: DefaultComponentPickerState = {
   visible: false,
@@ -139,6 +141,43 @@ const placeRouter = (
   rect.drawRouter(context, router.id.ip);
 };
 
+const highlightDestinationRouters = (
+  areaTree: AreaTree,
+  overlayLayer: HTMLCanvasElement,
+  gridRect: GridCell[][],
+  sourceRouter: Router
+) => {
+  const allRouterLocations = new Set<string>();
+  const context = overlayLayer.getContext("2d");
+  areaTree.inOrderTraversal(areaTree.root).forEach(([, area]) => {
+    const { routerLocations } = area;
+    routerLocations.forEach((_, key) => {
+      const [row, col] = key.split("_").map((k) => parseInt(k));
+      if (
+        row === sourceRouter.location[1] &&
+        col === sourceRouter.location[0]
+      ) {
+        return;
+      }
+      allRouterLocations.add(key);
+    });
+  });
+  for (let row = 0; row < gridRect.length; row++) {
+    for (let col = 0; col < gridRect[0].length; col++) {
+      if (allRouterLocations.has(`${row}_${col}`)) {
+        continue;
+      }
+      context && gridRect[row][col].drawOverlay(context);
+    }
+  }
+};
+
+const clearOverlay = (overlayLayer: HTMLCanvasElement) => {
+  const context = overlayLayer.getContext("2d");
+  const { width, height } = overlayLayer.getBoundingClientRect();
+  context && context.clearRect(0, 0, width, height);
+};
+
 const getConnectionOptions = (selectedRouter: Router, areaTree: AreaTree) => {
   const { ipInterfaces, key: selectedRouterKey } = selectedRouter;
   const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces.keys()));
@@ -239,6 +278,34 @@ export const interactiveStateReducer: Reducer<
       // cursor: TODO
     };
   }
+  if (type === "send_packet") {
+    if (
+      prevInteractionState !== "router_interaction" ||
+      prevStatus !== "playing"
+    ) {
+      // TODO: Show tooltip saying Simulation should be in a playing state.
+      return {
+        ...state,
+        state: "hovering",
+        selectedRouter: undefined,
+        componentPicker: defaultPickerState,
+        routerMenu: defaultRouterMenuState,
+      };
+    }
+    const { overlayLayer, areaTree } = action;
+    highlightDestinationRouters(
+      areaTree,
+      overlayLayer,
+      gridRect,
+      prevSelectedRouter
+    );
+    return {
+      ...state,
+      state: "selecting_packet_dest",
+      simulationStatus: "playing",
+      routerMenu: defaultRouterMenuState,
+    };
+  }
   if (type === "play") {
     const { areaTree } = action;
     let newSelectedRouter = prevSelectedRouter;
@@ -277,8 +344,34 @@ export const interactiveStateReducer: Reducer<
       cursor,
     };
   }
+  if (type === "packet_dest_selected") {
+    if (prevInteractionState !== "selecting_packet_dest") {
+      return state;
+    }
+    const { destinationIp, overlayLayer } = action;
+    const context = overlayLayer.getContext("2d");
+    const { width, height } = overlayLayer.getBoundingClientRect();
+    context?.clearRect(0, 0, width, height);
+    // Show tooltip - Routing to router ID on destination interface {dest interface}
+    prevSelectedRouter.originateIpPacket(
+      IPv4Address.fromString(destinationIp),
+      IPProtocolNumber.udp,
+      // @ts-ignore TODO: Convert to ICMP packet
+      "Hello"
+    );
+    return {
+      selectedRouter: undefined,
+      state: "hovering",
+      cell: [-1, -1],
+      componentPicker: defaultPickerState,
+      routerMenu: defaultRouterMenuState,
+      cursor: "initial",
+      gridRect,
+      simulationStatus: prevStatus,
+    };
+  }
   if (type === "click") {
-    const { cell, iconLayer, areaTree } = action;
+    const { cell, iconLayer, areaTree, overlayLayer } = action;
     const [column, row] = cell;
 
     switch (prevInteractionState) {
@@ -345,8 +438,43 @@ export const interactiveStateReducer: Reducer<
           routerMenu: defaultPickerState,
           selectedRouter: undefined,
         };
-      case "sending_packet":
-        break;
+      case "selecting_packet_dest":
+        const hoveringState: InteractiveState = {
+          state: "hovering",
+          selectedRouter: undefined,
+          routerMenu: defaultRouterMenuState,
+          componentPicker: defaultPickerState,
+          cell,
+          cursor: "initial",
+          gridRect,
+          simulationStatus: prevStatus,
+        };
+        if (!areaTree.root) {
+          clearOverlay(overlayLayer);
+          return hoveringState;
+        }
+        const [, nearestArea] = areaTree.searchClosest(cell);
+        const { routerLocations, boundingBox, getRouterLocationKey } =
+          nearestArea;
+        if (!boundingBox.isWithinBounds(cell)) {
+          clearOverlay(overlayLayer);
+          return hoveringState;
+        }
+        const routerLoc = getRouterLocationKey(row, column);
+        const router = routerLocations.get(routerLoc);
+        if (
+          !router ||
+          router.location.join("") === prevSelectedRouter.location.join("")
+        ) {
+          clearOverlay(overlayLayer);
+          return hoveringState;
+        }
+        const connectionOptions = Array.from(router.ipInterfaces.keys());
+        return {
+          ...state,
+          connectionOptions,
+          destinationRouter: router,
+        };
       default:
         return state;
     }
