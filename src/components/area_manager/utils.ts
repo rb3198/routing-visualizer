@@ -16,7 +16,7 @@ export const getAreaPosition = (
   defaultAreaSize: number,
   gridSizeX: number,
   gridSizeY: number
-): { low: Point2D; high: Point2D } | null => {
+): { low: Point2D; high: Point2D } => {
   let horizontal: "left" | "right" = "right",
     vertical: "bottom" | "top" = "bottom";
   if (column + defaultAreaSize > gridSizeX) {
@@ -33,13 +33,13 @@ export const getAreaPosition = (
 };
 
 export const getPickerPosition = (
-  row: number,
   column: number,
+  row: number,
   gridRect: GridCell[][],
   tooltipElement?: HTMLDivElement | null,
-  canvas?: HTMLCanvasElement
+  canvas?: HTMLCanvasElement | null
 ): { left: number; top?: number; bottom?: number } => {
-  if (!canvas || !tooltipElement) {
+  if (!canvas || !tooltipElement || !gridRect[row] || !gridRect[row][column]) {
     return { left: -200, top: -200 };
   }
   const { height, width } = tooltipElement.getBoundingClientRect();
