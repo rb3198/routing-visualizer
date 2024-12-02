@@ -1,0 +1,40 @@
+#table {
+    table-layout: fixed;
+    max-width: 100%;
+    width: min-content;
+    display: block;
+    border-collapse: collapse;
+    overflow-x: scroll;
+    border-left: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+}
+
+#table th {
+    background-color: #ddd;
+    border-right: 1px solid white;
+}
+
+#table th:last-of-type {
+    border-right: 1px solid #ddd;
+}
+
+#table td {
+    background-color: white;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    overflow: hidden;
+}
+
+#table tr:last-of-type td {
+    border-bottom: none;
+}
+
+#table td,
+#table th {
+    padding: .236vmax .618vmax;
+    text-align: center;
+    vertical-align: middle;
+    text-transform: capitalize;
+    text-wrap: nowrap;
+    cursor: pointer;
+}

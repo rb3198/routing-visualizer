@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NeighborTable } from "src/components/neighbor_table";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
-import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import styles from "./styles.module.css";
 import { descriptions } from "../../neighbor_table/descriptions";
 import { IPv4Address } from "src/entities/ip/ipv4_address";

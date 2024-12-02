@@ -8,10 +8,11 @@ import { PacketDroppedEvent } from "../entities/network_event/packet_events/drop
 import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
 import { IPPacket } from "../entities/ip/packets";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
-import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 
 export type VizArgs = {
   color: string;
@@ -24,7 +25,6 @@ export type EmitEventArgs =
   | {
       event: PacketSentEvent;
       eventName: "packetSent";
-      viz: VizArgs;
     }
   | {
       event: PacketDroppedEvent;
@@ -39,22 +39,6 @@ export type EmitEventArgs =
       event: NeighborTableEvent;
       eventName: "neighborTableEvent";
     };
-
-const packetSent = async (event: PacketSentEvent, viz: VizArgs) => {
-  const { src, dest } = event;
-  const { context, duration, packetRect, color } = viz;
-  const { cellSize } = store.getState();
-  context &&
-    (await packetAnimations.packetTransfer(
-      context,
-      cellSize,
-      src,
-      dest,
-      duration,
-      packetRect,
-      color
-    ));
-};
 
 const packetDrop = async (event: PacketDroppedEvent, viz: VizArgs) => {
   const { router } = event;
@@ -80,9 +64,6 @@ export const emitEvent =
       data: event,
     });
     switch (eventName) {
-      case "packetSent":
-        await packetSent(event, args.viz);
-        break;
       case "packetDropped":
         await packetDrop(event, args.viz);
         break;
@@ -136,6 +117,17 @@ export const setLiveNeighborTable: ActionCreator<ModalAction> = (
       routerId,
       neighborTable,
     },
+  };
+};
+
+export const openRoutingTable: ActionCreator<ModalAction> = (
+  routerId: IPv4Address,
+  table: RoutingTable
+) => {
+  return {
+    type: "OPEN_MODAL",
+    active: "routing_table",
+    data: { routerId, table },
   };
 };
 export const closeModal: ActionCreator<ModalAction> = () => {

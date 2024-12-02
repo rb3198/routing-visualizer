@@ -1,5 +1,5 @@
 import { State } from "src/entities/ospf/enum";
-import { NeighborTableRow } from "src/entities/ospf/tables";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { getKey } from "src/utils/common";
 
 const stateDescriptions: Record<State, string> = {

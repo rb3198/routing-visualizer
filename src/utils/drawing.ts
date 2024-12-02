@@ -1,4 +1,5 @@
 import { Point2D, RectDim } from "../types/geometry";
+import { getTravelDirection } from "./geometry";
 
 export const getSlopeAngleDist2D = (p1: Point2D, p2: Point2D) => {
   const [aX, aY] = p1;
@@ -10,27 +11,92 @@ export const getSlopeAngleDist2D = (p1: Point2D, p2: Point2D) => {
 };
 
 export const getLinkInterfaceCoords = (
-  p1: Point2D,
-  p2: Point2D,
-  theta: number,
-  cellSize: number
+  cellSize: number,
+  start: Point2D,
+  end: Point2D,
+  shift?: boolean
 ) => {
-  const [aX, aY] = p1,
-    [bX, bY] = p2;
-  let startX = aX * cellSize + cellSize / 2,
-    startY = aY * cellSize,
-    endX = bX * cellSize + cellSize / 2,
-    endY = (bY + 1) * cellSize;
-  if (theta === Math.PI / 2) {
-    startY = (aY + 1) * cellSize;
-    endY = bY * cellSize;
-  } else if (theta !== -Math.PI / 2) {
-    startX = (aX > bX ? aX : aX + 1) * cellSize;
-    startY = aY * cellSize + cellSize / 2;
-    endX = (aX > bX ? bX + 1 : bX) * cellSize;
-    endY = bY * cellSize + cellSize / 2;
+  let { directionX, directionY } = getTravelDirection(start, end);
+  let [startX, startY] = start.map((u) => u * cellSize),
+    [endX, endY] = end.map((u) => u * cellSize);
+  startY += cellSize / 2;
+  endY += cellSize / 2;
+  if (directionX === "right") {
+    startX += cellSize;
+  } else if (directionX === "left") {
+    endX += cellSize;
   }
-  return { startX, startY, endX, endY };
+  const { directionX: x, directionY: y } = getTravelDirection(
+    [startX, startY],
+    [endX, endY]
+  );
+  const changed = x !== directionX;
+  directionX = x;
+  directionY = y;
+  const { theta, distance: totalDistance } = getSlopeAngleDist2D(
+    [startX, startY],
+    [endX, endY]
+  );
+  const m = Math.tan(theta);
+  const norm = Math.sqrt(1 + m ** 2);
+  let startThetaOffset = 0,
+    endThetaOffset = 0;
+  const distOffset = 0.1;
+  if (!shift) {
+    return {
+      startX,
+      startY,
+      endX,
+      endY,
+      directionX,
+      directionY,
+      startThetaOffset,
+      endThetaOffset,
+      theta,
+    };
+  }
+  if (directionX === "none") {
+    const distance = distOffset * totalDistance;
+    startX += changed ? 0 : cellSize / 2;
+    endX += changed ? 0 : cellSize / 2;
+    if (directionY === "bottom") {
+      endThetaOffset = Math.PI;
+    } else {
+      endThetaOffset = Math.PI;
+    }
+    startY +=
+      directionY === "bottom"
+        ? cellSize / 2 + distance
+        : -cellSize / 2 - distance;
+    endY +=
+      directionY === "bottom"
+        ? -cellSize / 2 - distance
+        : cellSize / 2 + distance;
+  } else if (directionX === "left") {
+    startX -= (distOffset * totalDistance) / norm;
+    startY -= (distOffset * totalDistance * m) / norm;
+    endX += (distOffset * totalDistance) / norm;
+    endY += (distOffset * totalDistance * m) / norm;
+    startThetaOffset = Math.PI;
+  } else {
+    startX += (distOffset * totalDistance) / norm;
+    startY += (distOffset * totalDistance * m) / norm;
+    endX -= (distOffset * totalDistance) / norm;
+    endY -= (distOffset * totalDistance * m) / norm;
+    endThetaOffset = Math.PI;
+  }
+
+  return {
+    startX,
+    startY,
+    directionX,
+    directionY,
+    endX,
+    endY,
+    startThetaOffset,
+    endThetaOffset,
+    theta,
+  };
 };
 
 /**

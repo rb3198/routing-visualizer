@@ -16,7 +16,6 @@ import {
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
-import { Colors } from "src/constants/theme";
 
 export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
   validPacket = (ipPacket: IPPacket, packet: LSUpdatePacket) => {
@@ -107,7 +106,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         break;
       default:
         throw new Error(
-          "Not Implemented handling Special Action for types other than Router LSA."
+          `Not Implemented handling Special Action for ${lsType}.`
         );
     }
     return true;
@@ -122,7 +121,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       return;
     }
     const { lsDb, neighborTable, router, sendLSAckPacket } = this.ospfInterface;
-    const { ipInterfaces, id: routerId } = router;
+    const { id: routerId } = router;
     /**
      * List of Acknowledgements to be sent back to the neighbor.
      */
@@ -222,13 +221,11 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         continue; // Simply discard the LSA, its LS Sequence number is warping.
       }
       // Immediately send the LSU containing the more recent copy
-      const { ipInterface } = ipInterfaces.get(interfaceId) || {};
-      ipInterface?.sendMessage(
-        router,
+      router.originateIpPacket(
         address,
         IPProtocolNumber.ospf,
         new LSUpdatePacket(routerId, areaId, [dbCopy]),
-        Colors.lsUpdate
+        interfaceId
       );
     }
     acknowledgements.length && sendLSAckPacket(neighborId, acknowledgements);

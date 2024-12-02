@@ -1,3 +1,5 @@
+const BITS_PER_BYTE = 8;
+
 export class IPv4Address {
   bytes: [number, number, number, number, number | undefined];
   constructor(
@@ -27,7 +29,12 @@ export class IPv4Address {
   };
 
   get ip() {
-    return this.bytes.slice(0, 4).join(".") + "/" + this.bytes[4];
+    return (
+      this.bytes.slice(0, 4).join(".") +
+      (typeof this.bytes[4] !== "undefined" && this.bytes[4] !== null
+        ? "/" + this.bytes[4]
+        : "")
+    );
   }
 
   toString = () => {
@@ -36,6 +43,49 @@ export class IPv4Address {
 
   equals = (comparedIp: IPv4Address) =>
     this.toString() === comparedIp.toString();
+
+  getNetworkAddress = (): [number, number, number, number] => {
+    const subnetMask = this.bytes[4] ?? 32;
+
+    const network = [0, 0, 0, 0];
+    let bitsLeft = subnetMask;
+
+    for (let i = 0; i < 4; i++) {
+      const byte = this.bytes[i];
+      if (byte === null || typeof byte === "undefined") {
+        continue;
+      }
+      if (bitsLeft >= BITS_PER_BYTE) {
+        network[i] = byte;
+        bitsLeft -= BITS_PER_BYTE;
+      } else if (bitsLeft > 0) {
+        // Create a mask for the remaining bits and apply it
+        const maskByte = (255 << (BITS_PER_BYTE - bitsLeft)) & 255;
+        network[i] = byte & maskByte;
+        bitsLeft = 0;
+      } else {
+        network[i] = 0;
+      }
+    }
+    return network as [number, number, number, number];
+  };
+
+  fromSameSubnet = (comparedIp: IPv4Address) => {
+    const networkId = this.getNetworkAddress();
+    const comparedNetworkId = comparedIp.getNetworkAddress();
+    return networkId.every((byte, idx) => byte === comparedNetworkId[idx]);
+  };
+
+  toBinary = (subnetAddress?: boolean) => {
+    const [byte1, byte2, byte3, byte4, subnetMask] = this.bytes;
+    const address = [
+      byte1.toString(2).padStart(8, "0"),
+      byte2.toString(2).padStart(8, "0"),
+      byte3.toString(2).padStart(8, "0"),
+      byte4.toString(2).padStart(8, "0"),
+    ].join("");
+    return subnetAddress ? address.slice(0, subnetMask) : address;
+  };
 
   referenceEquals = (comparedIp: IPv4Address) => this === comparedIp;
 

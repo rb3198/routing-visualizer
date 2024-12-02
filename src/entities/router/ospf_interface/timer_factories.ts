@@ -1,6 +1,6 @@
 import { OSPFInterface } from ".";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
-import { NeighborTableRow } from "../../ospf/tables";
+import { NeighborTableRow } from "../../ospf/table_rows";
 
 /**
  * Factory to create timeouts declaring a neighbor to be down.

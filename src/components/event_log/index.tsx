@@ -64,16 +64,14 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         </div>
         <div id={styles.log_size_selector_container}>
           <label htmlFor={styles.log_size_selector}>Keep the last:</label>
-          <select id={styles.log_size_selector} onChange={changeHandler}>
-            <option value={200} selected={keepCount === 200}>
-              200 Logs
-            </option>
-            <option value={600} selected={keepCount === 600}>
-              600 Logs
-            </option>
-            <option value={1000} selected={keepCount === 1000}>
-              1000 Logs
-            </option>
+          <select
+            id={styles.log_size_selector}
+            onChange={changeHandler}
+            defaultValue={keepCount}
+          >
+            <option value={200}>200 Logs</option>
+            <option value={600}>600 Logs</option>
+            <option value={1000}>1000 Logs</option>
           </select>
         </div>
       </div>

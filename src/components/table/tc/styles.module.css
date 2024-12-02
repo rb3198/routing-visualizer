@@ -1,0 +1,52 @@
+.fixed {
+    position: sticky;
+    left: 0;
+    font-weight: bold;
+    box-shadow: inset -10px 0 5px -10px #aaa;
+    border-right: none;
+    z-index: 2;
+}
+
+.hovered {
+    background-color: rgb(106, 135, 197) !important;
+}
+
+.in {
+    animation: in .5s ease-in normal forwards;
+}
+
+.out {
+    animation: out .5s ease-out forwards;
+}
+
+@keyframes out {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+        color: #851515;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(100%);
+        color: #851515;
+    }
+}
+
+@keyframes in {
+    0% {
+        opacity: 0;
+        transform: translateY(-100%);
+        color: #a6d1a8;
+    }
+
+    99% {
+        opacity: .99;
+        color: #a6d1a8;
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

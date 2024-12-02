@@ -3,14 +3,18 @@ import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { LSType, State } from "src/entities/ospf/enum";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import {
+  LSInfinity,
   LSRefreshTime,
   MaxAge,
   MinLSInterval,
 } from "src/entities/ospf/lsa/constants";
-import { OSPFInterface } from "..";
+import { OSPFInterface } from ".";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
-import { NeighborTableRow } from "src/entities/ospf/tables";
-import { copyLsa } from "src/utils/common";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
+import { copyLsa, getAreaIp } from "src/utils/common";
+import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
+import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
+import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 
 export type LsId = {
   lsType: LSType;
@@ -40,7 +44,7 @@ export class LsDb {
    * @returns `true` if the LSA exists, `false` otherwise.
    */
   lsaExists = (areaId: number, header: LSAHeader) => {
-    const key = this.getLsDbKey(header);
+    const key = LsDb.getLsDbKey(header);
     return !!(this.db[areaId] && this.db[areaId][key]);
   };
 
@@ -49,7 +53,7 @@ export class LsDb {
    * @param header
    * @returns
    */
-  private getLsDbKey = (header: LsId) => {
+  static getLsDbKey = (header: LsId) => {
     const { lsType, linkStateId, advertisingRouter } = header;
     return `${lsType}_${linkStateId}_${advertisingRouter}`;
   };
@@ -85,7 +89,7 @@ export class LsDb {
         if (newLsAge === MaxAge) {
           // Flood this LSA out. When receiving ACKs, check if no retransmission list contains this LSA.
           // If not, delete the LSA from the DB.
-          this.floodLsa(areaId, lsa);
+          this.floodLsa(areaId, [lsa], []);
         }
       });
     });
@@ -97,8 +101,11 @@ export class LsDb {
         case LSType.RouterLSA:
           this.originateRouterLsa(areaId, true);
           break;
+        case LSType.SummaryIpLSA:
+        case LSType.SummaryAsBrLSA:
+          this.originateSummaryLsas(areaId);
+          break;
         default:
-          // TODO Summary LSAs
           break;
       }
     });
@@ -128,7 +135,7 @@ export class LsDb {
    * @param lsKey
    */
   getLsa = (areaId: number, header: LsId): LSA | undefined => {
-    const lsKey = this.getLsDbKey(header);
+    const lsKey = LsDb.getLsDbKey(header);
     return (this.db[areaId] && this.db[areaId][lsKey]) || undefined;
   };
 
@@ -158,7 +165,7 @@ export class LsDb {
   private createRouterLsa = (areaId: number) => {
     const { router } = this.ospfInterface;
     const { id: routerId } = router;
-    const key = this.getLsDbKey({
+    const key = LsDb.getLsDbKey({
       lsType: LSType.RouterLSA,
       linkStateId: routerId,
       advertisingRouter: routerId,
@@ -173,10 +180,17 @@ export class LsDb {
     );
   };
 
-  removeOldLsaFromRetransmissionLists = (oldCopy: LSA) => {
+  removeOldLsaFromRetransmissionLists = (areaId: number, oldCopy: LSA) => {
     const { neighborTable, setNeighbor } = this.ospfInterface;
     Object.values(neighborTable).forEach((neighbor) => {
-      const { linkStateRetransmissionList, routerId: neighborId } = neighbor;
+      const {
+        linkStateRetransmissionList,
+        routerId: neighborId,
+        areaId: neighborAreaId,
+      } = neighbor;
+      if (neighborAreaId !== areaId) {
+        return;
+      }
       const newRetransmissionList = linkStateRetransmissionList.filter(
         (lsa) => !lsa.isInstanceOf(oldCopy)
       );
@@ -252,15 +266,24 @@ export class LsDb {
   /**
    * Floods a given LSA in the given Area.
    * @param areaId
-   * @param lsa
+   * @param lsas
    * @param receivedFrom The ID of the Neighbor that this LSA was received from. `undefined` if self-originated LSA.
    */
-  floodLsa = (areaId: number, lsa: LSA, receivedFrom?: IPv4Address) => {
+  floodLsa = (
+    areaId: number,
+    lsas: LSA[],
+    receivedFrom: (IPv4Address | undefined)[]
+  ) => {
     const { neighborTable, config, setNeighbor, sendLSUpdatePacket } =
       this.ospfInterface;
     const { rxmtInterval } = config;
     console.log(
-      `Router ID ${this.ospfInterface.router.id}, setting LSA: ${lsa.header.advertisingRouter} of type ${lsa.header.lsType}`
+      `Router ID ${this.ospfInterface.router.id}, setting LSAs: [${lsas
+        .map(
+          (lsa) =>
+            `adv Router: ${lsa.header.advertisingRouter}, type: ${lsa.header.lsType}`
+        )
+        .join(",")}`
     );
     for (const neighbor of Object.values(neighborTable)) {
       const {
@@ -273,13 +296,19 @@ export class LsDb {
       if (state < State.Exchange || areaId !== neighborAreaId) {
         continue;
       }
-      if (this.updateNeighborLsRequestList(neighbor, lsa)) {
+      const lsasToAdvertise = lsas.filter((lsa, idx) => {
+        const receivedFromIp = receivedFrom[idx];
+        return (
+          !this.updateNeighborLsRequestList(neighbor, lsa) &&
+          (!receivedFromIp || !neighborId.equals(receivedFromIp))
+        );
+      });
+      if (!lsasToAdvertise.length) {
         continue;
       }
-      if (receivedFrom && neighborId.equals(receivedFrom)) {
-        continue;
-      }
-      linkStateRetransmissionList.push(copyLsa(lsa));
+      linkStateRetransmissionList.push(
+        ...lsasToAdvertise.map((lsa) => copyLsa(lsa))
+      );
       setNeighbor(
         {
           ...neighbor,
@@ -288,14 +317,18 @@ export class LsDb {
             setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval),
           linkStateRetransmissionList,
         },
-        `LSA added to neighbor ${neighborId}'s retransmission list`
+        `LSAs added to neighbor ${neighborId}'s retransmission list`
       );
-      console.log(
-        `LSA ${lsa.header.advertisingRouter} of type ${
-          lsa.header.lsType
-        } added to neighbor ${neighborId}'s retransmission list in state ${
-          Object.keys(State)[Object.values(State).indexOf(state)]
-        }`
+      lsasToAdvertise.forEach((lsa) =>
+        console.log(
+          `LSA ${lsa.header.advertisingRouter} of type ${
+            lsa.header.lsType
+          } seq # ${
+            lsa.header.lsSeqNumber
+          } added to neighbor ${neighborId}'s retransmission list in state ${
+            Object.keys(State)[Object.values(State).indexOf(state)]
+          }`
+        )
       );
       !lsRetransmissionRxmtTimer && sendLSUpdatePacket(neighborId);
     }
@@ -305,18 +338,20 @@ export class LsDb {
     areaId: number,
     lsa: LSA,
     receivedFrom?: IPv4Address,
-    flood?: boolean
+    flood?: boolean,
+    skipCalc?: boolean
   ) => {
     const { header } = lsa;
-    const key = this.getLsDbKey(header);
+    const key = LsDb.getLsDbKey(header);
     const oldCopy = this.getLsa(areaId, header);
-    oldCopy && this.removeOldLsaFromRetransmissionLists(oldCopy);
+    oldCopy && this.removeOldLsaFromRetransmissionLists(areaId, oldCopy);
     lsa.updatedOn = Date.now();
     this.db[areaId][key] = lsa;
-    flood && this.floodLsa(areaId, lsa, receivedFrom);
-    // TODO: Compare the bodies of the old and new copies. Calculate routing tables on LSA change.
-    const isDifferent = !!oldCopy;
-    if (isDifferent) {
+    flood && this.floodLsa(areaId, [lsa], [receivedFrom]);
+    const isDifferent =
+      !oldCopy || JSON.stringify(oldCopy.body) !== JSON.stringify(lsa.body);
+    if (isDifferent && !skipCalc) {
+      this.ospfInterface.routingTableManager.calculate(areaId);
     }
   };
 
@@ -351,8 +386,9 @@ export class LsDb {
           router.turnedOn === true
         ) {
           lsType === LSType.RouterLSA && this.originateRouterLsa(areaId, true);
+          // (lsType === LSType.SummaryIpLSA || lsType === LSType.SummaryAsBrLSA) && this.originateSummaryLsas() TODO
         } else {
-          delete areaDb[this.getLsDbKey(header)];
+          delete areaDb[LsDb.getLsDbKey(header)];
         }
       }
     }
@@ -393,7 +429,6 @@ export class LsDb {
         timeSinceInception > 0 &&
         timeSinceInception < MinLSInterval
       ) {
-        console.log("Waiting before generating a new router LSA.");
         setTimeout(originateLsa, MinLSInterval - timeSinceInception);
       } else {
         originateLsa();
@@ -401,11 +436,171 @@ export class LsDb {
     }
   };
 
+  getAreaNetworkSummaryLsa = (areaId: number) => {
+    const { routingTableManager, router } = this.ospfInterface;
+    const { id: routerId } = router;
+    const { tableMap } = routingTableManager;
+    const table = tableMap[areaId] ?? [];
+    const destinationId = getAreaIp(areaId);
+    const addressMask = new IPv4Address(255, 255, 0, 0);
+    const intraAreaRoutes = table
+      .filter(
+        ({ area, pathType }) => pathType === "intra-area" && area === areaId
+      )
+      .map((row) => row.cost);
+    const maxCostToArea = intraAreaRoutes.length
+      ? Math.max(...intraAreaRoutes)
+      : LSInfinity;
+    return new SummaryLSA(
+      destinationId,
+      routerId,
+      LSType.SummaryIpLSA,
+      addressMask,
+      maxCostToArea
+    );
+  };
+
+  getInterAreaLsas = (
+    destAreaId: number,
+    srcAreaRoutingTable: RoutingTable,
+    onlyAdvertisedBySelf?: boolean
+  ) => {
+    const { router } = this.ospfInterface;
+    const { id: routerId } = router;
+    if (!this.db[destAreaId] || !srcAreaRoutingTable.length) {
+      return new Set<string>();
+    }
+    const areaDb = this.db[destAreaId];
+    const interAreaLsas = new Set<string>();
+    for (const route of srcAreaRoutingTable) {
+      const {
+        pathType,
+        advertisingRouter: advRouterBytes,
+        destinationId,
+      } = route;
+      if (pathType !== "inter-area" || !advRouterBytes) {
+        continue;
+      }
+      const destinationIp = new IPv4Address(...destinationId.bytes);
+      const advertisingRouter = new IPv4Address(...advRouterBytes.bytes);
+      if (onlyAdvertisedBySelf && !advertisingRouter.equals(routerId)) {
+        continue;
+      }
+      const routeLsaKey = LsDb.getLsDbKey({
+        advertisingRouter: routerId,
+        linkStateId: destinationIp,
+        lsType: LSType.SummaryIpLSA,
+      });
+      const lsa = areaDb[routeLsaKey];
+      lsa && interAreaLsas.add(routeLsaKey);
+    }
+    return interAreaLsas;
+  };
+
+  /**
+   * Originates Summary LSAs for the given area ID if the router is an Area Border Router (ABR).
+   * @param sourceAreaId The ID of the area for which the summary LSAs are to be generated.
+   * @returns
+   */
+  originateSummaryLsas = (sourceAreaId: number) => {
+    const { routingTableManager, router } = this.ospfInterface;
+    const { id: routerId } = router;
+    if (Object.keys(this.db).length <= 1) {
+      return; // do not originate any summary LSA if the router is not an ABR connected to multiple areas.
+    }
+    const { tableMap, prevTableMap } = routingTableManager;
+    const table = tableMap[sourceAreaId];
+    const prevTable = prevTableMap[sourceAreaId];
+    if (!table) {
+      console.error(
+        `originateSummaryLsas called for an area whose DB doesn't exist with the router!`
+      );
+      return;
+    }
+    const destAreas = Object.keys(this.db)
+      .map((areaId) => parseInt(areaId))
+      .filter((areaId) => areaId !== sourceAreaId);
+    for (const destArea of destAreas) {
+      const routesToAdvertise: SummaryLSA[] = [];
+      const routesToFlush: SummaryLSA[] = [];
+      const intraAreaSummary = this.getAreaNetworkSummaryLsa(sourceAreaId);
+      const existingAreaSummaryKey = LsDb.getLsDbKey({
+        advertisingRouter: routerId,
+        linkStateId: intraAreaSummary.header.linkStateId,
+        lsType: LSType.SummaryIpLSA,
+      });
+      const existingAreaSummary =
+        this.db[destArea] &&
+        (this.db[destArea][existingAreaSummaryKey] as SummaryLSA);
+      if (existingAreaSummary) {
+        if (!SummaryLSA.isIdentical(intraAreaSummary, existingAreaSummary)) {
+          intraAreaSummary.header.lsSeqNumber =
+            existingAreaSummary.header.lsSeqNumber + 1;
+          routesToAdvertise.push(intraAreaSummary);
+        }
+      } else {
+        routesToAdvertise.push(intraAreaSummary);
+      }
+      if (sourceAreaId === BACKBONE_AREA_ID) {
+        // advertise inter-area routes as well into other areas
+        const prevInterAreaLsas = this.getInterAreaLsas(destArea, prevTable);
+        const curInterAreaRoutes = table.filter(
+          ({ pathType, destinationId }) =>
+            pathType === "inter-area" &&
+            destinationId.bytes[1] !== BACKBONE_AREA_ID + 1
+        );
+        // Compare the prev and current tables for inter area routes present
+        // in the prev table but not in the current table. Age those summary LSAs accordingly.
+        for (const interAreaRoute of curInterAreaRoutes) {
+          const { destinationId, addressMask, cost } = interAreaRoute;
+          const interAreaRouteLsa = new SummaryLSA(
+            new IPv4Address(...destinationId.bytes),
+            routerId,
+            LSType.SummaryIpLSA,
+            new IPv4Address(...addressMask!.bytes),
+            cost
+          );
+          const interAreaRouteLsaKey = LsDb.getLsDbKey({
+            advertisingRouter: routerId,
+            linkStateId: interAreaRouteLsa.header.linkStateId,
+            lsType: LSType.SummaryIpLSA,
+          });
+          if (prevInterAreaLsas.has(interAreaRouteLsaKey)) {
+            const existingLsa = this.db[destArea][
+              interAreaRouteLsaKey
+            ] as SummaryLSA;
+            if (!SummaryLSA.isIdentical(existingLsa, interAreaRouteLsa)) {
+              interAreaRouteLsa.header.lsSeqNumber =
+                existingLsa.header.lsSeqNumber + 1;
+              routesToAdvertise.push(interAreaRouteLsa);
+            }
+            prevInterAreaLsas.delete(interAreaRouteLsaKey);
+          } else {
+            routesToAdvertise.push(interAreaRouteLsa);
+          }
+        }
+        // Remaining LSAs in this set are now unreachable, since these were not found in the new table
+        prevInterAreaLsas.forEach((lsaKey) => {
+          const lsa = this.db[destArea][lsaKey] as SummaryLSA;
+          lsa.header.lsAge = MaxAge;
+          lsa.header.lsSeqNumber++;
+          lsa.body.metric = LSInfinity;
+          routesToFlush.push(lsa);
+        });
+      }
+      const lsasToAdvertise = [...routesToFlush, ...routesToAdvertise];
+      lsasToAdvertise.forEach((lsa) =>
+        this.installLsa(destArea, lsa, undefined, false, true)
+      );
+      lsasToAdvertise.length && this.floodLsa(destArea, lsasToAdvertise, []);
+    }
+  };
+
   clearDb = async (graceful?: boolean) => {
     const { router } = this.ospfInterface;
     const { id: routerId } = router;
     if (graceful) {
-      const routerLsaKey = this.getLsDbKey({
+      const routerLsaKey = LsDb.getLsDbKey({
         advertisingRouter: routerId,
         lsType: LSType.RouterLSA,
         linkStateId: routerId,
@@ -414,7 +609,7 @@ export class LsDb {
       for (let [areaId, areaDb] of Object.entries(this.db)) {
         const routerLsa = areaDb[routerLsaKey];
         routerLsa.header.lsAge = MaxAge;
-        this.floodLsa(parseInt(areaId), routerLsa);
+        this.floodLsa(parseInt(areaId), [routerLsa], []);
       }
       await new Promise((resolve) => {
         const check = () => {

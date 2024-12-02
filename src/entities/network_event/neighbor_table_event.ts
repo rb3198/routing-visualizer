@@ -4,7 +4,7 @@ import { NetworkEventBase } from "./base";
 import { NetworkEventType } from "./network_event_type";
 import { store } from "src/store";
 import { IPv4Address } from "../ip/ipv4_address";
-import { NeighborTableRow } from "../ospf/tables";
+import { NeighborTableRow } from "../ospf/table_rows";
 
 export type NeighborTableEventType = "added" | "deleted" | "column_updated";
 

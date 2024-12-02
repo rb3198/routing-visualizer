@@ -1,0 +1,27 @@
+.fixed_modal {
+    height: 75vh !important;
+}
+#description {
+    margin-top: 1vmax;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#description li p {
+    display: inline;
+}
+
+#description ul {
+    list-style-position: inside;
+    list-style-type: square;
+}
+
+.centered_text {
+    text-align: center;
+    align-items: center;
+}
+
+.justified_text {
+    text-align: justify;
+}

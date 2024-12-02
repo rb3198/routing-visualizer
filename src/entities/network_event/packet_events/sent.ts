@@ -8,22 +8,23 @@ import { NetworkEventCallback } from "../base";
 import { PacketEvent } from "./base";
 import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
 import { IPAddresses } from "src/constants/ip_addresses";
+import { IPv4Address } from "src/entities/ip/ipv4_address";
 
 export class PacketSentEvent extends PacketEvent {
   src: Router;
-  dest: Router;
+  destId: IPv4Address;
   interfaceId: string;
   ipPacket: IPPacket;
   packetType: string;
   constructor(
     src: Router,
-    dest: Router,
+    destId: IPv4Address,
     packet: IPPacket,
     interfaceId: string,
     callback?: NetworkEventCallback
   ) {
     if (!(packet.body instanceof OSPFPacket)) {
-      throw new Error("OSPF Packet expected.");
+      console.warn("OSPF Packet expected.");
     }
     const { body } = packet;
     const { header } = body || {};
@@ -45,7 +46,7 @@ export class PacketSentEvent extends PacketEvent {
     this.packetType = packetType;
     this.ipPacket = packet;
     this.src = src;
-    this.dest = dest;
+    this.destId = destId;
     this.interfaceId = interfaceId;
   }
 
@@ -58,11 +59,7 @@ export class PacketSentEvent extends PacketEvent {
       type
     )}; font-weight: bold">${
       this.packetType
-    } packet</span> <i>sent</i> by router <b>${routerId.toString()}</b> to destination <b>${
-      destination.equals(IPAddresses.OSPFBroadcast)
-        ? IPAddresses.OSPFBroadcast
-        : this.dest.id
-    } ${
+    } packet</span> <i>sent</i> by router <b>${routerId.toString()}</b> to destination <b>${destination} ${
       (destination.equals(IPAddresses.OSPFBroadcast) &&
         "(OSPF Broadcast Address)") ||
       ""

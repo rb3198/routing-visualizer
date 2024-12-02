@@ -108,7 +108,7 @@ export class GridCell {
     context.stroke();
     context.closePath();
     context.fillStyle = "white";
-    context.font = `${size / 5.5}px sans-serif`;
+    context.font = `${size / 4.5}px sans-serif`;
     const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
       context.measureText(routerIp);
     const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
@@ -121,4 +121,15 @@ export class GridCell {
     this.beforeDraw(context, stroke);
     this.type = "none";
   };
+
+  drawOverlay(context: CanvasRenderingContext2D) {
+    const { x, y, size } = this;
+    context.save();
+    context.fillStyle = "#00000088";
+    context.beginPath();
+    context.rect(x, y, size, size);
+    context.fill();
+    context.closePath();
+    context.restore();
+  }
 }

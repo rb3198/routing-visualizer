@@ -6,7 +6,7 @@ import { PacketType, State } from "../../ospf/enum";
 import { NeighborSMEvent } from "../../ospf/enum/state_machine_events";
 import { DDPacket, HelloPacket } from "../../ospf/packets";
 import { OSPFPacket } from "../../ospf/packets/packet_base";
-import { NeighborTableRow, RoutingTableRow } from "../../ospf/tables";
+import { NeighborTableRow } from "../../ospf/table_rows";
 import neighborEventHandlerFactory from "./neighbor_event_handlers";
 import { IPAddresses } from "../../../constants/ip_addresses";
 import { IPLinkInterface } from "../../ip/link_interface";
@@ -34,13 +34,14 @@ import {
   LsAckPacketHandler,
 } from "./packet_handlers";
 import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
+import { RoutingTableManager } from "./routing_table";
 
 export class OSPFInterface {
   config: OSPFConfig;
   router: Router;
   neighborTable: Record<string, NeighborTableRow>;
   lsDb: LsDb;
-  routingTable: Map<string, RoutingTableRow>;
+  routingTableManager: RoutingTableManager;
   packetHandlerFactory: {
     [PacketType.Hello]: HelloPacketHandler;
     [PacketType.DD]: DDPacketHandler;
@@ -51,7 +52,7 @@ export class OSPFInterface {
   constructor(router: Router, config: OSPFConfig) {
     this.router = router;
     this.neighborTable = {};
-    this.routingTable = new Map();
+    this.routingTableManager = new RoutingTableManager(this);
     this.config = config;
     this.packetHandlerFactory = {
       [PacketType.Hello]: new HelloPacketHandler(this),
@@ -261,6 +262,7 @@ export class OSPFInterface {
 
   sendHelloPacket = (ipInterface: IPLinkInterface) => {
     const { router, config, neighborTable } = this;
+    const { ipInterfaces } = router;
     const { helloInterval, deadInterval } = config;
     const { id: routerId } = router;
     const [, , , , subnetMask] = routerId.bytes;
@@ -275,13 +277,19 @@ export class OSPFInterface {
       deadInterval,
       neighborList
     );
-    ipInterface?.sendMessage(
-      router,
-      IPAddresses.OSPFBroadcast,
-      IPProtocolNumber.ospf,
-      helloPacket,
-      Colors.helloPacket
-    );
+    const sourceIp = ipInterface.getSelfIpAddress(router);
+    if (sourceIp && ipInterfaces.has(sourceIp)) {
+      router.originateIpPacket(
+        IPAddresses.OSPFBroadcast,
+        IPProtocolNumber.ospf,
+        helloPacket,
+        sourceIp
+      );
+    } else {
+      setTimeout(() => {
+        this.sendHelloPacket(ipInterface);
+      });
+    }
   };
 
   sendDDPacket = (neighborId: IPv4Address) => {
@@ -298,8 +306,6 @@ export class OSPFInterface {
       );
       return;
     }
-    const { ipInterfaces } = router;
-    const { ipInterface } = ipInterfaces.get(interfaceId) ?? {};
     if (state === State.ExStart) {
       if (!neighbor.ddSeqNumber) {
         neighbor.ddSeqNumber = Date.now();
@@ -313,12 +319,11 @@ export class OSPFInterface {
         true,
         []
       );
-      ipInterface?.sendMessage(
-        router,
+      router.originateIpPacket(
         address,
         IPProtocolNumber.ospf,
         ddPacket,
-        Colors.dd
+        interfaceId
       );
     } else {
       const { ddSeqNumber, master } = neighbor;
@@ -334,19 +339,18 @@ export class OSPFInterface {
         master,
         lsaHeaders
       );
-      ipInterface?.sendMessage(
-        router,
+      router.originateIpPacket(
         address,
         IPProtocolNumber.ospf,
         ddPacket,
-        Colors.dd
+        interfaceId
       );
     }
   };
 
   sendLSUpdatePacket = (neighborId: IPv4Address) => {
     const neighbor = this.neighborTable[neighborId.toString()];
-    const { id: routerId, ipInterfaces } = this.router;
+    const { id: routerId } = this.router;
     const { rxmtInterval } = this.config;
     if (!neighbor) {
       console.warn("sendLSUpdate called for a neighbor which doesn't exist!");
@@ -365,13 +369,11 @@ export class OSPFInterface {
       console.log("Triggered send LSU with an empty list"); // TODO: Remove
       return;
     }
-    const { ipInterface } = ipInterfaces.get(interfaceId) || {};
-    ipInterface?.sendMessage(
-      this.router,
+    this.router.originateIpPacket(
       address,
       IPProtocolNumber.ospf,
       new LSUpdatePacket(routerId, areaId, linkStateRetransmissionList),
-      Colors.lsUpdate
+      interfaceId
     );
     this.setNeighbor(
       {
@@ -405,12 +407,11 @@ export class OSPFInterface {
       this.getAreaId(ipInterface),
       requests
     );
-    ipInterface?.sendMessage(
-      this.router,
+    this.router.originateIpPacket(
       address,
       IPProtocolNumber.ospf,
       lsRequestPacket,
-      Colors.lsRequest
+      interfaceId
     );
   };
 
@@ -420,16 +421,14 @@ export class OSPFInterface {
   ) => {
     const neighbor = this.neighborTable[neighborId.toString()];
     const { interfaceId, areaId, address } = neighbor || {};
-    const { ipInterface } = this.router.ipInterfaces.get(interfaceId) || {};
-    if (!neighbor || !ipInterface) {
+    if (!neighbor) {
       return;
     }
-    ipInterface.sendMessage(
-      this.router,
+    this.router.originateIpPacket(
       address,
       IPProtocolNumber.ospf,
       new LSAckPacket(this.router.id, areaId, acknowledgements),
-      Colors.lsAck
+      interfaceId
     );
   };
 }

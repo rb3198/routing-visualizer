@@ -4,11 +4,11 @@
 }
 
 #add_icon_layer {
-    z-index: 2;
+    z-index: 3;
 }
 
 #area_layer {
-    z-index: 3;
+    z-index: 2;
 }
 
 #router_connection_layer {
@@ -21,4 +21,31 @@
 
 #component_layer {
     z-index: 6;
+}
+
+#overlay_layer {
+    z-index: 7;
+}
+
+#interaction_layer {
+    z-index: 8;
+}
+
+#packet_dest_overlay {
+    position: absolute;
+    left: 50%;
+    z-index: 9;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+}
+
+#packet_dest_overlay h3 {
+    font-size: 1.618rem;
+}
+
+#packet_dest_overlay p {
+    color: #aaa;
 }

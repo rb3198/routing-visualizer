@@ -2,26 +2,28 @@ import React, { memo, useCallback, useMemo } from "react";
 import styles from "./styles.module.css";
 import { CiRouter, CiViewTable } from "react-icons/ci";
 import { Router } from "../../entities/router";
-import { PiPower } from "react-icons/pi";
+import { PiPathFill, PiPower } from "react-icons/pi";
 import { GoDatabase } from "react-icons/go";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
+import { AreaTree } from "src/entities/area_tree";
+import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
+import { getPickerPosition } from "../area_manager/utils";
+import { Point2D } from "src/types/geometry";
+import { GridCell } from "src/entities/geometry/grid_cell";
 
-export interface ConnectionPickerProps {
+export interface RouterMenuProps {
+  cell: Point2D;
+  gridRect: GridCell[][];
+  areaTreeRef: React.MutableRefObject<AreaTree>;
+  areaLayerRef: React.RefObject<HTMLCanvasElement>;
   selectedRouter?: Router;
   visible?: boolean;
-  pickerRef?: React.LegacyRef<HTMLDivElement>;
-  position: {
-    top?: number | string;
-    left?: number | string;
-    bottom?: number | string;
-  };
-  connectionOptions: {
-    name: string;
-    connectionOptions: [string, Router][];
-  }[];
+  pickerRef?: React.RefObject<HTMLDivElement>;
   controlsDisabled?: boolean;
   openNeighborTable: (router: Router) => unknown;
   openLsDbModal: (lsDb: LsDb) => any;
+  openRoutingTable: (router: Router) => unknown;
+  enableDestSelectionMode: (selecting: boolean) => unknown;
   addRouterConnection?: (routerA: Router, routerB: Router) => any;
   /**
    * Turns the router ON or OFF.
@@ -34,18 +36,22 @@ export interface ConnectionPickerProps {
  * @param props
  * @returns
  */
-export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
+export const RouterMenu: React.FC<RouterMenuProps> = (props) => {
   const {
+    cell,
+    gridRect,
+    areaLayerRef,
     visible,
-    position,
     pickerRef,
-    connectionOptions,
+    areaTreeRef,
     selectedRouter,
     controlsDisabled,
     openNeighborTable,
     openLsDbModal,
     addRouterConnection,
     toggleRouterPower,
+    enableDestSelectionMode,
+    openRoutingTable,
   } = props;
 
   const Controls = useMemo(() => {
@@ -79,6 +85,11 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
     const onNeighborTableClick = () => {
       selectedRouter && openNeighborTable(selectedRouter);
     };
+    const onRoutingTableClick = () => {
+      selectedRouter && openRoutingTable(selectedRouter);
+    };
+
+    const onSendPacketClick = () => enableDestSelectionMode(true);
     return (
       <>
         <p className={styles.description}>View...</p>
@@ -89,7 +100,7 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
             </div>
             Neighbor Table
           </li>
-          <li onClick={() => {}}>
+          <li onClick={onRoutingTableClick}>
             <div className={styles.iconContainer}>
               <CiViewTable className={styles.icon} />
             </div>
@@ -101,11 +112,72 @@ export const RouterMenu: React.FC<ConnectionPickerProps> = (props) => {
             </div>
             Link State Database
           </li>
+          <li onClick={onSendPacketClick}>
+            <div className={styles.iconContainer}>
+              <PiPathFill className={styles.icon} />
+            </div>
+            Send a Packet
+          </li>
         </ul>
       </>
     );
-  }, [selectedRouter, openNeighborTable, openLsDb]);
+  }, [
+    selectedRouter,
+    openNeighborTable,
+    openLsDb,
+    openRoutingTable,
+    enableDestSelectionMode,
+  ]);
+
+  const position = getPickerPosition(
+    ...cell,
+    gridRect,
+    pickerRef?.current,
+    areaLayerRef?.current
+  );
   const { top, left, bottom } = position;
+
+  const connectionOptions = useMemo(() => {
+    const areaTree = areaTreeRef.current;
+    if (!areaTree || !selectedRouter || !areaTree.root) {
+      return [];
+    }
+    const { ipInterfaces, key: selectedRouterKey } = selectedRouter;
+    const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces.keys()));
+    const areas = areaTree.inOrderTraversal(areaTree.root);
+    return areas
+      .filter(([, area]) => {
+        const { ospf } = selectedRouter;
+        const { config: selectedRouterConfig } = ospf;
+        const { connectedToBackbone, areaId: routerArea } =
+          selectedRouterConfig;
+        if (routerArea === BACKBONE_AREA_ID) {
+          return !area.ospfConfig.connectedToBackbone;
+        }
+        if (connectedToBackbone) {
+          return area.id !== BACKBONE_AREA_ID && area.routerLocations.size > 0;
+        }
+        return area.routerLocations.size > 0;
+      })
+      .map(([, area]) => {
+        const { routerLocations, id, name } = area;
+        return {
+          id,
+          name,
+          connectionOptions: [...routerLocations].filter(([loc, router]) => {
+            // If the same interfaces exist on the router, it means that they're connected already.
+            const isConnectedToRouter = selectedRouterIpInterfaces.some(
+              (interfaceId) =>
+                selectedRouter.ipInterfaces
+                  .get(interfaceId)!
+                  .ipInterface.getOppositeRouter(selectedRouter) === router
+            );
+            return loc !== selectedRouterKey && !isConnectedToRouter;
+          }),
+        };
+      })
+      .filter(({ connectionOptions }) => connectionOptions.length > 0);
+  }, [areaTreeRef, selectedRouter]);
   return (
     <div
       ref={pickerRef}

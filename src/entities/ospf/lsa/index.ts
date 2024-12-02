@@ -1,10 +1,13 @@
 import { LSAHeader } from "./header";
 import { RouterLSABody } from "./router_lsa";
+import { SummaryLSABody } from "./summary_lsa";
 
 export { LSAHeader } from "./header";
+
+export type LSBody = RouterLSABody | SummaryLSABody;
 export abstract class LSA {
   header: LSAHeader;
-  abstract body: RouterLSABody;
+  abstract body: LSBody;
   updatedOn: number;
   createdOn: number;
   constructor(header: LSAHeader) {
