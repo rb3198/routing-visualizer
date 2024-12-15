@@ -342,12 +342,17 @@ export class LsDb {
     skipCalc?: boolean
   ) => {
     const { header } = lsa;
+    const { lsAge } = header;
     const key = LsDb.getLsDbKey(header);
     const oldCopy = this.getLsa(areaId, header);
     oldCopy && this.removeOldLsaFromRetransmissionLists(areaId, oldCopy);
     lsa.updatedOn = Date.now();
     this.db[areaId][key] = lsa;
     flood && this.floodLsa(areaId, [lsa], [receivedFrom]);
+    if (lsAge === MaxAge) {
+      // LSA will be removed if it was not flooded to any router above
+      this.removeMaxAgeLsas(areaId, [lsa]);
+    }
     const isDifferent =
       !oldCopy || JSON.stringify(oldCopy.body) !== JSON.stringify(lsa.body);
     if (isDifferent && !skipCalc) {
@@ -363,6 +368,7 @@ export class LsDb {
     const areaNeighbors = Object.values(neighborTable).filter(
       (neighbor) => neighbor.areaId === areaId
     );
+    let recalculateTable = false;
     for (let maxAgeLsa of maxAgeLsaList) {
       let toDelete = true;
       const { header } = maxAgeLsa;
@@ -381,17 +387,19 @@ export class LsDb {
       }
       if (toDelete) {
         const areaDb = this.db[areaId];
-        if (
-          advertisingRouter.equals(this.ospfInterface.router.id) &&
-          router.turnedOn === true
-        ) {
+        if (advertisingRouter.equals(router.id) && router.turnedOn === true) {
           lsType === LSType.RouterLSA && this.originateRouterLsa(areaId, true);
-          // (lsType === LSType.SummaryIpLSA || lsType === LSType.SummaryAsBrLSA) && this.originateSummaryLsas() TODO
+          (lsType === LSType.SummaryIpLSA ||
+            lsType === LSType.SummaryAsBrLSA) &&
+            this.originateSummaryLsas(areaId);
         } else {
           delete areaDb[LsDb.getLsDbKey(header)];
+          recalculateTable = router.turnedOn === true;
         }
       }
     }
+    recalculateTable &&
+      this.ospfInterface.routingTableManager.calculate(areaId);
   };
 
   originateRouterLsa = (areaId: number, flood?: boolean) => {
@@ -599,6 +607,8 @@ export class LsDb {
   clearDb = async (graceful?: boolean) => {
     const { router } = this.ospfInterface;
     const { id: routerId } = router;
+    const isAreaBorderRouter = Object.keys(this.db).length > 0;
+    const connectedAreas = Object.keys(this.db);
     if (graceful) {
       const routerLsaKey = LsDb.getLsDbKey({
         advertisingRouter: routerId,
@@ -606,17 +616,44 @@ export class LsDb {
         linkStateId: routerId,
       });
       // Flood MaxAged self-originated router LSAs.
+      const toFlushLsaMap: Record<string, LSA[]> = {};
       for (let [areaId, areaDb] of Object.entries(this.db)) {
         const routerLsa = areaDb[routerLsaKey];
         routerLsa.header.lsAge = MaxAge;
-        this.floodLsa(parseInt(areaId), [routerLsa], []);
+        toFlushLsaMap[areaId] = [routerLsa];
+        if (isAreaBorderRouter) {
+          for (const connectedAreaId of connectedAreas) {
+            if (connectedAreaId === areaId) {
+              continue;
+            }
+            const summaryLsaKey = LsDb.getLsDbKey({
+              advertisingRouter: routerId,
+              lsType: LSType.SummaryIpLSA,
+              linkStateId: getAreaIp(parseInt(connectedAreaId)),
+            });
+            const summaryLsa = areaDb[summaryLsaKey];
+            if (summaryLsa) {
+              summaryLsa.header.lsAge = MaxAge;
+              toFlushLsaMap[areaId].push(summaryLsa);
+            }
+          }
+        }
+        this.floodLsa(parseInt(areaId), toFlushLsaMap[areaId], []);
       }
+      // Await until the max aged LSAs have been removed from the LS DB.
       await new Promise((resolve) => {
         const check = () => {
           let shouldResolve = true;
-          for (let [, areaDb] of Object.entries(this.db)) {
-            if (areaDb[routerLsaKey]) {
-              shouldResolve = false;
+          for (let [areaId, areaDb] of Object.entries(this.db)) {
+            for (const lsa of toFlushLsaMap[areaId]) {
+              const { header } = lsa;
+              const lsKey = LsDb.getLsDbKey(header);
+              if (areaDb[lsKey]) {
+                shouldResolve = false;
+                break;
+              }
+            }
+            if (!shouldResolve) {
               break;
             }
           }
