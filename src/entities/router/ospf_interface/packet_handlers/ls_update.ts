@@ -16,6 +16,8 @@ import {
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
+import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
+import { IPv4Address } from "src/entities/ip/ipv4_address";
 
 export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
   validPacket = (ipPacket: IPPacket, packet: LSUpdatePacket) => {
@@ -57,6 +59,39 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     return !dbCopy && lsAge === MaxAge && !anyNeighborSynchronizing;
   };
 
+  summaryLsaSpecialAction = (
+    areaId: number,
+    receivedLsa: SummaryLSA,
+    dbCopy?: SummaryLSA
+  ) => {
+    const { lsDb, routingTableManager } = this.ospfInterface;
+    const { header: receivedHeader } = receivedLsa;
+    const { linkStateId: prevAdvertisedNetworkIp } = receivedHeader;
+    const advertisedNetworkReachable = routingTableManager
+      .getFullTables()
+      .table.some((row) => {
+        const { destinationId, destType } = row;
+        if (destType !== "network") {
+          return false;
+        }
+        const destinationIp = new IPv4Address(...destinationId.bytes);
+        const destinationNetwork = destinationIp.getNetworkAddress();
+        // @ts-ignore
+        destinationNetwork.push(destinationId.bytes[4]);
+        return prevAdvertisedNetworkIp.equals(
+          new IPv4Address(...destinationNetwork)
+        );
+      });
+    if (!dbCopy || !advertisedNetworkReachable) {
+      // flush the received LSA
+      receivedLsa.header.lsAge = MaxAge;
+      lsDb.installLsa(areaId, receivedLsa, undefined, true);
+      return;
+    }
+    // Network is still reachable, increment the LS Sequence Number
+    receivedLsa.header.lsSeqNumber++;
+    lsDb.installLsa(areaId, receivedLsa, undefined, true, true);
+  };
   /**
    * If a router receives a self-originated LSA that is newer than the one already existing in its own database,
    * that means that the router was restarted at some point, and the LSA that was originated before
@@ -73,19 +108,16 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     receivedLsa: LSA,
     dbCopy?: LSA
   ) => {
-    if (!dbCopy) {
-      return false;
-    }
     const { router, lsDb } = this.ospfInterface;
     const { id: routerId } = router;
-    const { header: dbLsaHeader } = dbCopy;
+    const { header: dbLsaHeader } = dbCopy || {};
     const { header: receivedHeader } = receivedLsa;
     const { lsSeqNumber, lsType } = receivedHeader;
     const { advertisingRouter: receivedLsaAdvRouterId } = receivedHeader;
     if (!receivedLsaAdvRouterId.equals(routerId)) {
       return false; // the received LSA is not originated by the router.
     }
-    if (dbLsaHeader.compareAge(receivedHeader) < 0) {
+    if ((dbLsaHeader?.compareAge(receivedHeader) ?? 1) < 0) {
       return false; // the DB LSA is younger than the received LSA.
     }
     // TODO: (Post routing table construction)
@@ -97,12 +129,20 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     };
     switch (lsType) {
       case LSType.RouterLSA:
-        const timeSinceDbCopy = Date.now() - dbCopy.createdOn;
+        const timeSinceDbCopy = Date.now() - (dbCopy?.createdOn ?? 0);
         if (timeSinceDbCopy < MinLSInterval) {
           setTimeout(setRouterLsa, MinLSInterval - timeSinceDbCopy);
         } else {
           setRouterLsa();
         }
+        break;
+      case LSType.SummaryIpLSA:
+      case LSType.SummaryAsBrLSA:
+        this.summaryLsaSpecialAction(
+          areaId,
+          receivedLsa as SummaryLSA,
+          dbCopy as SummaryLSA
+        );
         break;
       default:
         throw new Error(
