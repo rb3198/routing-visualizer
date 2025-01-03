@@ -35,6 +35,7 @@ import {
 } from "./packet_handlers";
 import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
 import { RoutingTableManager } from "./routing_table";
+import { MaxAge } from "src/entities/ospf/lsa/constants";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -294,6 +295,7 @@ export class OSPFInterface {
 
   sendDDPacket = (neighborId: IPv4Address) => {
     const { router, neighborTable } = this;
+    const { propagationDelay } = store.getState();
     const neighbor = neighborTable[neighborId.toString()];
     if (!neighbor) {
       console.warn("Didn't find the neighbor to send DD Packet to.");
@@ -327,9 +329,14 @@ export class OSPFInterface {
       );
     } else {
       const { ddSeqNumber, master } = neighbor;
-      const lsaHeaders = this.lsDb
-        .getLsaListByArea(areaId)
-        .map((lsa) => lsa.header);
+      const lsaHeaders = this.lsDb.getLsaListByArea(areaId).map((lsa) => {
+        const copy = LSAHeader.from(lsa.header);
+        copy.lsAge = Math.min(
+          MaxAge,
+          copy.lsAge + Math.round(propagationDelay / 1000)
+        );
+        return copy;
+      });
       const ddPacket = new DDPacket(
         this.router.id,
         areaId,

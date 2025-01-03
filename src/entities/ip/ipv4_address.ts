@@ -70,10 +70,50 @@ export class IPv4Address {
     return network as [number, number, number, number];
   };
 
+  getPrefix = () => {
+    const subnetMask = this.bytes[4] ?? 32;
+
+    let network = "";
+    let bitsLeft = subnetMask;
+
+    for (let i = 0; i < 4; i++) {
+      if (i > 0) {
+        network += ".";
+      }
+      const byte = this.bytes[i];
+      if (byte === null || typeof byte === "undefined") {
+        continue;
+      }
+      if (bitsLeft >= BITS_PER_BYTE) {
+        network += byte.toString(2).padStart(8, "0");
+        bitsLeft -= BITS_PER_BYTE;
+      } else if (bitsLeft > 0) {
+        // Create a mask for the remaining bits and apply it
+        const maskByte = (255 << (BITS_PER_BYTE - bitsLeft)) & 255;
+        const address = (byte & maskByte).toString(2).padStart(8, "0");
+        for (let j = 0; j < address.length; j++) {
+          network += j < bitsLeft ? address[j] : "*";
+        }
+        bitsLeft = 0;
+      } else {
+        network += "*".repeat(BITS_PER_BYTE);
+      }
+    }
+    return network;
+  };
+
   fromSameSubnet = (comparedIp: IPv4Address) => {
-    const networkId = this.getNetworkAddress();
-    const comparedNetworkId = comparedIp.getNetworkAddress();
-    return networkId.every((byte, idx) => byte === comparedNetworkId[idx]);
+    const networkId = this.getPrefix();
+    const comparedNetworkId = comparedIp.getPrefix();
+    for (let i = 0; i < networkId.length; i++) {
+      if (networkId[i] === "*" || comparedNetworkId[i] === "*") {
+        return true;
+      }
+      if (networkId[i] !== comparedNetworkId[i]) {
+        return false;
+      }
+    }
+    return true;
   };
 
   toBinary = (subnetAddress?: boolean) => {

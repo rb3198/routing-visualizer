@@ -2,6 +2,14 @@ export const InitialSequenceNumber = -(2 ** 31) + 1;
 export const MaxSequenceNumber = 2 ** 31 - 1;
 
 /**
+ * The maximum age that an LSA can attain. When an LSA's LS age field reaches MaxAge,
+ * it is re-flooded in an attempt to flush the LSA from the routing domain.
+ *
+ * The `MaxAge` is always 1 hour.
+ */
+export const MaxAge = 3600; // TODO: Make adjustable
+
+/**
  * The maximum time between distinct originations of any particular LSA.
  *
  * If the LS age field of one of the router's self-originated LSAs reaches the value `LSRefreshTime`,
@@ -9,7 +17,7 @@ export const MaxSequenceNumber = 2 ** 31 - 1;
  *
  * The LS Refresh Time in OSPF is always 1,800,000 ms, i.e. 30 minutes.
  */
-export const LSRefreshTime = 1800; // TODO: Make adjustable
+export const LSRefreshTime = MaxAge / 2; // TODO: Make adjustable
 
 /**
  * The minimum time between distinct originations of any particular LSA.
@@ -25,14 +33,6 @@ export const MinLSInterval = 5000;
  * LSA instances received at higher frequencies are discarded. The value of MinLSArrival is set to 1 second.
  */
 export const MinLSArrival = 1000;
-
-/**
- * The maximum age that an LSA can attain. When an LSA's LS age field reaches MaxAge,
- * it is re-flooded in an attempt to flush the LSA from the routing domain.
- *
- * The `MaxAge` is always 1 hour.
- */
-export const MaxAge = 3600; // TODO: Make adjustable
 
 /**
  * The maximum time dispersion that can occur, as an LSA is flooded throughout the AS. 

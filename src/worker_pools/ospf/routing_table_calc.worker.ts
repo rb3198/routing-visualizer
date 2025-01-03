@@ -459,8 +459,8 @@ self.onmessage = async function (e: MessageEvent<TableCalculationSources>) {
     lsDb
   );
   if (!init) {
-    console.error("No root node found for intra area table calculation");
-    self.postMessage({ areaId });
+    console.warn("No root node found for intra area table calculation");
+    self.postMessage({ areaId, table: [] });
     return;
   }
   const { table, tree } = init;
