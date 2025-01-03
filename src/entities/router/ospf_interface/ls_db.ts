@@ -103,7 +103,11 @@ export class LsDb {
           break;
         case LSType.SummaryIpLSA:
         case LSType.SummaryAsBrLSA:
-          this.originateSummaryLsas(areaId);
+          const sourceAreaId = Object.keys(this.db)
+            .map((areaId) => parseInt(areaId))
+            .find((destAreaId) => destAreaId !== areaId);
+          sourceAreaId !== undefined &&
+            this.originateSummaryLsas(sourceAreaId, true);
           break;
         default:
           break;
@@ -387,13 +391,24 @@ export class LsDb {
       }
       if (toDelete) {
         const areaDb = this.db[areaId];
+        delete areaDb[LsDb.getLsDbKey(header)];
         if (advertisingRouter.equals(router.id) && router.turnedOn === true) {
-          lsType === LSType.RouterLSA && this.originateRouterLsa(areaId, true);
-          (lsType === LSType.SummaryIpLSA ||
-            lsType === LSType.SummaryAsBrLSA) &&
-            this.originateSummaryLsas(areaId);
+          switch (lsType) {
+            case LSType.RouterLSA:
+              this.originateRouterLsa(areaId, true);
+              break;
+            case LSType.SummaryAsBrLSA:
+            case LSType.SummaryIpLSA:
+              const srcAreaId = Object.keys(this.db).find(
+                (area) => parseInt(area) !== areaId
+              );
+              srcAreaId !== undefined &&
+                this.originateSummaryLsas(parseInt(srcAreaId));
+              break;
+            default:
+              break;
+          }
         } else {
-          delete areaDb[LsDb.getLsDbKey(header)];
           recalculateTable = router.turnedOn === true;
         }
       }
@@ -508,9 +523,10 @@ export class LsDb {
   /**
    * Originates Summary LSAs for the given area ID if the router is an Area Border Router (ABR).
    * @param sourceAreaId The ID of the area for which the summary LSAs are to be generated.
+   * @param forceRefresh Boolean to indicate generation of LSA despite no topology changes.
    * @returns
    */
-  originateSummaryLsas = (sourceAreaId: number) => {
+  originateSummaryLsas = (sourceAreaId: number, forceRefresh?: boolean) => {
     const { routingTableManager, router } = this.ospfInterface;
     const { id: routerId } = router;
     if (Object.keys(this.db).length <= 1) {
@@ -541,12 +557,15 @@ export class LsDb {
         this.db[destArea] &&
         (this.db[destArea][existingAreaSummaryKey] as SummaryLSA);
       if (existingAreaSummary) {
-        if (!SummaryLSA.isIdentical(intraAreaSummary, existingAreaSummary)) {
+        if (
+          !SummaryLSA.isIdentical(intraAreaSummary, existingAreaSummary) ||
+          forceRefresh
+        ) {
           intraAreaSummary.header.lsSeqNumber =
             existingAreaSummary.header.lsSeqNumber + 1;
           routesToAdvertise.push(intraAreaSummary);
         }
-      } else {
+      } else if (intraAreaSummary.body.metric !== LSInfinity) {
         routesToAdvertise.push(intraAreaSummary);
       }
       if (sourceAreaId === BACKBONE_AREA_ID) {

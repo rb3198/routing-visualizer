@@ -106,17 +106,14 @@ export class Router {
     let longestMatchRow: RoutingTableRow | undefined = undefined,
       longestMatch = -1;
     for (const row of routingTable) {
-      const binRowAddress = new IPv4Address(
-        ...row.destinationId.bytes
-      ).toBinary();
-      const destinationBinAddress = destination.toBinary();
-      let i = 0;
-      while (
-        binRowAddress[i] === destinationBinAddress[i] &&
-        i < binRowAddress.length
-      ) {
-        i++;
+      const rowId = new IPv4Address(...row.destinationId.bytes);
+      if (!rowId.fromSameSubnet(destination)) {
+        continue;
       }
+      const i = rowId
+        .getPrefix()
+        .split("")
+        .filter((c) => c !== "*").length;
       if (i > longestMatch) {
         longestMatch = i;
         longestMatchRow = row;
@@ -125,9 +122,15 @@ export class Router {
     return longestMatchRow;
   };
 
-  sendIpPacket = (ipPacket: IPPacket) => {
+  sendIpPacket = (ipPacket: IPPacket, isSelfOriginated?: boolean) => {
     const { header } = ipPacket;
-    const { destination } = header;
+    const { destination, source } = header;
+    if (isSelfOriginated) {
+      const sourceIp = IPv4Address.fromString(source.toString());
+      const ipInterface = this.ipInterfaces.get(sourceIp.toString());
+      ipInterface?.ipInterface.sendMessage(this, ipPacket);
+      return;
+    }
     const longestMatchRow = this.routingTableLookup(destination);
     if (!longestMatchRow || !longestMatchRow.nextHops.length) {
       // TODO: Show tooltip.
@@ -194,8 +197,9 @@ export class Router {
       sourceIp,
       destination
     );
+    longestMatchRow.lastUsedNextHopIdx = nextHopIdx;
     const ipPacket = new IPPacket(ipHeader, body);
-    this.sendIpPacket(ipPacket);
+    this.sendIpPacket(ipPacket, true);
   };
 
   receiveIPPacket = (interfaceId: string, packet: IPPacket) => {
@@ -265,7 +269,7 @@ export class Router {
   turnOff = async () => {
     this.turnedOn = "turning_off";
     this.ospf.lsDb.clearTimers();
-    await this.ospf.lsDb.clearDb(true);
+    await this.ospf.lsDb.clearDb(true); //TODO: Make graceful shutdown optional
     Object.values(this.ospf.neighborTable).forEach(
       ({
         deadTimer,

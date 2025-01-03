@@ -18,6 +18,7 @@ import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
 import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
+import { copyLsa } from "src/utils/common";
 
 export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
   validPacket = (ipPacket: IPPacket, packet: LSUpdatePacket) => {
@@ -75,22 +76,30 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
           return false;
         }
         const destinationIp = new IPv4Address(...destinationId.bytes);
-        const destinationNetwork = destinationIp.getNetworkAddress();
-        // @ts-ignore
-        destinationNetwork.push(destinationId.bytes[4]);
-        return prevAdvertisedNetworkIp.equals(
-          new IPv4Address(...destinationNetwork)
-        );
+        return destinationIp.fromSameSubnet(prevAdvertisedNetworkIp);
       });
-    if (!dbCopy || !advertisedNetworkReachable) {
+    if (!advertisedNetworkReachable) {
       // flush the received LSA
-      receivedLsa.header.lsAge = MaxAge;
-      lsDb.installLsa(areaId, receivedLsa, undefined, true);
+      if (dbCopy) {
+        dbCopy.header.lsAge = MaxAge;
+        dbCopy.header.lsSeqNumber = receivedLsa.header.lsSeqNumber;
+        lsDb.installLsa(areaId, dbCopy, undefined, true);
+      } else {
+        const copy = copyLsa(receivedLsa);
+        copy.header.lsAge = MaxAge;
+        lsDb.floodLsa(areaId, [copy], []);
+      }
       return;
     }
-    // Network is still reachable, increment the LS Sequence Number
-    receivedLsa.header.lsSeqNumber++;
-    lsDb.installLsa(areaId, receivedLsa, undefined, true, true);
+    if (dbCopy) {
+      dbCopy.header.lsSeqNumber = receivedLsa.header.lsSeqNumber + 1;
+      // Network is still reachable, increment the LS Sequence Number
+      lsDb.installLsa(areaId, dbCopy, undefined, true, true);
+    } else {
+      const copy = copyLsa(receivedLsa);
+      copy.header.lsSeqNumber++;
+      lsDb.installLsa(areaId, copy, undefined, true);
+    }
   };
   /**
    * If a router receives a self-originated LSA that is newer than the one already existing in its own database,
@@ -120,7 +129,6 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     if ((dbLsaHeader?.compareAge(receivedHeader) ?? 1) < 0) {
       return false; // the DB LSA is younger than the received LSA.
     }
-    // TODO: (Post routing table construction)
     // If LSA is a summary LSA and router's routing table does not have a route to that destination, FLUSH the LSA
     // Else the following code:
     const setRouterLsa = () => {
