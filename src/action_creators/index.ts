@@ -1,4 +1,9 @@
-import { CellSizeAction, EventLogAction, ModalAction } from "../types/actions";
+import {
+  CellSizeAction,
+  EventLogAction,
+  ModalAction,
+  NotificationTooltipAction,
+} from "../types/actions";
 import { ActionCreator, Dispatch } from "redux";
 import { packetAnimations } from "../animations/packets";
 import { RectDim } from "../types/geometry";
@@ -150,5 +155,22 @@ export const setPropagationDelay = (delay: number) => {
   return {
     type: "SET_PROPAGATION_DELAY",
     value: delay,
+  };
+};
+
+export const openNotificationTooltip = (
+  message: string,
+  duration?: number
+): NotificationTooltipAction => {
+  return {
+    type: "OPEN_NOTIFICATION_TOOLTIP",
+    message,
+    duration,
+  };
+};
+
+export const closeNotificationTooltip = (): NotificationTooltipAction => {
+  return {
+    type: "CLOSE_NOTIFICATION_TOOLTIP",
   };
 };
