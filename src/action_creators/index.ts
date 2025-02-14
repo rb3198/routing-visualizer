@@ -5,11 +5,7 @@ import {
   NotificationTooltipAction,
 } from "../types/actions";
 import { ActionCreator, Dispatch } from "redux";
-import { packetAnimations } from "../animations/packets";
 import { RectDim } from "../types/geometry";
-import { store } from "../store";
-import { PacketSentEvent } from "../entities/network_event/packet_events/sent";
-import { PacketDroppedEvent } from "../entities/network_event/packet_events/dropped";
 import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
 import { IPPacket } from "../entities/ip/packets";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
@@ -18,6 +14,7 @@ import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
+import { NetworkEvent } from "src/entities/network_event";
 
 export type VizArgs = {
   color: string;
@@ -28,15 +25,6 @@ export type VizArgs = {
 
 export type EmitEventArgs =
   | {
-      event: PacketSentEvent;
-      eventName: "packetSent";
-    }
-  | {
-      event: PacketDroppedEvent;
-      eventName: "packetDropped";
-      viz: VizArgs;
-    }
-  | {
       event: InterfaceNetworkEvent;
       eventName: "interfaceEvent";
     }
@@ -45,36 +33,22 @@ export type EmitEventArgs =
       eventName: "neighborTableEvent";
     };
 
-const packetDrop = async (event: PacketDroppedEvent, viz: VizArgs) => {
-  const { router } = event;
-  const { context, duration, color, packetRect } = viz;
-  const { cellSize } = store.getState();
-  context &&
-    (await packetAnimations.packetDrop(
-      context,
-      cellSize,
-      router,
-      duration,
-      color,
-      packetRect
-    ));
+export const emitEvent0 = (event: NetworkEvent): EventLogAction => {
+  return {
+    type: "ADD_LOG",
+    data: event,
+  };
 };
 
 export const emitEvent =
   (args: EmitEventArgs) =>
   async (dispatch: Dispatch): Promise<void> => {
-    const { event, eventName } = args;
+    const { event } = args;
     dispatch<EventLogAction>({
       type: "ADD_LOG",
+      // @ts-ignore
       data: event,
     });
-    switch (eventName) {
-      case "packetDropped":
-        await packetDrop(event, args.viz);
-        break;
-      default:
-        break;
-    }
   };
 export const setCellSize: ActionCreator<CellSizeAction> = (
   cellSize: number

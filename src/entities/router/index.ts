@@ -8,16 +8,16 @@ import { OSPFConfig } from "../ospf/config";
 import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
 import { BACKBONE_AREA_ID } from "../ospf/constants";
 import { store } from "../../store";
-import { emitEvent } from "../../action_creators";
+import { emitEvent, emitEvent0 } from "../../action_creators";
 import { InterfaceNetworkEvent } from "../network_event/interface_event";
 import { RoutingTableRow } from "../ospf/table_rows";
 import { IPacket } from "../interfaces/IPacket";
 import { IPHeader } from "../ip/packets/header";
 import { BROADCAST_ADDRESSES } from "src/constants/ip_addresses";
-import { OSPFPacket } from "../ospf/packets/packet_base";
-import { PacketSentEvent } from "../network_event/packet_events/sent";
 import { packetAnimations } from "src/animations/packets";
 import { Colors } from "src/constants/theme";
+import { PacketSentEventBuilder } from "../network_event/event_builders/packets/sent";
+import { PacketDroppedEventBuilder } from "../network_event/event_builders/packets/dropped";
 
 export class Router {
   key: string;
@@ -171,15 +171,8 @@ export class Router {
       );
       const ipPacket = new IPPacket(ipHeader, body);
       ipInterface?.sendMessage(this, ipPacket);
-      if (body instanceof OSPFPacket) {
-        const event = new PacketSentEvent(
-          this,
-          destination,
-          ipPacket,
-          ipInterfaceId
-        );
-        emitEvent({ event, eventName: "packetSent" })(store.dispatch);
-      }
+      const packetSentEvent = PacketSentEventBuilder(this.id, ipPacket);
+      store.dispatch(emitEvent0(packetSentEvent));
       return;
     }
     const longestMatchRow = this.routingTableLookup(destination);
@@ -229,20 +222,23 @@ export class Router {
       packet.header.ttl--; // Decrement the TTL of the received packet
       if (packet.header.ttl <= 0) {
         // Drop the packet. Send ICMP message back to the source that the packet was not deliverable.
-        this.dropPacket();
+        this.dropPacket(packet, "Packet TTL Expired.");
         return;
       }
       this.sendIpPacket(packet);
     }
   };
 
-  dropPacket = () => {
+  dropPacket = (
+    packet: IPPacket,
+    reason: string,
+    color: string = Colors.accent
+  ) => {
     const context = window.elementLayer?.getContext("2d");
     const { cellSize } = store.getState();
-    if (!context) {
-      return;
-    }
-    packetAnimations.packetDrop(context, cellSize, this, 500, Colors.accent);
+    const event = PacketDroppedEventBuilder(this, packet, reason);
+    store.dispatch(emitEvent0(event));
+    context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
   };
 
   turnOn = () => {

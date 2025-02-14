@@ -14,7 +14,6 @@ import { BACKBONE_AREA_ID, VERSION } from "../../ospf/constants";
 import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
 import { emitEvent, setLiveNeighborTable } from "src/action_creators";
-import { PacketDroppedEvent } from "../../network_event/packet_events/dropped";
 import { getIpPacketDropReason } from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
 import {
@@ -66,16 +65,7 @@ export class OSPFInterface {
   }
 
   dropPacket = (ipPacket: IPPacket, reason: string) => {
-    const event = new PacketDroppedEvent(this.router, ipPacket, reason);
-    emitEvent({
-      eventName: "packetDropped",
-      event,
-      viz: {
-        color: Colors.droppedPacket,
-        duration: 1000,
-        context: window.elementLayer?.getContext("2d"),
-      },
-    })(store.dispatch);
+    this.router.dropPacket(ipPacket, reason, Colors.droppedPacket);
   };
 
   /**

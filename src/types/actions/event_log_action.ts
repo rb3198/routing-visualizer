@@ -1,9 +1,9 @@
-import { NetworkEventBase } from "src/entities/network_event/base";
+import { NetworkEvent } from "src/entities/network_event";
 
 export type EventLogAction =
   | {
       type: "ADD_LOG";
-      data: NetworkEventBase;
+      data: NetworkEvent;
     }
   | {
       type: "SET_KEEP_COUNT";
