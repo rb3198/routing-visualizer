@@ -102,7 +102,9 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         {(showControlPanel && ControlPanel) || <></>}
         <ul id={styles.log_list}>
           {eventLog
-            .filter((event) => event.router === routerId)
+            .filter((event) =>
+              type === "neighbor" ? event.router === routerId : true
+            )
             .map((event) => (
               <Event event={event} key={event.id} hideLinks={hideLinks} />
             ))}
@@ -121,9 +123,23 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
   useEffect(() => {
     setVisible(true);
   }, []);
+
+  const renderActions = useCallback(() => {
+    if (!actions?.length) {
+      return <></>;
+    }
+    return (
+      <ul>
+        {actions.map((action, idx) => (
+          <li key={idx} dangerouslySetInnerHTML={{ __html: action }}></li>
+        ))}
+      </ul>
+    );
+  }, [actions]);
   return (
     <li className={`${styles.event} ${(visible && styles.visible) || ""}`}>
       <p dangerouslySetInnerHTML={{ __html: title }}></p>
+      {renderActions()}
       {links.length > 0 &&
         !hideLinks &&
         links.map((link, idx) => (

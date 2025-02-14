@@ -6,7 +6,6 @@ import {
 } from "../types/actions";
 import { ActionCreator, Dispatch } from "redux";
 import { RectDim } from "../types/geometry";
-import { InterfaceNetworkEvent } from "../entities/network_event/interface_event";
 import { IPPacket } from "../entities/ip/packets";
 import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
@@ -23,15 +22,10 @@ export type VizArgs = {
   packetRect?: RectDim;
 };
 
-export type EmitEventArgs =
-  | {
-      event: InterfaceNetworkEvent;
-      eventName: "interfaceEvent";
-    }
-  | {
-      event: NeighborTableEvent;
-      eventName: "neighborTableEvent";
-    };
+export type EmitEventArgs = {
+  event: NeighborTableEvent;
+  eventName: "neighborTableEvent";
+};
 
 export const emitEvent0 = (event: NetworkEvent): EventLogAction => {
   return {

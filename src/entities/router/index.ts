@@ -8,8 +8,7 @@ import { OSPFConfig } from "../ospf/config";
 import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
 import { BACKBONE_AREA_ID } from "../ospf/constants";
 import { store } from "../../store";
-import { emitEvent, emitEvent0 } from "../../action_creators";
-import { InterfaceNetworkEvent } from "../network_event/interface_event";
+import { emitEvent0 } from "../../action_creators";
 import { RoutingTableRow } from "../ospf/table_rows";
 import { IPacket } from "../interfaces/IPacket";
 import { IPHeader } from "../ip/packets/header";
@@ -18,6 +17,7 @@ import { packetAnimations } from "src/animations/packets";
 import { Colors } from "src/constants/theme";
 import { PacketSentEventBuilder } from "../network_event/event_builders/packets/sent";
 import { PacketDroppedEventBuilder } from "../network_event/event_builders/packets/dropped";
+import { InterfaceEventBuilder } from "../network_event/event_builders/interfaces";
 
 export class Router {
   key: string;
@@ -63,10 +63,10 @@ export class Router {
     const { config } = this.ospf;
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
-    emitEvent({
-      eventName: "interfaceEvent",
-      event: new InterfaceNetworkEvent("added", this),
-    })(store.dispatch);
+    const selfAddress = ipInterface.getSelfIpAddress(this) ?? "";
+    store.dispatch(
+      emitEvent0(InterfaceEventBuilder(this, "added", selfAddress))
+    );
     if (this.turnedOn === true) {
       // IF turnedOn send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
@@ -74,7 +74,7 @@ export class Router {
         this.ospf.sendHelloPacket(ipInterface);
       }, helloInterval);
     }
-    this.ipInterfaces.set(ipInterface.getSelfIpAddress(this) ?? "", {
+    this.ipInterfaces.set(selfAddress, {
       ipInterface,
       helloTimer,
     });
