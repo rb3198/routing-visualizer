@@ -2,7 +2,7 @@ import { IPv4Address } from "../ipv4_address";
 import { TwoWayMap } from "../../../utils/two_way_map";
 import { Router } from "../../router";
 import { BACKBONE_AREA_ID } from "../../ospf/constants";
-import { Colors, PacketColorMap } from "../../../constants/theme";
+import { Colors, OspfPacketColorMap } from "../../../constants/theme";
 import { getLinkInterfaceCoords } from "../../../utils/drawing";
 import { store } from "../../../store";
 import { vmax } from "src/utils/geometry";
@@ -17,7 +17,7 @@ const getPacketColor = (ipPacket: IPPacket) => {
   if (body instanceof OSPFPacket) {
     const { header: ospfHeader } = body;
     const { type } = ospfHeader;
-    color = PacketColorMap.get(type) ?? color;
+    color = OspfPacketColorMap.get(type) ?? color;
   }
   return color;
 };

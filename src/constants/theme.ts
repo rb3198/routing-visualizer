@@ -12,7 +12,7 @@ export const Colors = {
   droppedPacket: "#E13A1E",
 };
 
-export const PacketColorMap = new Map<PacketType, string>([
+export const OspfPacketColorMap = new Map<PacketType, string>([
   [PacketType.Hello, Colors.helloPacket],
   [PacketType.DD, Colors.dd],
   [PacketType.LinkStateRequest, Colors.lsRequest],
