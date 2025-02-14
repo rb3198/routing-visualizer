@@ -1,7 +1,6 @@
 import React, {
   MouseEventHandler,
   useCallback,
-  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -20,13 +19,13 @@ import { PiRectangleDashed } from "react-icons/pi";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
-import { NotificationTooltipContext } from "../../contexts/notification_tooltip";
 import { AnimationToolbar } from "../animation_toolbar";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import {
   openLsDbModal,
+  openNotificationTooltip,
   openRoutingTable,
   setLiveNeighborTable,
   setPropagationDelay,
@@ -53,6 +52,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     setLiveNeighborTable,
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
+    openNotificationTooltip,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -69,8 +69,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     interactiveStateReducer,
     defaultState
   );
-  const notificationTooltipContext = useContext(NotificationTooltipContext);
-  const { open: openNotificationTooltip } = notificationTooltipContext || {};
   const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
   const gridSizeY = gridRect.length || 0;
 
@@ -522,6 +520,10 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     openLsDbModal: bindActionCreators(openLsDbModal, dispatch),
     setPropagationDelayInStore: bindActionCreators(
       setPropagationDelay,
+      dispatch
+    ),
+    openNotificationTooltip: bindActionCreators(
+      openNotificationTooltip,
       dispatch
     ),
   };
