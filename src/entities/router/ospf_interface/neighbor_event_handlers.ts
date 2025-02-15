@@ -8,7 +8,7 @@ type NeighborEventHandler = (
   this: OSPFInterface,
   neighbor: NeighborTableRow,
   desc?: string
-) => void;
+) => string;
 
 /**
  * The `HelloReceived` Event handler.
@@ -16,6 +16,7 @@ type NeighborEventHandler = (
  * - Resets the dead timer irrespective of the previous state of the neighbor.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns Description of what actions took place.
  */
 const helloReceived: NeighborEventHandler = function (neighbor) {
   const { config } = this;
@@ -34,14 +35,12 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
     newState = State.Init;
     desc += `Neighbor promoted to the <i>Init</i> state.`;
   }
-  this.setNeighbor(
-    {
-      ...neighbor,
-      deadTimer,
-      state: newState,
-    },
-    desc
-  );
+  this.setNeighbor({
+    ...neighbor,
+    deadTimer,
+    state: newState,
+  });
+  return desc;
 };
 
 /**
@@ -49,29 +48,28 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
  * - If the neighbor is in a state >= `2WAY`, regresses the state down to `INIT`
  * @param this The OSPF Interface
  * @param neighbor  The OSPF Neighbor
+ * @returns Description of what actions took place.
  */
 const oneWayReceived: NeighborEventHandler = function (neighbor) {
   const { state, routerId: neighborId, areaId } = neighbor;
   if (state >= State.TwoWay) {
-    this.setNeighbor(
-      {
-        ...neighbor,
-        state: State.Init,
-        linkStateRequestList: [],
-        linkStateRetransmissionList: [],
-        dbSummaryList: [],
-      },
-      `<i>OneWayReceived</i> event triggered since the router didn't spot 
-      its address in the hello packet received from ${neighborId}.
-      <ul>
-        <li>State of the neighbor set to INIT.</li>
-        <li>All the lists reset.</li>
-      </ul>`
-    );
+    this.setNeighbor({
+      ...neighbor,
+      state: State.Init,
+      linkStateRequestList: [],
+      linkStateRetransmissionList: [],
+      dbSummaryList: [],
+    });
   }
   if (state === State.Full) {
     this.lsDb.originateRouterLsa(areaId, true);
   }
+  return `<i>OneWayReceived</i> event triggered since the router didn't spot 
+      its address in the hello packet received from ${neighborId}.
+      <ul>
+        <li>State of the neighbor set to INIT.</li>
+        <li>All the lists reset.</li>
+      </ul>`;
 };
 
 /**
@@ -79,57 +77,56 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
  * - Always forms an adjacency (transitions to Ex-Start state) since we simulate a point to point network.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns Description of all the actions that took place
  */
 const twoWayReceived: NeighborEventHandler = function (neighbor) {
   const { config } = this;
   const { rxmtInterval } = config;
   const { state, routerId: neighborId } = neighbor;
   if (state === State.Init) {
-    this.setNeighbor(
-      {
-        ...neighbor,
-        state: State.ExStart,
-        ddRxmtTimer: setInterval(
-          this.sendDDPacket.bind(this, neighborId),
-          rxmtInterval
-        ),
-      },
-      `
+    this.setNeighbor({
+      ...neighbor,
+      state: State.ExStart,
+      ddRxmtTimer: setInterval(
+        this.sendDDPacket.bind(this, neighborId),
+        rxmtInterval
+      ),
+    });
+    this.sendDDPacket(neighborId);
+    return `
     <i>TwoWayReceived</i> event triggered since the Router found itself in <b>${neighborId}</b>'s hello packet.
     <ul>
       <li>${neighborId}'s state upgraded from INIT to EX-START.</li>
       <li>The router will now negotiate the Master/Slave relationship and
       send Database Description Packets to ${neighborId}</li>
     </ul>
-    `
-    );
-    this.sendDDPacket(neighborId);
+    `;
   }
+  return "";
 };
 
 /**
  * `NegotiationDone` Event Handler. See Section 10.6, 10.8.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns A description of all the steps taken by the router in its Neighbor State Machine
  */
 const negotiationDone: NeighborEventHandler = function (neighbor) {
   const { master } = neighbor;
-  this.setNeighbor(
-    {
-      ...neighbor,
-      state: State.Exchange,
-    },
-    `<b>Negotiation between the router and ${
-      neighbor.routerId
-    } for Master / Slave is complete</b>.
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Exchange,
+  });
+  this.sendDDPacket(neighbor.routerId);
+  return `<b>Negotiation between the router and ${
+    neighbor.routerId
+  } for Master / Slave is complete</b>.
   ${
     neighbor.routerId
-  } is now promoted to the EXCHANGE state. The router is the <b>${
-      master ? "Master" : "Slave"
-    }</b>
-  in this relation.`
-  );
-  this.sendDDPacket(neighbor.routerId);
+  } is now promoted to the <code>Exchange</code> state. The router is the <b>${
+    master ? "Master" : "Slave"
+  }</b>
+  in this relation.`;
 };
 
 /**
@@ -138,6 +135,7 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
  * - Starts Sending LSA Request Packets to the neighbor
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns Description of what actions took place.
  */
 const exchangeDone: NeighborEventHandler = function (neighbor) {
   const { linkStateRequestList, routerId: neighborId, ddRxmtTimer } = neighbor;
@@ -152,19 +150,16 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
   }
   const desc = `The router has some link state requests to emit to ${neighborId}. The router is completing the requests.`;
   clearInterval(ddRxmtTimer);
-  this.setNeighbor(
-    {
-      ...neighbor,
-      state: State.Loading,
-      lsRequestRxmtTimer: setInterval(
-        () => this.sendLSRequestPacket(neighborId),
-        rxmtInterval
-      ),
-      ddRxmtTimer: undefined,
-    },
-    desc
-  );
-  this.sendLSRequestPacket(neighborId);
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Loading,
+    lsRequestRxmtTimer: setInterval(
+      () => this.sendLSRequestPacket(neighborId),
+      rxmtInterval
+    ),
+    ddRxmtTimer: undefined,
+  });
+  return desc;
 };
 
 /**
@@ -172,20 +167,21 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
  * @param desc Optional description to be emitted to Event Handler.
+ * @returns Description of what actions took place.
  */
 const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
   const { routerId: neighborId, areaId, lsRequestRxmtTimer } = neighbor;
   clearInterval(lsRequestRxmtTimer);
-  this.setNeighbor(
-    {
-      ...neighbor,
-      state: State.Full,
-      lsRequestRxmtTimer: undefined,
-    },
-    desc ??
-      `Loading complete wrt neighbor ${neighborId}. Entering the FULL state.`
-  );
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Full,
+    lsRequestRxmtTimer: undefined,
+  });
   this.lsDb.originateRouterLsa(areaId, true);
+  return (
+    desc ??
+    `Loading complete wrt neighbor ${neighborId}. Entering the FULL state.`
+  );
 };
 
 // AdjOK event handler is not required since this event will never be transmitted in our simulator.
@@ -196,8 +192,12 @@ const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
  * - New state is set to `ExStart` and DD packets are sent to the neighbor with current router as the master.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns Description of what actions took place.
  */
-const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
+const seqNumberMismatch: NeighborEventHandler = function (
+  neighbor,
+  desc?: string
+) {
   const { config } = this;
   const { rxmtInterval } = config;
   const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer, areaId } =
@@ -205,37 +205,49 @@ const seqNumberMismatch: NeighborEventHandler = function (neighbor) {
   clearInterval(lsRequestRxmtTimer);
   clearTimeout(lsRetransmissionRxmtTimer);
   if (state >= State.Exchange) {
-    this.setNeighbor(
-      {
-        ...neighbor,
-        state: State.ExStart,
-        linkStateRequestList: [],
-        dbSummaryList: [],
-        linkStateRetransmissionList: [],
-        ddRxmtTimer: setInterval(
-          this.sendDDPacket.bind(this, neighbor.routerId),
-          rxmtInterval
-        ),
-        lastReceivedDdPacket: undefined,
-        lsRequestRxmtTimer: undefined,
-        lsRetransmissionRxmtTimer: undefined,
-      },
-      ""
-    );
+    this.setNeighbor({
+      ...neighbor,
+      state: State.ExStart,
+      linkStateRequestList: [],
+      dbSummaryList: [],
+      linkStateRetransmissionList: [],
+      ddRxmtTimer: setInterval(
+        this.sendDDPacket.bind(this, neighbor.routerId),
+        rxmtInterval
+      ),
+      lastReceivedDdPacket: undefined,
+      lsRequestRxmtTimer: undefined,
+      lsRetransmissionRxmtTimer: undefined,
+    });
     this.lsDb.originateRouterLsa(areaId, true);
+    return (
+      (desc || "") +
+      `
+    <code>SEQ_NUMBER_MISMATCH</code> Event led to a reset of the neighbor state to <code>ExStart</code> state.<br>
+    All the timers were reset, and the request and retransmission lists were cleared.
+    `
+    );
   }
+  return "";
 };
 
 /**
  * The action for event `BadLSReq` is exactly the same as for the neighbor event `SeqNumberMismatch`.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns Description of what actions took place.
  */
 const badLsRequest: NeighborEventHandler = function (neighbor) {
   const { state } = neighbor;
   if (state >= State.Exchange) {
-    seqNumberMismatch.call(this, neighbor);
+    return seqNumberMismatch.call(
+      this,
+      neighbor,
+      `Link State Request packet received in a state >= <code>Exchange</code>.
+      Generating <code>SeqNumberMismatch</code> event.`
+    );
   }
+  return "";
 };
 
 /**
@@ -245,26 +257,28 @@ const badLsRequest: NeighborEventHandler = function (neighbor) {
  * - The Inactivity Timer is disabled.
  * @param this The OSPF Interface
  * @param neighbor The OSPF Neighbor
+ * @returns Description of what actions took place.
  */
 const killNeighbor: NeighborEventHandler = function (neighbor) {
   const { deadTimer, routerId: neighborId, areaId } = neighbor;
   clearTimeout(deadTimer);
-  this.setNeighbor(
-    {
-      ...neighbor,
-      state: State.Down,
-      linkStateRequestList: [],
-      linkStateRetransmissionList: [],
-      dbSummaryList: [],
-      deadTimer: undefined,
-      lastReceivedDdPacket: undefined,
-    },
-    `
-  Dead timer of ${neighborId} triggered. The neighbor is being set to the DOWN state.
-  `
-  );
+  this.setNeighbor({
+    ...neighbor,
+    state: State.Down,
+    linkStateRequestList: [],
+    linkStateRetransmissionList: [],
+    dbSummaryList: [],
+    deadTimer: undefined,
+    lastReceivedDdPacket: undefined,
+  });
   this.lsDb.originateRouterLsa(areaId, true);
-  this.onOspfNeighborDown();
+  return `
+  Dead timer of ${neighborId} triggered. The neighbor is being set to the <code>DOWN</code> state.
+  <ul>
+    <li>A new router LSA will be generated, informing the network of the new state.</li>
+    <li>All the timers related to this neighbor will be cleared</li>
+  </ul>
+  `;
 };
 
 export const neighborEventHandlerFactory = new Map([

@@ -13,13 +13,9 @@ import { IPLinkInterface } from "../../ip/link_interface";
 import { BACKBONE_AREA_ID, VERSION } from "../../ospf/constants";
 import { Colors } from "../../../constants/theme";
 import { store } from "../../../store";
-import { emitEvent, setLiveNeighborTable } from "src/action_creators";
+import { setLiveNeighborTable } from "src/action_creators";
 import { getIpPacketDropReason } from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
-import {
-  NeighborTableEvent,
-  NeighborTableEventType,
-} from "src/entities/network_event/neighbor_table_event";
 import { LSAHeader } from "src/entities/ospf/lsa";
 import { LSRequest } from "src/entities/ospf/packets/ls_request";
 import { LSRequestPacket } from "src/entities/ospf/packets";
@@ -64,9 +60,8 @@ export class OSPFInterface {
     this.lsDb = new LsDb(this);
   }
 
-  dropPacket = (ipPacket: IPPacket, reason: string) => {
+  dropPacket = (ipPacket: IPPacket, reason?: string) =>
     this.router.dropPacket(ipPacket, reason, Colors.droppedPacket);
-  };
 
   /**
    * Decides whether a received packet must be processed, as per section 8.2 of the spec.
@@ -131,13 +126,11 @@ export class OSPFInterface {
     );
   };
 
-  setNeighbor = (neighbor: NeighborTableRow, description: string) => {
+  setNeighbor = (neighbor: NeighborTableRow, description?: string) => {
+    // TODO: Remove description
     const { modalState } = store.getState();
     const { active, data } = modalState;
     const { routerId: neighborId } = neighbor;
-    const prevTable = {
-      ...this.neighborTable,
-    };
     const prevNeighbor = this.neighborTable[neighborId.toString()];
     prevNeighbor &&
       neighbor &&
@@ -145,22 +138,7 @@ export class OSPFInterface {
         // @ts-ignore
         prevNeighbor[key] = neighbor[key];
       });
-    const eventType: NeighborTableEventType = prevNeighbor
-      ? "column_updated"
-      : "added";
     this.neighborTable[neighbor.routerId.toString()] = neighbor;
-    description &&
-      emitEvent({
-        eventName: "neighborTableEvent",
-        event: new NeighborTableEvent(
-          Date.now(),
-          prevTable,
-          this.router,
-          neighbor.routerId.toString(),
-          eventType,
-          description
-        ),
-      })(store.dispatch);
     if (
       active === "neighbor_table_live" &&
       data.routerId.equals(this.router.id)
@@ -190,13 +168,11 @@ export class OSPFInterface {
         Router spotted a new / updated LSA in the area. Updated the Link State Request List for neighbor <b>${neighborId}</b>
         `;
     }
-    this.setNeighbor(
-      {
-        ...neighbor,
-        linkStateRequestList: list,
-      },
-      desc
-    );
+    this.setNeighbor({
+      ...neighbor,
+      linkStateRequestList: list,
+    });
+    return desc;
   };
 
   addToNeighborTable = (
@@ -220,7 +196,10 @@ export class OSPFInterface {
     this.setNeighbor(neighbor, eventDesc);
   };
 
-  neighborStateMachine = (neighborId: string, event: NeighborSMEvent): void => {
+  neighborStateMachine = (
+    neighborId: string,
+    event: NeighborSMEvent
+  ): string | undefined => {
     const { neighborTable } = this;
     const neighbor = neighborTable[neighborId];
     if (!neighbor) {
@@ -230,17 +209,7 @@ export class OSPFInterface {
       return;
     }
     const eventHandler = neighborEventHandlerFactory.get(event);
-    eventHandler && eventHandler.call(this, neighbor);
-  };
-
-  onOspfNeighborDown = () => {
-    /*
-      Generate and flood a new Router LSA.
-      Run the SPF algorithm to recalculate the topology.
-      Update the routing table.
-      Potentially trigger a DR/BDR election.
-      Terminate adjacencies with the downed neighbor.
-    */
+    return eventHandler && eventHandler.call(this, neighbor);
   };
 
   private getAreaId = (ipInterface?: IPLinkInterface) => {

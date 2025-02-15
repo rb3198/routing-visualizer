@@ -22,7 +22,7 @@ export class HelloPacketHandler extends PacketHandlerBase<HelloPacket> {
     );
   };
 
-  handle = (interfaceId: string, ipPacket: IPPacket, packet: HelloPacket) => {
+  _handle = (interfaceId: string, ipPacket: IPPacket, packet: HelloPacket) => {
     const { header: ipHeader } = ipPacket;
     const { source: ipSrc } = ipHeader;
     const { header, body } = packet;

@@ -35,7 +35,7 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
     );
   };
 
-  handle = (
+  _handle = (
     interfaceId: string,
     ipPacket: IPPacket,
     packet: LSRequestPacket

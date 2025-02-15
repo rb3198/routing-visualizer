@@ -229,15 +229,25 @@ export class Router {
     }
   };
 
+  /**
+   * Function to drop a packet.
+   * - Triggers the drop packet animation
+   * - If provided a reason, logs the packet drop event.
+   * @param packet The packet to be dropped.
+   * @param reason Reason the packet was dropped.
+   * @param color Color of the dropped packet.
+   */
   dropPacket = (
     packet: IPPacket,
-    reason: string,
+    reason?: string,
     color: string = Colors.accent
   ) => {
     const context = window.elementLayer?.getContext("2d");
     const { cellSize } = store.getState();
-    const event = PacketDroppedEventBuilder(this, packet, reason);
-    store.dispatch(emitEvent0(event));
+    if (reason) {
+      const event = PacketDroppedEventBuilder(this, packet, reason);
+      store.dispatch(emitEvent0(event));
+    }
     context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
   };
 

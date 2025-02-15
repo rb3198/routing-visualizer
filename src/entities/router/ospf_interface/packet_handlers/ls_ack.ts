@@ -27,7 +27,7 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
     console.warn(`${idx}: ${ack.linkStateId} ; ${ack.advertisingRouter}`); // TODO: Remove
   };
 
-  handle = (interfaceId: string, ipPacket: IPPacket, packet: LSAckPacket) => {
+  _handle = (interfaceId: string, ipPacket: IPPacket, packet: LSAckPacket) => {
     let debug = true;
     const { config, neighborTable, router, sendLSUpdatePacket, setNeighbor } =
       this.ospfInterface;

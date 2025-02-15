@@ -160,7 +160,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     return true;
   };
 
-  handle = (
+  _handle = (
     interfaceId: string,
     ipPacket: IPPacket,
     packet: LSUpdatePacket

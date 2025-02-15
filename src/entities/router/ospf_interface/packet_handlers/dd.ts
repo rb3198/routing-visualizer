@@ -5,6 +5,7 @@ import { DDPacketSummary } from "src/entities/ospf/summaries/dd_packet_summary";
 import { LSAHeader } from "src/entities/ospf/lsa";
 import { State } from "src/entities/ospf/enum";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
+import { Colors } from "src/constants/theme";
 
 export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
   /**
@@ -98,21 +99,21 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
     const { ddSeqNumber: packetDdSeq, init, m, master } = body;
     const neighbor = neighborTable[neighborId.toString()];
     const { master: isRouterMaster } = neighbor;
-    setNeighbor(
-      {
-        ...neighbor,
-        ddSeqNumber: isRouterMaster
-          ? (neighbor.ddSeqNumber ?? 0) + 1
-          : packetDdSeq,
-        lastReceivedDdPacket: new DDPacketSummary({
-          init,
-          ddSeqNumber: packetDdSeq,
-          m,
-          master,
-        }),
-      },
+    this.packetProcessedEventBuilder?.addAction(
       `The new DD packet sent by the neighbor ${neighborId} was recorded in the table's "Last DD Packet"`
     );
+    setNeighbor({
+      ...neighbor,
+      ddSeqNumber: isRouterMaster
+        ? (neighbor.ddSeqNumber ?? 0) + 1
+        : packetDdSeq,
+      lastReceivedDdPacket: new DDPacketSummary({
+        init,
+        ddSeqNumber: packetDdSeq,
+        m,
+        master,
+      }),
+    });
   };
 
   private processLsaHeaders = (
@@ -143,7 +144,8 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
       }
     });
     if (copy.length !== linkStateRequestList.length) {
-      setNeighborLsRequestList(neighbor, copy);
+      const desc = setNeighborLsRequestList(neighbor, copy);
+      this.packetProcessedEventBuilder?.addAction(desc);
     }
   };
 
@@ -176,10 +178,11 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
         },
       };
       this.recordDDPacket(packet);
-      neighborStateMachine(
+      const action = neighborStateMachine(
         neighbor.routerId.toString(),
         NeighborSMEvent.NegotiationDone
       );
+      action && this.packetProcessedEventBuilder?.addAction(action);
     }
   };
 
@@ -215,14 +218,15 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
         return;
       }
       // The current router is the slave in this adjacency. Echo the packet back.
-      sendDDPacket(neighborId);
+      setTimeout(() => sendDDPacket(neighborId));
       return;
     }
     if (!this.validateExchangeDDPacket(packet)) {
-      neighborStateMachine(
+      const action = neighborStateMachine(
         neighborId.toString(),
         NeighborSMEvent.SeqNumberMismatch
       );
+      action && this.packetProcessedEventBuilder?.addAction(action);
       return;
     }
     this.recordDDPacket(packet);
@@ -232,11 +236,13 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
       // The sent packet has been acknowledged.
       clearInterval(ddRxmtTimer);
     } else {
-      sendDDPacket(neighborId);
+      setTimeout(() => sendDDPacket(neighborId));
     }
-    !m &&
-      // No more packets pending, transition to the `Loading` State.
+    // No more packets pending, transition to the `Loading` State.
+    const action =
+      !m &&
       neighborStateMachine(neighborId.toString(), NeighborSMEvent.ExchangeDone);
+    action && this.packetProcessedEventBuilder?.addAction(action);
   };
 
   loadingFullHandler = (packet: DDPacket) => {
@@ -252,17 +258,18 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
     if (!this.isDupeDD(packet, lastReceivedDdPacket)) {
       // The only DD packets received by the router at this stage should be duplicate packets only. Otherwise, generate
       // SeqNumberMismatch event.
-      neighborStateMachine(
+      const action = neighborStateMachine(
         neighborId.toString(),
         NeighborSMEvent.SeqNumberMismatch
       );
+      action && this.packetProcessedEventBuilder?.addAction(action);
       return;
     }
     // The current router is the slave in this adjacency. Echo the packet back.
-    !isRouterMaster && sendDDPacket(neighborId);
+    !isRouterMaster && setTimeout(() => sendDDPacket(neighborId));
   };
 
-  handle = (interfaceId: string, ipPacket: IPPacket, packet: DDPacket) => {
+  _handle = (interfaceId: string, ipPacket: IPPacket, packet: DDPacket) => {
     const { neighborTable, router, dropPacket, neighborStateMachine } =
       this.ospfInterface;
     const { header } = packet;
@@ -278,23 +285,29 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
     const { state, routerId: neighborId } = neighbor;
     switch (state) {
       case State.Down:
-        return dropPacket(
-          ipPacket,
-          "Received a DD packet from a neighbor which was in the DOWN state."
+        this.packetProcessedEventBuilder?.addAction(
+          `<span style="color: ${Colors.droppedPacket}; font-weight: bold">Packet dropped</span> since it was
+          received from a neighbor currently in the DOWN state.`
         );
+        dropPacket(ipPacket);
+        break;
       case State.Init:
-        neighborStateMachine(
+        const action = neighborStateMachine(
           neighborId.toString(),
           NeighborSMEvent.TwoWayReceived
         );
-        return;
+        action && this.packetProcessedEventBuilder?.addAction(action);
+        break;
       case State.ExStart:
-        return this.exStartHandler(packet);
+        this.exStartHandler(packet);
+        break;
       case State.Exchange:
-        return this.exchangeHandler(ipPacket, packet);
+        this.exchangeHandler(ipPacket, packet);
+        break;
       case State.Loading:
       case State.Full:
-        return this.loadingFullHandler(packet);
+        this.loadingFullHandler(packet);
+        break;
       default:
         return;
     }
