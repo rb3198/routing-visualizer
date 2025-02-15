@@ -29,6 +29,7 @@ export function InterfaceEventBuilder(
   return new NetworkEvent({
     timestamp: Date.now(),
     title,
+    questions: [],
     actions,
     links: [],
     router: id.toString(),

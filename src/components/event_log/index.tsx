@@ -118,28 +118,30 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
   props
 ) => {
   const { event, hideLinks } = props;
-  const { actions, title, links, id } = event;
+  const { id, title, questions, actionLine, actions, links } = event;
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     setVisible(true);
   }, []);
 
-  const renderActions = useCallback(() => {
-    if (!actions?.length) {
+  const renderQas = useCallback((qas: string[]) => {
+    if (!qas?.length) {
       return <></>;
     }
     return (
       <ul>
-        {actions.map((action, idx) => (
-          <li key={idx} dangerouslySetInnerHTML={{ __html: action }}></li>
+        {qas.map((qa, idx) => (
+          <li key={idx} dangerouslySetInnerHTML={{ __html: qa }}></li>
         ))}
       </ul>
     );
-  }, [actions]);
+  }, []);
   return (
     <li className={`${styles.event} ${(visible && styles.visible) || ""}`}>
       <p dangerouslySetInnerHTML={{ __html: title }}></p>
-      {renderActions()}
+      {renderQas(questions)}
+      {(actionLine && <b>{actionLine}</b>) || <></>}
+      {renderQas(actions)}
       {links.length > 0 &&
         !hideLinks &&
         links.map((link, idx) => (

@@ -16,6 +16,7 @@ export function PacketDroppedEventBuilder(
     router: id.toString(),
     title: `<span style="color: ${Colors.droppedPacket}; font-weight: bold">Packet dropped</span> by router <b>${id}</b>.<br>
     <b>Reason:</b> ${reason}`,
+    questions: [],
     actions: [],
     links: [
       {

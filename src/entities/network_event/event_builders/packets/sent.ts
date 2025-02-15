@@ -83,6 +83,7 @@ export function PacketSentEventBuilder(
     timestamp: Date.now(),
     router: routerId.toString(),
     title: getTitle(packet),
+    questions: [],
     actions: [],
     links: getLinks(packet),
   });

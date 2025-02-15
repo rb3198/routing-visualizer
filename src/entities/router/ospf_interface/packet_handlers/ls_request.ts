@@ -89,13 +89,13 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
       );
       return;
     }
-    let action = `
+    let question = `
       <b>Received the following requests from ${neighborId}:</b>
       <ol>`;
     const lsaResponseList: LSA[] = [];
     let isBadLsReq = false;
     lsRequests.forEach((lsRequest) => {
-      action += this.getLsRequestHtml(lsRequest);
+      question += this.getLsRequestHtml(lsRequest);
       const lsa = lsDb.getLsa(areaId, lsRequest);
       if (!lsa) {
         isBadLsReq = true;
@@ -103,8 +103,8 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
       }
       lsaResponseList.push(copyLsa(lsa));
     });
-    action += "</ol>";
-    this.packetProcessedEventBuilder?.addAction(action);
+    question += "</ol>";
+    this.packetProcessedEventBuilder?.addQuestion(question);
     this.setNeighborRetransmissionList(neighbor, lsaResponseList);
     setTimeout(() => sendLSUpdatePacket(neighborId));
     if (isBadLsReq) {
