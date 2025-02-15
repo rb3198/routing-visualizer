@@ -42,14 +42,21 @@ export class HelloPacketHandler extends PacketHandlerBase<HelloPacket> {
     if (!neighborTable[routerId.ip]) {
       addToNeighborTable(routerId, areaId, ipSrc, interfaceId);
     }
-    neighborStateMachine(routerId.ip, NeighborSMEvent.HelloReceived);
+    const helloReceivedAction = neighborStateMachine(
+      routerId.ip,
+      NeighborSMEvent.HelloReceived
+    );
+    helloReceivedAction &&
+      this.packetProcessedEventBuilder?.addAction(helloReceivedAction);
     const presentInNeighborList = neighborList.has(router.id.toString());
-    neighborStateMachine(
+    const directionAction = neighborStateMachine(
       routerId.ip,
       presentInNeighborList
         ? NeighborSMEvent.TwoWayReceived
         : NeighborSMEvent.OneWay
     );
+    directionAction &&
+      this.packetProcessedEventBuilder?.addAction(directionAction);
     if (!presentInNeighborList) {
       return;
     }

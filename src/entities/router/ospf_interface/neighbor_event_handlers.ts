@@ -33,7 +33,7 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
   // state transition to init if the router is in a `DOWN` state.
   if (state === State.Down) {
     newState = State.Init;
-    desc += `Neighbor promoted to the <i>Init</i> state.`;
+    desc += `Neighbor promoted to the <code>Init</code> state.`;
   }
   this.setNeighbor({
     ...neighbor,
@@ -67,7 +67,7 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
   return `<i>OneWayReceived</i> event triggered since the router didn't spot 
       its address in the hello packet received from ${neighborId}.
       <ul>
-        <li>State of the neighbor set to INIT.</li>
+        <li>State of the neighbor set to <code>Init</code>.</li>
         <li>All the lists reset.</li>
       </ul>`;
 };
@@ -96,7 +96,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
     return `
     <i>TwoWayReceived</i> event triggered since the Router found itself in <b>${neighborId}</b>'s hello packet.
     <ul>
-      <li>${neighborId}'s state upgraded from INIT to EX-START.</li>
+      <li>${neighborId}'s state upgraded from <code>Init</code> to <code>ExStart</code>.</li>
       <li>The router will now negotiate the Master/Slave relationship and
       send Database Description Packets to ${neighborId}</li>
     </ul>
@@ -145,7 +145,7 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
     return loadingDone.call(
       this,
       neighbor,
-      `Exchange between the router and ${neighborId} is complete. Entering the FULL (final) state!`
+      `Exchange between the router and ${neighborId} is complete. Entering the <code>Full</code> (final) state!`
     );
   }
   const desc = `The router has some link state requests to emit to ${neighborId}. The router is completing the requests.`;

@@ -17,7 +17,7 @@ export function InterfaceEventBuilder(
   if (type === "added") {
     actions.push(`The router ${
       turnedOn === true ? "" : ", when turned on,"
-    } will now send Hello Packets to this interface every <i>helloInterval</i>
+    } will now send Hello Packets to this interface every <code>helloInterval</code>
         (${
           helloInterval / 1000
         }) seconds to indicate that its alive to a potential neighbor.`);
