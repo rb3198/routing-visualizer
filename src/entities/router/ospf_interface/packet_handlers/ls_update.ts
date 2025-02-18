@@ -20,6 +20,7 @@ import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { copyLsa } from "src/utils/common";
 import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
+import { printLsaHtml } from "src/utils/ui";
 
 export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
   validPacket = (ipPacket: IPPacket, packet: LSUpdatePacket) => {
@@ -161,40 +162,6 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     return true;
   };
 
-  private getLsaHtml = (lsaHeader: LSAHeader) => {
-    const { lsType, linkStateId, advertisingRouter, lsSeqNumber } = lsaHeader;
-    const render = [
-      {
-        label: "LS Type",
-        value: lsTypeToString(lsType),
-      },
-      {
-        label: "LS ID",
-        value: linkStateId,
-      },
-      {
-        label: "Adv. Router",
-        value: advertisingRouter,
-      },
-      {
-        label: "Seq. Number",
-        value: lsSeqNumber,
-      },
-    ];
-    return `
-        <div class="ls_req_container">
-          ${render
-            .map(
-              ({ label, value }) =>
-                `<div class="ls_req_desc">
-            <p class="ls_req_label">${label}</p>
-            <p class="ls_req_value">${value}</p>
-          </div>`
-            )
-            .join("\n")}
-        </div>`;
-  };
-
   _handle = (
     interfaceId: string,
     ipPacket: IPPacket,
@@ -228,7 +195,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       action = "";
       const { header } = lsa;
       action += `<b>LSA ${++idx}:</b> <br>`;
-      action += this.getLsaHtml(header);
+      action += printLsaHtml(header, true);
       if (this.shouldAcknowledgeAndDiscardLsa(areaId, lsa)) {
         acknowledgements.push(header);
         action += `<b>Discarded</b> but <b>will be acknowledged</b> since:

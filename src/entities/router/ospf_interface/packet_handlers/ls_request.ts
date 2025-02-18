@@ -7,8 +7,7 @@ import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { copyLsa } from "src/utils/common";
-import { LSRequest } from "src/entities/ospf/packets/ls_request";
-import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
+import { printLsaHtml } from "src/utils/ui";
 
 export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
   private getDescription = (neighborId: IPv4Address, lsaList: LSA[]) => {
@@ -33,36 +32,6 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
       linkStateRetransmissionList: lsaList,
       lsRetransmissionRxmtTimer: undefined,
     });
-  };
-
-  private getLsRequestHtml = (lsRequest: LSRequest) => {
-    const { lsType, linkStateId, advertisingRouter } = lsRequest;
-    const render = [
-      {
-        label: "LS Type",
-        value: lsTypeToString(lsType),
-      },
-      {
-        label: "LS ID",
-        value: linkStateId,
-      },
-      {
-        label: "Adv. Router",
-        value: advertisingRouter,
-      },
-    ];
-    return `
-    <div class="ls_req_container">
-      ${render
-        .map(
-          ({ label, value }) =>
-            `<div class="ls_req_desc">
-        <p class="ls_req_label">${label}</p>
-        <p class="ls_req_value">${value}</p>
-      </div>`
-        )
-        .join("\n")}
-    </div>`;
   };
 
   _handle = (
@@ -95,7 +64,7 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
     const lsaResponseList: LSA[] = [];
     let isBadLsReq = false;
     lsRequests.forEach((lsRequest) => {
-      question += this.getLsRequestHtml(lsRequest);
+      question += printLsaHtml(lsRequest);
       const lsa = lsDb.getLsa(areaId, lsRequest);
       if (!lsa) {
         isBadLsReq = true;

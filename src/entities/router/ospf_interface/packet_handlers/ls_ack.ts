@@ -1,37 +1,14 @@
 import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
 import { PacketHandlerBase } from "./base";
 import { IPPacket } from "src/entities/ip/packets";
-import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { LSA, LSAHeader } from "src/entities/ospf/lsa";
 import { MaxAge } from "src/entities/ospf/lsa/constants";
+import { printLsaHtml } from "src/utils/ui";
 
 export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
-  // TODO: Remove this function when prod
-  private printDebug = (
-    routerId: IPv4Address,
-    neighborId: IPv4Address,
-    linkStateRetransmissionList: LSA[]
-  ) => {
-    console.log(`Router ${routerId}: \n Link State Retransmission List:`);
-    linkStateRetransmissionList.forEach((ls, idx) => {
-      console.log(
-        `${idx}: ${ls.header.linkStateId} ; ${ls.header.advertisingRouter}`
-      );
-    });
-    console.warn(
-      `Router ${routerId} received the following Acknowledgements from ${neighborId}:`
-    );
-  };
-
-  private printAck = (idx: number, ack: LSAHeader) => {
-    console.warn(`${idx}: ${ack.linkStateId} ; ${ack.advertisingRouter}`); // TODO: Remove
-  };
-
   _handle = (interfaceId: string, ipPacket: IPPacket, packet: LSAckPacket) => {
-    let debug = true;
-    const { config, neighborTable, router, sendLSUpdatePacket, setNeighbor } =
+    const { config, neighborTable, sendLSUpdatePacket, setNeighbor } =
       this.ospfInterface;
-    const { id: routerId } = router;
     const { rxmtInterval } = config;
     const { header, body: acknowledgements } = packet;
     const { routerId: neighborId, areaId } = header;
@@ -43,10 +20,12 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
       linkStateRetransmissionList,
       lsRetransmissionRxmtTimer: prevTimer,
     } = neighbor;
-    debug && this.printDebug(routerId, neighborId, linkStateRetransmissionList);
+    let question = `
+      <b>Received the following acknowledgements from ${neighborId}:</b>
+      <ol>`;
     const ackedMaxAgeLsaList: LSA[] = [];
-    acknowledgements.forEach((ack, idx) => {
-      debug && this.printAck(idx, ack);
+    acknowledgements.forEach((ack) => {
+      question += "<li>" + printLsaHtml(ack, true);
       const lsIdx = linkStateRetransmissionList.findIndex((lsa) =>
         lsa.header.equals(LSAHeader.from(ack))
       );
@@ -55,27 +34,38 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
         const { header } = lsa;
         const { lsAge } = header;
         linkStateRetransmissionList.splice(lsIdx, 1);
+        question +=
+          "<b>The LSA was removed from the neighbor's Link State Retransmission List.</b>";
         lsAge === MaxAge && ackedMaxAgeLsaList.push(lsa);
+      } else {
+        question += `No action taken since this LSA was already removed from the neighbor's 
+        retransmission list.`;
       }
+      question += "</li>";
     });
+    this.packetProcessedEventBuilder?.addQuestion(question);
     let newTimer: NodeJS.Timeout | undefined = undefined;
     if (!linkStateRetransmissionList.length) {
+      this.packetProcessedEventBuilder?.addAction(
+        `The Link State Retransmission List of this neighbor is now empty. Hence,
+        <b>cleared timers to resend the list to ${neighborId}</b>.`
+      );
       clearTimeout(prevTimer);
     } else {
       newTimer =
         prevTimer ??
         setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval);
     }
-    setNeighbor(
-      {
-        ...neighbor,
-        linkStateRetransmissionList,
-        lsRetransmissionRxmtTimer: newTimer,
-      },
-      `Neighbor ${neighborId}'s retransmission list updated since ${
-        linkStateRetransmissionList.length ? "some" : "all"
-      } of the LSAs sent to the neighbor and acknowledged by it.`
+    setNeighbor({
+      ...neighbor,
+      linkStateRetransmissionList,
+      lsRetransmissionRxmtTimer: newTimer,
+    });
+    const maxAgeLsaRemovalAction = this.ospfInterface.lsDb.removeMaxAgeLsas(
+      areaId,
+      ackedMaxAgeLsaList
     );
-    this.ospfInterface.lsDb.removeMaxAgeLsas(areaId, ackedMaxAgeLsaList);
+    maxAgeLsaRemovalAction &&
+      this.packetProcessedEventBuilder?.addAction(maxAgeLsaRemovalAction);
   };
 }

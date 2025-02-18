@@ -15,6 +15,8 @@ import { copyLsa, getAreaIp } from "src/utils/common";
 import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
 import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
+import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
+import { printLsaHtml } from "src/utils/ui";
 
 export type LsId = {
   lsType: LSType;
@@ -387,8 +389,9 @@ export class LsDb {
 
   removeMaxAgeLsas = (areaId: number, maxAgeLsaList: LSA[]) => {
     const { neighborTable, router } = this.ospfInterface;
+    let action = "";
     if (!maxAgeLsaList || !maxAgeLsaList.length) {
-      return;
+      return action;
     }
     const areaNeighbors = Object.values(neighborTable).filter(
       (neighbor) => neighbor.areaId === areaId
@@ -413,7 +416,12 @@ export class LsDb {
       if (toDelete) {
         const areaDb = this.db[areaId];
         delete areaDb[LsDb.getLsDbKey(header)];
+        action += `<li>${printLsaHtml(header)}.<br>`;
         if (advertisingRouter.equals(router.id) && router.turnedOn === true) {
+          action += `Generated a new ${lsTypeToString(
+            lsType
+          )} LSA and scheduled recalculation of the 
+          routing table.</li>`;
           switch (lsType) {
             case LSType.RouterLSA:
               this.originateRouterLsa(areaId, true);
@@ -434,8 +442,15 @@ export class LsDb {
         }
       }
     }
-    recalculateTable &&
+    if (action) action += "</ul>";
+    if (recalculateTable) {
       this.ospfInterface.routingTableManager.calculate(areaId);
+      action += `<br><b>Recalculation of the routing table triggered.</b>`;
+    }
+    return action
+      ? `Deleting the following LSAs since they are of age 
+    <code>MaxAge</code> and are not on any retransmission lists: <ul>` + action
+      : "";
   };
 
   originateRouterLsa = (areaId: number, flood?: boolean) => {
