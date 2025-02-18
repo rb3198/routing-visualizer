@@ -186,6 +186,7 @@ export class LsDb {
 
   removeOldLsaFromRetransmissionLists = (areaId: number, oldCopy: LSA) => {
     const { neighborTable, setNeighbor } = this.ospfInterface;
+    const affectedNeighbors: IPv4Address[] = [];
     Object.values(neighborTable).forEach((neighbor) => {
       const {
         linkStateRetransmissionList,
@@ -198,23 +199,13 @@ export class LsDb {
       const newRetransmissionList = linkStateRetransmissionList.filter(
         (lsa) => !lsa.isInstanceOf(oldCopy)
       );
-      setNeighbor(
-        {
-          ...neighbor,
-          linkStateRetransmissionList: newRetransmissionList,
-        },
-        `
-        <ul>
-        <li>Removed the stale LSA copy from neighbor ${neighborId}'s Link State Retransmission List.</li>
-        ${
-          !newRetransmissionList.length
-            ? "<li>Cleared the associated timer to send LSAs, since none were left.</li>"
-            : ""
-        }
-        </ul>
-        `
-      );
+      setNeighbor({
+        ...neighbor,
+        linkStateRetransmissionList: newRetransmissionList,
+      });
+      affectedNeighbors.push(neighborId);
     });
+    return affectedNeighbors;
   };
 
   /**
@@ -254,13 +245,10 @@ export class LsDb {
     const newLinkStateRequestList = linkStateRequestList.filter(
       (neighborLsa) => !neighborLsa.isInstanceOf(lsa)
     );
-    setNeighbor(
-      {
-        ...neighbor,
-        linkStateRequestList: newLinkStateRequestList,
-      },
-      `Received a requested LSA from the network. Neighbor ${neighborId} Updated with the new link state request list.`
-    );
+    setNeighbor({
+      ...neighbor,
+      linkStateRequestList: newLinkStateRequestList,
+    });
     if (!newLinkStateRequestList.length) {
       neighborStateMachine(neighborId.toString(), NeighborSMEvent.LoadingDone);
     }
@@ -313,16 +301,13 @@ export class LsDb {
       linkStateRetransmissionList.push(
         ...lsasToAdvertise.map((lsa) => copyLsa(lsa))
       );
-      setNeighbor(
-        {
-          ...neighbor,
-          lsRetransmissionRxmtTimer:
-            lsRetransmissionRxmtTimer ??
-            setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval),
-          linkStateRetransmissionList,
-        },
-        `LSAs added to neighbor ${neighborId}'s retransmission list`
-      );
+      setNeighbor({
+        ...neighbor,
+        lsRetransmissionRxmtTimer:
+          lsRetransmissionRxmtTimer ??
+          setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval),
+        linkStateRetransmissionList,
+      });
       lsasToAdvertise.forEach((lsa) =>
         console.log(
           `LSA ${lsa.header.advertisingRouter} of type ${
@@ -338,6 +323,14 @@ export class LsDb {
     }
   };
 
+  appendToAction = (subAction: string, action?: string) => {
+    if (typeof action === "undefined") {
+      return "";
+    }
+    action += subAction;
+    return action;
+  };
+
   installLsa = (
     areaId: number,
     lsa: LSA,
@@ -349,10 +342,36 @@ export class LsDb {
     const { lsAge } = header;
     const key = LsDb.getLsDbKey(header);
     const oldCopy = this.getLsa(areaId, header);
-    oldCopy && this.removeOldLsaFromRetransmissionLists(areaId, oldCopy);
+    let action = "";
+    if (oldCopy) {
+      const affectedNeighbors = this.removeOldLsaFromRetransmissionLists(
+        areaId,
+        oldCopy
+      );
+      action = this.appendToAction(`<li>Old copy found in the DB - `, action);
+      action = this.appendToAction(
+        affectedNeighbors.length
+          ? `Removed it from the following neighbors' retransmission lists: ${affectedNeighbors.join(
+              ","
+            )}.`
+          : `Uninstalled it.`,
+        action
+      );
+      action = this.appendToAction(`</li>\n`);
+    }
     lsa.updatedOn = Date.now();
     this.db[areaId][key] = lsa;
-    flood && this.floodLsa(areaId, [lsa], [receivedFrom]);
+    action = this.appendToAction(
+      `<li>Installed new LSA in the DB.</li>`,
+      action
+    );
+    if (flood) {
+      this.floodLsa(areaId, [lsa], [receivedFrom]);
+      action = this.appendToAction(
+        `<li>Flooded the LSA in Area ${areaId}.</li>\n`,
+        action
+      );
+    }
     if (lsAge === MaxAge) {
       // LSA will be removed if it was not flooded to any router above
       this.removeMaxAgeLsas(areaId, [lsa]);
@@ -360,8 +379,10 @@ export class LsDb {
     const isDifferent =
       !oldCopy || JSON.stringify(oldCopy.body) !== JSON.stringify(lsa.body);
     if (isDifferent && !skipCalc) {
+      action += "<li>Started recalculation of the routing table.</li>\n";
       this.ospfInterface.routingTableManager.calculate(areaId);
     }
+    return action;
   };
 
   removeMaxAgeLsas = (areaId: number, maxAgeLsaList: LSA[]) => {

@@ -147,7 +147,7 @@ ul ul, ul ol {
     margin-bottom: 4px;
 }
 :global(.ls_req_container > .ls_req_desc) {
-    padding: .318rem .764rem;
+    padding: .318rem .618rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -161,10 +161,10 @@ ul ul, ul ol {
 
 :global(.ls_req_container > .ls_req_desc > .ls_req_label) {
     opacity: .75;
-    font-size: .618rem;
+    font-size: .5rem;
 }
 
 :global(.ls_req_container> .ls_req_desc > .ls_req_value) {
     font-weight: bold;
-    font-size: .764rem;
+    font-size: .618rem;
 }

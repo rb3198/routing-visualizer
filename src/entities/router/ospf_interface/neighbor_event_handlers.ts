@@ -237,13 +237,14 @@ const seqNumberMismatch: NeighborEventHandler = function (
  * @param neighbor The OSPF Neighbor
  * @returns Description of what actions took place.
  */
-const badLsRequest: NeighborEventHandler = function (neighbor) {
+const badLsRequest: NeighborEventHandler = function (neighbor, reason) {
   const { state } = neighbor;
   if (state >= State.Exchange) {
     return seqNumberMismatch.call(
       this,
       neighbor,
-      `Link State Request packet received in a state >= <code>Exchange</code>.
+      reason ??
+        `Link State Request packet received in a state >= <code>Exchange</code>.
       Generating <code>SeqNumberMismatch</code> event.`
     );
   }

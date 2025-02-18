@@ -40,6 +40,10 @@ export class HelloPacketHandler extends PacketHandlerBase<HelloPacket> {
     }
     // Router ID is derived from the router ID contained in the OSPF Header.
     if (!neighborTable[routerId.ip]) {
+      this.packetProcessedEventBuilder
+        ?.addAction(`Router ${routerId} <i>added to</i> the OSPF Neighbor Table since
+    its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
+    It belonged to the same area or the backbone area (Area 0)`);
       addToNeighborTable(routerId, areaId, ipSrc, interfaceId);
     }
     const helloReceivedAction = neighborStateMachine(

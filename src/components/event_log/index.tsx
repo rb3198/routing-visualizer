@@ -124,9 +124,12 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
     setVisible(true);
   }, []);
 
-  const renderQas = useCallback((qas: string[]) => {
+  const renderQas = useCallback((type: "q" | "a", qas: string[]) => {
     if (!qas?.length) {
       return <></>;
+    }
+    if (qas?.length === 1 && type === "q") {
+      return <p dangerouslySetInnerHTML={{ __html: qas[0] }}></p>;
     }
     return (
       <ul>
@@ -139,9 +142,9 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
   return (
     <li className={`${styles.event} ${(visible && styles.visible) || ""}`}>
       <p dangerouslySetInnerHTML={{ __html: title }}></p>
-      {renderQas(questions)}
+      {renderQas("q", questions)}
       {(actionLine && <b>{actionLine}</b>) || <></>}
-      {renderQas(actions)}
+      {renderQas("a", actions)}
       {links.length > 0 &&
         !hideLinks &&
         links.map((link, idx) => (
