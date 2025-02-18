@@ -8,12 +8,13 @@ import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
 
 function getOspfPacketTitle(receivedBy: IPv4Address, ospfPacket: OSPFPacket) {
   const { header } = ospfPacket;
-  const { type: packetType } = header;
+  const { type: packetType, routerId } = header;
   const color = OspfPacketColorMap.get(packetType);
   return `
         <b style="color: ${color}">${
     getPacketTypeString(packetType) + " Packet"
   }</b> <i>received</i> by router <b>${receivedBy.toString()}</b><br>
+  <b>Sent By:</b> ${routerId}<br>
         `;
 }
 

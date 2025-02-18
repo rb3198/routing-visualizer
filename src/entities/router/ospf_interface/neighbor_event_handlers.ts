@@ -117,15 +117,14 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
     ...neighbor,
     state: State.Exchange,
   });
-  this.sendDDPacket(neighbor.routerId);
+  setTimeout(() => this.sendDDPacket(neighbor.routerId));
   return `<b>Negotiation between the router and ${
     neighbor.routerId
-  } for Master / Slave is complete</b>.
-  ${
-    neighbor.routerId
-  } is now promoted to the <code>Exchange</code> state. The router is the <b>${
-    master ? "Master" : "Slave"
-  }</b>
+  } for Master / Slave is complete</b>.<br>
+  <code>NegotiationDone</code> event has been emitted and
+  ${neighbor.routerId} is now promoted to the <code>Exchange</code> state. ${
+    this.router.id
+  } is the <b>${master ? "Master" : "Slave"}</b>
   in this relation.`;
 };
 
@@ -148,7 +147,10 @@ const exchangeDone: NeighborEventHandler = function (neighbor) {
       `Exchange between the router and ${neighborId} is complete. Entering the <code>Full</code> (final) state!`
     );
   }
-  const desc = `The router has some link state requests to emit to ${neighborId}. The router is completing the requests.`;
+  const desc = `<code>ExchangeDone</code>
+      event was generated on completion of examination of the neighbor's Database Description packet.
+      The router has some link state requests to emit to ${neighborId} and hence enters the <code>Loading</code> state.
+      The router is completing the requests.`;
   clearInterval(ddRxmtTimer);
   this.setNeighbor({
     ...neighbor,
@@ -180,7 +182,8 @@ const loadingDone: NeighborEventHandler = function (neighbor, desc?: string) {
   this.lsDb.originateRouterLsa(areaId, true);
   return (
     desc ??
-    `Loading complete wrt neighbor ${neighborId}. Entering the FULL state.`
+    `Loading complete wrt neighbor ${neighborId}.
+    <code>LoadingDone</code> event generated - Entering the <code>Full</code> state.`
   );
 };
 

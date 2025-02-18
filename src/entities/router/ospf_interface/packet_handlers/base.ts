@@ -3,7 +3,11 @@ import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import { OSPFInterface } from "..";
 import { PacketProcessedEventBuilder } from "src/entities/network_event/event_builders/packets/processed";
 import { store } from "src/store";
-import { emitEvent, openNeighborTableSnapshot } from "src/action_creators";
+import {
+  emitEvent,
+  openNeighborTableSnapshot,
+  openPacketModal,
+} from "src/action_creators";
 import { copyNeighborTable } from "src/utils/common";
 
 export abstract class PacketHandlerBase<T extends OSPFPacket> {
@@ -31,6 +35,12 @@ export abstract class PacketHandlerBase<T extends OSPFPacket> {
     this._handle(interfaceId, ipPacket, packet);
     const table = copyNeighborTable(this.ospfInterface.neighborTable);
     // Build links using previous and current tables.
+    this.packetProcessedEventBuilder.addLink({
+      label: "View Packet",
+      onClick: () => {
+        store.dispatch(openPacketModal(ipPacket));
+      },
+    });
     this.packetProcessedEventBuilder.addLink({
       label: "View Neighbor Table Snapshot",
       onClick: () => {
