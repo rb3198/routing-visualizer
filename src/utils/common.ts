@@ -2,6 +2,7 @@ import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { LSA } from "src/entities/ospf/lsa";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { SummaryLSA } from "src/entities/ospf/lsa/summary_lsa";
+import { NeighborTableRow } from "src/entities/ospf/table_rows";
 
 /**
  * Gets key of object given a value belonging to the object.
@@ -39,3 +40,15 @@ export const copyLsa = function (lsa: LSA) {
 export const rootAsIp = new IPv4Address(192, 0, 0, 0, 8);
 export const getAreaIp = (areaId: number) =>
   new IPv4Address(rootAsIp.bytes[0], areaId + 1, 0, 0, 16);
+
+export const copyNeighborTable = (table: Record<string, NeighborTableRow>) => {
+  const newTable: Record<string, NeighborTableRow> = {};
+  Object.keys(table).forEach((key) => {
+    newTable[key] = {
+      ...table[key],
+      linkStateRequestList: [...table[key].linkStateRequestList],
+      linkStateRetransmissionList: [...table[key].linkStateRetransmissionList],
+    };
+  });
+  return newTable;
+};

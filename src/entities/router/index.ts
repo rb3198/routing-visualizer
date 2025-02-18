@@ -8,7 +8,7 @@ import { OSPFConfig } from "../ospf/config";
 import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
 import { BACKBONE_AREA_ID } from "../ospf/constants";
 import { store } from "../../store";
-import { emitEvent0 } from "../../action_creators";
+import { emitEvent } from "../../action_creators";
 import { RoutingTableRow } from "../ospf/table_rows";
 import { IPacket } from "../interfaces/IPacket";
 import { IPHeader } from "../ip/packets/header";
@@ -65,7 +65,7 @@ export class Router {
     let helloTimer: NodeJS.Timeout | undefined;
     const selfAddress = ipInterface.getSelfIpAddress(this) ?? "";
     store.dispatch(
-      emitEvent0(InterfaceEventBuilder(this, "added", selfAddress))
+      emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
     );
     if (this.turnedOn === true) {
       // IF turnedOn send hello packet immediately on the new interface.
@@ -172,7 +172,7 @@ export class Router {
       const ipPacket = new IPPacket(ipHeader, body);
       ipInterface?.sendMessage(this, ipPacket);
       const packetSentEvent = PacketSentEventBuilder(this.id, ipPacket);
-      store.dispatch(emitEvent0(packetSentEvent));
+      store.dispatch(emitEvent(packetSentEvent));
       return;
     }
     const longestMatchRow = this.routingTableLookup(destination);
@@ -246,7 +246,7 @@ export class Router {
     const { cellSize } = store.getState();
     if (reason) {
       const event = PacketDroppedEventBuilder(this, packet, reason);
-      store.dispatch(emitEvent0(event));
+      store.dispatch(emitEvent(event));
     }
     context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
   };

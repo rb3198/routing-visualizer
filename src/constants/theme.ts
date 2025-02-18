@@ -8,7 +8,7 @@ export const Colors = {
   dd: "#A88E32",
   lsRequest: "#8E32A8",
   lsUpdate: "#32A88E",
-  lsAck: "#000",
+  lsAck: "#5A32A8",
   droppedPacket: "#E13A1E",
 };
 

@@ -3,7 +3,8 @@ import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import { OSPFInterface } from "..";
 import { PacketProcessedEventBuilder } from "src/entities/network_event/event_builders/packets/processed";
 import { store } from "src/store";
-import { emitEvent0 } from "src/action_creators";
+import { emitEvent, openNeighborTableSnapshot } from "src/action_creators";
+import { copyNeighborTable } from "src/utils/common";
 
 export abstract class PacketHandlerBase<T extends OSPFPacket> {
   protected ospfInterface: OSPFInterface;
@@ -22,23 +23,28 @@ export abstract class PacketHandlerBase<T extends OSPFPacket> {
   handle(interfaceId: string, ipPacket: IPPacket, packet: T) {
     const { router } = this.ospfInterface;
     const { id } = router;
-    // const prevTable = {
-    //   ...this.ospfInterface.neighborTable,
-    // }; TODO
+    const prevTable = copyNeighborTable(this.ospfInterface.neighborTable);
     this.packetProcessedEventBuilder = PacketProcessedEventBuilder(
       id,
       ipPacket
     );
     this._handle(interfaceId, ipPacket, packet);
-    // const curTable = {
-    //   ...this.ospfInterface.neighborTable,
-    // }; TODO
-    // record curTable in links
+    const table = copyNeighborTable(this.ospfInterface.neighborTable);
+    // Build links using previous and current tables.
     this.packetProcessedEventBuilder.addLink({
       label: "View Neighbor Table Snapshot",
-      onClick: () => {},
-    }); // TODO
-    store.dispatch(emitEvent0(this.packetProcessedEventBuilder()));
+      onClick: () => {
+        store.dispatch(
+          openNeighborTableSnapshot({
+            prevTable,
+            table,
+            routerId: id,
+            timestamp: Date.now(),
+          })
+        );
+      },
+    });
+    store.dispatch(emitEvent(this.packetProcessedEventBuilder()));
     this.packetProcessedEventBuilder = undefined;
   }
 }

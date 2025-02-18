@@ -126,8 +126,7 @@ export class OSPFInterface {
     );
   };
 
-  setNeighbor = (neighbor: NeighborTableRow, description?: string) => {
-    // TODO: Remove description
+  setNeighbor = (neighbor: NeighborTableRow) => {
     const { modalState } = store.getState();
     const { active, data } = modalState;
     const { routerId: neighborId } = neighbor;
@@ -190,15 +189,13 @@ export class OSPFInterface {
     );
     !this.lsDb.getLsaListByArea(areaId).length &&
       this.lsDb.originateRouterLsa(areaId);
-    const eventDesc = `Router ${routerId} <i>added to</i> the OSPF Neighbor Table since
-    its OSPF config (helloInterval, deadInterval, DR, BDR) matched exactly with the router. 
-    It belonged to the same area or the backbone area (Area 0)`;
-    this.setNeighbor(neighbor, eventDesc);
+    this.setNeighbor(neighbor);
   };
 
   neighborStateMachine = (
     neighborId: string,
-    event: NeighborSMEvent
+    event: NeighborSMEvent,
+    reason?: string
   ): string | undefined => {
     const { neighborTable } = this;
     const neighbor = neighborTable[neighborId];
@@ -209,7 +206,7 @@ export class OSPFInterface {
       return;
     }
     const eventHandler = neighborEventHandlerFactory.get(event);
-    return eventHandler && eventHandler.call(this, neighbor);
+    return eventHandler && eventHandler.call(this, neighbor, reason);
   };
 
   private getAreaId = (ipInterface?: IPLinkInterface) => {
@@ -325,14 +322,10 @@ export class OSPFInterface {
     const { interfaceId, address, areaId, linkStateRetransmissionList } =
       neighbor;
     if (!linkStateRetransmissionList.length) {
-      this.setNeighbor(
-        {
-          ...neighbor,
-          lsRetransmissionRxmtTimer: undefined,
-        },
-        "Link State retransmission timer cleared."
-      );
-      console.log("Triggered send LSU with an empty list"); // TODO: Remove
+      this.setNeighbor({
+        ...neighbor,
+        lsRetransmissionRxmtTimer: undefined,
+      });
       return;
     }
     this.router.originateIpPacket(
@@ -341,14 +334,14 @@ export class OSPFInterface {
       new LSUpdatePacket(routerId, areaId, linkStateRetransmissionList),
       interfaceId
     );
-    this.setNeighbor(
-      {
-        ...neighbor,
-        lsRetransmissionRxmtTimer: setTimeout(
-          () => this.sendLSUpdatePacket(neighborId),
-          rxmtInterval
-        ),
-      },
+    this.setNeighbor({
+      ...neighbor,
+      lsRetransmissionRxmtTimer: setTimeout(
+        () => this.sendLSUpdatePacket(neighborId),
+        rxmtInterval
+      ),
+    });
+    console.warn(
       `Timer set to trigger retransmission of Update packets to neighbor ${neighborId}`
     );
   };

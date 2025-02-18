@@ -7,7 +7,6 @@ import { connect, ConnectedProps } from "react-redux";
 import { PacketDetailModalBody } from "./packet_details";
 import { IPPacket } from "src/entities/ip/packets";
 import { NeighborTableModalBody } from "./neighbor_table";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { OSPFPacket } from "src/entities/ospf/packets/packet_base";
 import {
   LiveNeighborTableState,
@@ -17,6 +16,7 @@ import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { LsDbModalBody } from "./ls_db";
 import { RoutingTableModalBody } from "./routing_table";
+import { NeighborTableSnapshot } from "src/entities/ospf/table_rows";
 
 type ReduxProps = ConnectedProps<typeof connector>;
 
@@ -36,7 +36,7 @@ const Manager: React.FC<ReduxProps> = (props) => {
             : ""
         } Packet (ID ${id})`;
       case "neighbor_table_snapshot":
-        const { routerId, timestamp } = data as NeighborTableEvent;
+        const { routerId, timestamp } = data as NeighborTableSnapshot;
         return `${routerId}'s Neighbor Table Snapshot at ${new Date(
           timestamp
         ).toLocaleTimeString()}`;
@@ -66,8 +66,8 @@ const Manager: React.FC<ReduxProps> = (props) => {
         return (
           <NeighborTableModalBody
             type="snap"
-            event={data as NeighborTableEvent}
             modalRef={modalRef}
+            {...(data as NeighborTableSnapshot)}
           />
         );
       case "neighbor_table_live":

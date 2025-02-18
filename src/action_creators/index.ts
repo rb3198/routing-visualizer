@@ -4,11 +4,13 @@ import {
   ModalAction,
   NotificationTooltipAction,
 } from "../types/actions";
-import { ActionCreator, Dispatch } from "redux";
+import { ActionCreator } from "redux";
 import { RectDim } from "../types/geometry";
 import { IPPacket } from "../entities/ip/packets";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
-import { NeighborTableRow } from "src/entities/ospf/table_rows";
+import {
+  NeighborTableRow,
+  NeighborTableSnapshot,
+} from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
@@ -22,28 +24,13 @@ export type VizArgs = {
   packetRect?: RectDim;
 };
 
-export type EmitEventArgs = {
-  event: NeighborTableEvent;
-  eventName: "neighborTableEvent";
-};
-
-export const emitEvent0 = (event: NetworkEvent): EventLogAction => {
+export const emitEvent = (event: NetworkEvent): EventLogAction => {
   return {
     type: "ADD_LOG",
     data: event,
   };
 };
 
-export const emitEvent =
-  (args: EmitEventArgs) =>
-  async (dispatch: Dispatch): Promise<void> => {
-    const { event } = args;
-    dispatch<EventLogAction>({
-      type: "ADD_LOG",
-      // @ts-ignore
-      data: event,
-    });
-  };
 export const setCellSize: ActionCreator<CellSizeAction> = (
   cellSize: number
 ) => {
@@ -69,9 +56,9 @@ export const openLsDbModal: ActionCreator<ModalAction> = (data: LsDb) => {
   };
 };
 
-export const openNeighborTableSnapshot: ActionCreator<ModalAction> = (
-  data: NeighborTableEvent
-) => {
+export const openNeighborTableSnapshot = (
+  data: NeighborTableSnapshot
+): ModalAction => {
   return {
     type: "OPEN_MODAL",
     active: "neighbor_table_snapshot",
