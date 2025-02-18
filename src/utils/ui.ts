@@ -1,5 +1,7 @@
+import { LSAHeader } from "src/entities/ospf/lsa";
 import { GridCell } from "../entities/geometry/grid_cell";
-import { store } from "../store";
+import { LSRequest } from "src/entities/ospf/packets/ls_request";
+import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
 
 export const debounce = (func: Function, wait: number) => {
   let timeout: number | undefined;
@@ -21,12 +23,12 @@ export const onCanvasLayout = (canvas: HTMLCanvasElement) => {
 };
 
 export const mapCoordsToGridCell = (
+  cellSize: number,
   clientX: number,
   clientY: number,
   gridRect: GridCell[][],
   canvas: HTMLCanvasElement
 ) => {
-  const { cellSize } = store.getState();
   const { x: canvasX, y: canvasY } = canvas.getBoundingClientRect();
   const offsetX = clientX - canvasX;
   const offsetY = clientY - canvasY;
@@ -36,4 +38,46 @@ export const mapCoordsToGridCell = (
     return { row, column, cell: undefined };
   }
   return { row, column, cell: gridRect[row][column] };
+};
+
+export const printLsaHtml = (
+  header: LSAHeader | LSRequest,
+  printSeqNumber?: boolean
+) => {
+  const { advertisingRouter, linkStateId, lsType } = header;
+  let html = "";
+  const render = [
+    {
+      label: "LS Type",
+      value: lsTypeToString(lsType),
+    },
+    {
+      label: "LS ID",
+      value: linkStateId,
+    },
+    {
+      label: "Adv. Router",
+      value: advertisingRouter,
+    },
+  ];
+  "lsSeqNumber" in header &&
+    printSeqNumber &&
+    render.push({
+      label: "LS Seq. Number",
+      value: header.lsSeqNumber.toString(),
+    });
+  html += `
+          <div class="ls_req_container">
+            ${render
+              .map(
+                ({ label, value }) =>
+                  `<div class="ls_req_desc">
+              <p class="ls_req_label">${label}</p>
+              <p class="ls_req_value">${value}</p>
+            </div>`
+              )
+              .join("\n")}
+          </div>
+          <br>`;
+  return html;
 };

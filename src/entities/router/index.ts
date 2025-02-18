@@ -9,15 +9,15 @@ import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create 
 import { BACKBONE_AREA_ID } from "../ospf/constants";
 import { store } from "../../store";
 import { emitEvent } from "../../action_creators";
-import { InterfaceNetworkEvent } from "../network_event/interface_event";
 import { RoutingTableRow } from "../ospf/table_rows";
 import { IPacket } from "../interfaces/IPacket";
 import { IPHeader } from "../ip/packets/header";
 import { BROADCAST_ADDRESSES } from "src/constants/ip_addresses";
-import { OSPFPacket } from "../ospf/packets/packet_base";
-import { PacketSentEvent } from "../network_event/packet_events/sent";
 import { packetAnimations } from "src/animations/packets";
 import { Colors } from "src/constants/theme";
+import { PacketSentEventBuilder } from "../network_event/event_builders/packets/sent";
+import { PacketDroppedEventBuilder } from "../network_event/event_builders/packets/dropped";
+import { InterfaceEventBuilder } from "../network_event/event_builders/interfaces";
 
 export class Router {
   key: string;
@@ -63,10 +63,10 @@ export class Router {
     const { config } = this.ospf;
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
-    emitEvent({
-      eventName: "interfaceEvent",
-      event: new InterfaceNetworkEvent("added", this),
-    })(store.dispatch);
+    const selfAddress = ipInterface.getSelfIpAddress(this) ?? "";
+    store.dispatch(
+      emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
+    );
     if (this.turnedOn === true) {
       // IF turnedOn send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
@@ -74,7 +74,7 @@ export class Router {
         this.ospf.sendHelloPacket(ipInterface);
       }, helloInterval);
     }
-    this.ipInterfaces.set(ipInterface.getSelfIpAddress(this) ?? "", {
+    this.ipInterfaces.set(selfAddress, {
       ipInterface,
       helloTimer,
     });
@@ -171,15 +171,8 @@ export class Router {
       );
       const ipPacket = new IPPacket(ipHeader, body);
       ipInterface?.sendMessage(this, ipPacket);
-      if (body instanceof OSPFPacket) {
-        const event = new PacketSentEvent(
-          this,
-          destination,
-          ipPacket,
-          ipInterfaceId
-        );
-        emitEvent({ event, eventName: "packetSent" })(store.dispatch);
-      }
+      const packetSentEvent = PacketSentEventBuilder(this.id, ipPacket);
+      store.dispatch(emitEvent(packetSentEvent));
       return;
     }
     const longestMatchRow = this.routingTableLookup(destination);
@@ -229,20 +222,33 @@ export class Router {
       packet.header.ttl--; // Decrement the TTL of the received packet
       if (packet.header.ttl <= 0) {
         // Drop the packet. Send ICMP message back to the source that the packet was not deliverable.
-        this.dropPacket();
+        this.dropPacket(packet, "Packet TTL Expired.");
         return;
       }
       this.sendIpPacket(packet);
     }
   };
 
-  dropPacket = () => {
+  /**
+   * Function to drop a packet.
+   * - Triggers the drop packet animation
+   * - If provided a reason, logs the packet drop event.
+   * @param packet The packet to be dropped.
+   * @param reason Reason the packet was dropped.
+   * @param color Color of the dropped packet.
+   */
+  dropPacket = (
+    packet: IPPacket,
+    reason?: string,
+    color: string = Colors.accent
+  ) => {
     const context = window.elementLayer?.getContext("2d");
     const { cellSize } = store.getState();
-    if (!context) {
-      return;
+    if (reason) {
+      const event = PacketDroppedEventBuilder(this, packet, reason);
+      store.dispatch(emitEvent(event));
     }
-    packetAnimations.packetDrop(context, cellSize, this, 500, Colors.accent);
+    context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
   };
 
   turnOn = () => {

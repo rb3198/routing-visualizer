@@ -47,6 +47,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const {
     gridRect,
     defaultAreaSize,
+    cellSize,
     propagationDelay,
     setPropagationDelayInStore,
     setLiveNeighborTable,
@@ -159,6 +160,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         return;
       }
       const { row, column } = mapCoordsToGridCell(
+        cellSize,
         clientX,
         clientY,
         gridRect,
@@ -222,6 +224,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       defaultAreaSize,
       gridSizeX,
       gridSizeY,
+      cellSize,
     ]
   );
 
@@ -236,6 +239,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       }
       const { clientX, clientY } = e;
       const { row, column } = mapCoordsToGridCell(
+        cellSize,
         clientX,
         clientY,
         gridRect,
@@ -252,7 +256,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         overlayLayer: overlayLayerRef.current,
       });
     },
-    [gridRect]
+    [gridRect, cellSize]
   );
 
   const componentPickerOpts: PickerOption[] = useMemo(() => {
@@ -509,8 +513,8 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 };
 
 const mapStateToProps = (state: IRootReducer) => {
-  const { propagationDelay } = state;
-  return { propagationDelay };
+  const { propagationDelay, cellSize } = state;
+  return { propagationDelay, cellSize };
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {

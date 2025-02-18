@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from "./styles.module.css";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { PacketType } from "src/entities/ospf/enum";
-import { PacketColorMap } from "src/constants/theme";
+import { OspfPacketColorMap } from "src/constants/theme";
 import { getPacketTypeString } from "src/entities/ospf/enum/packet_type";
 
 export const PacketLegend: React.FC = () => {
@@ -68,7 +68,7 @@ export const PacketLegend: React.FC = () => {
                   <div
                     className={styles.packet}
                     style={{
-                      backgroundColor: PacketColorMap.get(
+                      backgroundColor: OspfPacketColorMap.get(
                         packetType as PacketType
                       ),
                     }}

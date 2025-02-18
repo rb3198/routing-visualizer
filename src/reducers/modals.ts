@@ -1,9 +1,11 @@
 import { Reducer } from "redux";
 import { IPPacket } from "../entities/ip/packets";
 import { ModalAction } from "../types/actions";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
-import { NeighborTableRow } from "src/entities/ospf/table_rows";
+import {
+  NeighborTableRow,
+  NeighborTableSnapshot,
+} from "src/entities/ospf/table_rows";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 
@@ -23,7 +25,7 @@ export type ActiveModalState =
     }
   | {
       active: "neighbor_table_snapshot";
-      data: NeighborTableEvent;
+      data: NeighborTableSnapshot;
     }
   | {
       active: "neighbor_table_live";

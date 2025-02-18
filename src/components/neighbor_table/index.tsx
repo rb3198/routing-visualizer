@@ -1,5 +1,4 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import styles from "./styles.module.css";
 import { getKey } from "src/utils/common";
@@ -104,9 +103,10 @@ type CommonProps = {
   >;
 };
 
-type EventNeighborTableProps = CommonProps & {
+type SnapshotProps = CommonProps & {
   type: "snap";
-  event: NeighborTableEvent;
+  prevTable: Record<string, NeighborTableRow>;
+  table: Record<string, NeighborTableRow>;
 };
 
 type LiveNeighborTableProps = CommonProps & {
@@ -115,11 +115,10 @@ type LiveNeighborTableProps = CommonProps & {
 };
 
 type NeighborTableProps = CommonProps &
-  (EventNeighborTableProps | LiveNeighborTableProps);
+  (SnapshotProps | LiveNeighborTableProps);
 
-const EventTableBody: React.FC<EventNeighborTableProps> = (props) => {
-  const { event, activeCol, setActiveCol } = props;
-  const { affectedNeighborId, eventType, prevTable, neighborTable } = event;
+const SnapshotTableBody: React.FC<SnapshotProps> = (props) => {
+  const { prevTable, table, activeCol, setActiveCol } = props;
   const [activeTable, setActiveTable] = useState(prevTable);
   const columns = useMemo(
     () =>
@@ -129,24 +128,23 @@ const EventTableBody: React.FC<EventNeighborTableProps> = (props) => {
     []
   );
   useLayoutEffect(() => {
-    if (eventType === "added" || eventType === "deleted") {
-      setActiveTable(neighborTable);
-      return;
-    }
     const timeout = setTimeout(() => {
-      setActiveTable(neighborTable);
-    }, 500);
+      setActiveTable(table);
+    }, 1500);
     return () => {
       clearTimeout(timeout);
     };
-  }, [eventType, neighborTable]);
+  }, [table]);
   const rows = Object.values(activeTable);
   return (
     <>
       {rows.map((neighbor) => {
-        const isAffected = neighbor.routerId.ip === affectedNeighborId;
-        const rowClass =
-          isAffected && eventType === "added" ? styles.added : "";
+        const { routerId: neighborId } = neighbor;
+        const isAdded =
+          activeTable === table &&
+          !prevTable[`${neighborId}`] &&
+          !!table[`${neighborId}`];
+        const rowClass = isAdded ? styles.added : "";
         return (
           <tr
             key={`neighbor_table_tr_${neighbor.routerId}`}
@@ -256,10 +254,11 @@ export const NeighborTable: React.FC<NeighborTableProps> = (props) => {
   const renderBody = () => {
     switch (type) {
       case "snap":
-        const { event } = props;
+        const { table, prevTable } = props;
         return (
-          <EventTableBody
-            event={event}
+          <SnapshotTableBody
+            table={table}
+            prevTable={prevTable}
             type="snap"
             activeCol={activeCol}
             setActiveCol={setActiveCol}

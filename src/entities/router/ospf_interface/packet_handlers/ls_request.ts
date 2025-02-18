@@ -7,13 +7,14 @@ import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { copyLsa } from "src/utils/common";
+import { printLsaHtml } from "src/utils/ui";
 
 export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
   private getDescription = (neighborId: IPv4Address, lsaList: LSA[]) => {
     return lsaList.length
-      ? `The Link State Retransmission List has been updated for neighbor <b>${neighborId}</b>, since the router just flooded
-      Link State Updates to the neighbor. This list will be re-transmitted in case ACK is not received from the neighbor within
-      <i>rxmtInterval</i> seconds`
+      ? `Updated the Link State Retransmission List for neighbor <b>${neighborId}</b>, to flood the requested
+      Link State Updates to the neighbor. This list will be re-transmitted in case <code>ACK</code> is not received from the neighbor within
+      <code>RxmtInterval</code> seconds`
       : `No link state updates to retransmit to neighbor <b>${neighborId}</b>. Retransmission Timer reset.`;
   };
 
@@ -25,17 +26,15 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
     const { lsRetransmissionRxmtTimer, routerId: neighborId } = neighbor;
     clearTimeout(lsRetransmissionRxmtTimer);
     const desc = this.getDescription(neighborId, lsaList);
-    setNeighbor(
-      {
-        ...neighbor,
-        linkStateRetransmissionList: lsaList,
-        lsRetransmissionRxmtTimer: undefined,
-      },
-      desc
-    );
+    this.packetProcessedEventBuilder?.addAction(desc);
+    setNeighbor({
+      ...neighbor,
+      linkStateRetransmissionList: lsaList,
+      lsRetransmissionRxmtTimer: undefined,
+    });
   };
 
-  handle = (
+  _handle = (
     interfaceId: string,
     ipPacket: IPPacket,
     packet: LSRequestPacket
@@ -54,17 +53,18 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
     const { state } = neighbor || {};
     const { ipInterface } = ipInterfaces.get(interfaceId) || {};
     if (!neighbor || state < State.Exchange || !ipInterface) {
-      return; // TODO: Emit Event
+      this.packetProcessedEventBuilder?.addAction(
+        `Since the ${neighborId} is in a state < <code>Exchange</code>, this request is being discarded`
+      );
+      return;
     }
-    console.warn(
-      `Router ${router.id} received the following requests from ${neighborId}:`
-    );
+    let question = `
+      <b>Received the following requests from ${neighborId}:</b>
+      <ol>`;
     const lsaResponseList: LSA[] = [];
     let isBadLsReq = false;
-    lsRequests.forEach((lsRequest, idx) => {
-      console.warn(
-        `${idx}: LS Request Type ${lsRequest.lsType}; ${lsRequest.linkStateId}; ${lsRequest.advertisingRouter}`
-      );
+    lsRequests.forEach((lsRequest) => {
+      question += printLsaHtml(lsRequest);
       const lsa = lsDb.getLsa(areaId, lsRequest);
       if (!lsa) {
         isBadLsReq = true;
@@ -72,10 +72,16 @@ export class LsRequestPacketHandler extends PacketHandlerBase<LSRequestPacket> {
       }
       lsaResponseList.push(copyLsa(lsa));
     });
+    question += "</ol>";
+    this.packetProcessedEventBuilder?.addQuestion(question);
     this.setNeighborRetransmissionList(neighbor, lsaResponseList);
-    sendLSUpdatePacket(neighborId);
+    setTimeout(() => sendLSUpdatePacket(neighborId));
     if (isBadLsReq) {
-      neighborStateMachine(neighborId.toString(), NeighborSMEvent.BadLSReq);
+      const action = neighborStateMachine(
+        neighborId.toString(),
+        NeighborSMEvent.BadLSReq
+      );
+      action && this.packetProcessedEventBuilder?.addAction(action);
     }
   };
 }

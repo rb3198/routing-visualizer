@@ -2,12 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import styles from "./styles.module.css";
-import { NetworkEventBase } from "../../entities/network_event/base";
 import { bindActionCreators, Dispatch } from "redux";
 import { setEventLogKeepCount } from "src/action_creators";
 import { BiSearch } from "react-icons/bi";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
 import { MdKeyboardArrowUp } from "react-icons/md";
+import { NetworkEvent } from "src/entities/network_event";
 
 export type EventLogProps = {
   filter?: {
@@ -103,23 +102,9 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         {(showControlPanel && ControlPanel) || <></>}
         <ul id={styles.log_list}>
           {eventLog
-            .filter((event) => {
-              let isValid = true;
-              switch (type) {
-                case "neighbor":
-                  isValid &&= event instanceof NeighborTableEvent;
-                  if (!isValid) break;
-                  if (routerId) {
-                    isValid &&=
-                      (event as NeighborTableEvent).routerId.toString() ===
-                      routerId;
-                  }
-                  break;
-                default:
-                  break;
-              }
-              return isValid;
-            })
+            .filter((event) =>
+              type === "neighbor" ? event.router === routerId : true
+            )
             .map((event) => (
               <Event event={event} key={event.id} hideLinks={hideLinks} />
             ))}
@@ -129,18 +114,37 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
   );
 };
 
-const Event: React.FC<{ event: NetworkEventBase; hideLinks?: boolean }> = (
+const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
   props
 ) => {
   const { event, hideLinks } = props;
-  const { message, links, id } = event;
+  const { id, title, questions, actionLine, actions, links } = event;
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     setVisible(true);
   }, []);
+
+  const renderQas = useCallback((type: "q" | "a", qas: string[]) => {
+    if (!qas?.length) {
+      return <></>;
+    }
+    if (qas?.length === 1 && type === "q") {
+      return <p dangerouslySetInnerHTML={{ __html: qas[0] }}></p>;
+    }
+    return (
+      <ul>
+        {qas.map((qa, idx) => (
+          <li key={idx} dangerouslySetInnerHTML={{ __html: qa }}></li>
+        ))}
+      </ul>
+    );
+  }, []);
   return (
     <li className={`${styles.event} ${(visible && styles.visible) || ""}`}>
-      <p dangerouslySetInnerHTML={{ __html: message }}></p>
+      <p dangerouslySetInnerHTML={{ __html: title }}></p>
+      {renderQas("q", questions)}
+      {(actionLine && <b>{actionLine}</b>) || <></>}
+      {renderQas("a", actions)}
       {links.length > 0 &&
         !hideLinks &&
         links.map((link, idx) => (

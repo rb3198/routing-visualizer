@@ -28,8 +28,6 @@ export class NeighborTableRow {
    */
   master: boolean;
 
-  // lastDDPacket - Last Received DBD Packet TODO
-
   /**
    * Timeout to set the router to DOWN state after no hello packet communication for `deadInterval` milliseconds.
    */

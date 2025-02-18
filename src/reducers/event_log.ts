@@ -1,10 +1,10 @@
 import { Reducer } from "redux";
 import { EventLogAction } from "../types/actions";
-import { NetworkEventBase } from "../entities/network_event/base";
 import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
+import { NetworkEvent } from "src/entities/network_event";
 
 type EventLogState = {
-  logs: NetworkEventBase[];
+  logs: NetworkEvent[];
   keepCount: number;
 };
 

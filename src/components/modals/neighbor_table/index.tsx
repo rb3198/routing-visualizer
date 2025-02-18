@@ -1,7 +1,9 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NeighborTable } from "src/components/neighbor_table";
-import { NeighborTableEvent } from "src/entities/network_event/neighbor_table_event";
-import { NeighborTableRow } from "src/entities/ospf/table_rows";
+import {
+  NeighborTableRow,
+  NeighborTableSnapshot,
+} from "src/entities/ospf/table_rows";
 import styles from "./styles.module.css";
 import { descriptions } from "../../neighbor_table/descriptions";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
@@ -15,10 +17,9 @@ export type NeighborTableModalBodyProps = {
       routerId: IPv4Address;
       neighborTable: Record<string, NeighborTableRow>;
     }
-  | {
+  | ({
       type: "snap";
-      event: NeighborTableEvent;
-    }
+    } & NeighborTableSnapshot)
 );
 
 export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
@@ -69,17 +70,13 @@ export const NeighborTableModalBody: React.FC<NeighborTableModalBodyProps> = (
     const { type } = props;
     switch (type) {
       case "snap":
-        const { event } = props;
-        const { message } = event;
+        const { prevTable, table } = props;
         return (
           <>
-            <div
-              id={styles.message}
-              dangerouslySetInnerHTML={{ __html: message }}
-            ></div>
             <NeighborTable
               type="snap"
-              event={event}
+              table={table}
+              prevTable={prevTable}
               activeCol={activeCol}
               setActiveCol={setActiveCol}
             />
