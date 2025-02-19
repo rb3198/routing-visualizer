@@ -3,9 +3,9 @@
     background-color: #181818;
     color: white;
     position: absolute;
-    overflow: hidden;
-    transition: opacity .25s ease;
-    transition-delay: left .5s;
+    overflow-y: scroll;
+    transition: opacity .25s ease; /* Change Animation duration in component def when changing this */
+    max-height: 50vh;
 }
 
 #container ul {

@@ -7,9 +7,9 @@ import { GoDatabase } from "react-icons/go";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { AreaTree } from "src/entities/area_tree";
 import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
-import { getPickerPosition } from "../area_manager/utils";
 import { Point2D } from "src/types/geometry";
 import { GridCell } from "src/entities/geometry/grid_cell";
+import { usePickerPosition } from "../hooks/usePickerPosition";
 
 export interface RouterMenuProps {
   cell: Point2D;
@@ -36,7 +36,7 @@ export interface RouterMenuProps {
  * @param props
  * @returns
  */
-export const RouterMenu: React.FC<RouterMenuProps> = (props) => {
+export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
   const {
     cell,
     gridRect,
@@ -53,6 +53,14 @@ export const RouterMenu: React.FC<RouterMenuProps> = (props) => {
     enableDestSelectionMode,
     openRoutingTable,
   } = props;
+
+  const [position, zIndex] = usePickerPosition({
+    visible,
+    cell,
+    gridRect,
+    picker: pickerRef?.current,
+    canvas: areaLayerRef?.current,
+  });
 
   const Controls = useMemo(() => {
     const { turnedOn } = selectedRouter || {};
@@ -129,14 +137,6 @@ export const RouterMenu: React.FC<RouterMenuProps> = (props) => {
     enableDestSelectionMode,
   ]);
 
-  const position = getPickerPosition(
-    ...cell,
-    gridRect,
-    pickerRef?.current,
-    areaLayerRef?.current
-  );
-  const { top, left, bottom } = position;
-
   const connectionOptions = useMemo(() => {
     const areaTree = areaTreeRef.current;
     if (!areaTree || !selectedRouter || !areaTree.root) {
@@ -176,18 +176,17 @@ export const RouterMenu: React.FC<RouterMenuProps> = (props) => {
           }),
         };
       })
-      .filter(({ connectionOptions }) => connectionOptions.length > 0);
+      .filter(({ connectionOptions }) => connectionOptions.length > 0)
+      .sort((a, b) => a.id - b.id);
   }, [areaTreeRef, selectedRouter]);
   return (
     <div
       ref={pickerRef}
       id={styles.container}
       style={{
-        zIndex: visible ? 100 : -1,
         opacity: visible ? 1 : 0,
-        top,
-        left,
-        bottom,
+        zIndex,
+        ...position,
       }}
     >
       {!controlsDisabled && Controls}
@@ -219,7 +218,7 @@ export const RouterMenu: React.FC<RouterMenuProps> = (props) => {
       )) || <></>}
     </div>
   );
-};
+});
 
 interface ConnectionProps {
   loc: string;
