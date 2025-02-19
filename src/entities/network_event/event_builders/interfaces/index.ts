@@ -1,12 +1,13 @@
 import { Router } from "src/entities/router";
 import { NetworkEvent } from "../..";
+import { RouterPowerState } from "src/entities/router/enum/RouterPowerState";
 
 export function InterfaceEventBuilder(
   router: Router,
   type: "added" | "destroyed",
   interfaceAddress: string
 ) {
-  const { id, turnedOn, ospf } = router;
+  const { id, power, ospf } = router;
   const { config } = ospf;
   const { helloInterval } = config;
   const title =
@@ -16,7 +17,7 @@ export function InterfaceEventBuilder(
   const actions = [];
   if (type === "added") {
     actions.push(`The router ${
-      turnedOn === true ? "" : ", when turned on,"
+      power === RouterPowerState.On ? "" : ", when turned on,"
     } will now send Hello Packets to this interface every <code>helloInterval</code>
         (${
           helloInterval / 1000

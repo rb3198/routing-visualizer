@@ -18,6 +18,7 @@ import { Colors } from "src/constants/theme";
 import { PacketSentEventBuilder } from "../network_event/event_builders/packets/sent";
 import { PacketDroppedEventBuilder } from "../network_event/event_builders/packets/dropped";
 import { InterfaceEventBuilder } from "../network_event/event_builders/interfaces";
+import { RouterPowerState as PowerState } from "./enum/RouterPowerState";
 
 export class Router {
   key: string;
@@ -41,14 +42,14 @@ export class Router {
   /**
    * Boolean to indicate if the router is turned on.
    */
-  turnedOn: boolean | "turning_off";
+  power: PowerState;
 
   constructor(
     key: string,
     location: Point2D,
     id: IPv4Address,
     ospfConfig: OSPFConfig,
-    turnedOn?: boolean
+    power?: PowerState
   ) {
     this.key = key;
     this.location = location;
@@ -56,7 +57,7 @@ export class Router {
     this.ipInterfaces = new Map();
     this.bgpTable = [];
     this.ospf = new OSPFInterface(this, ospfConfig);
-    this.turnedOn = turnedOn ?? false;
+    this.power = power ?? PowerState.Shutdown;
   }
 
   addInterface = (ipInterface: IPLinkInterface) => {
@@ -67,8 +68,8 @@ export class Router {
     store.dispatch(
       emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
     );
-    if (this.turnedOn === true) {
-      // IF turnedOn send hello packet immediately on the new interface.
+    if (this.power === PowerState.On) {
+      // IF power is on send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
       helloTimer = setInterval(() => {
         this.ospf.sendHelloPacket(ipInterface);
@@ -158,7 +159,7 @@ export class Router {
     body: IPacket,
     ipInterfaceId?: string
   ) => {
-    if (!this.turnedOn) {
+    if (this.power === PowerState.Shutdown) {
       return;
     }
     if (ipInterfaceId) {
@@ -199,7 +200,7 @@ export class Router {
     const { header } = packet;
     const { protocol, destination } = header;
     const { receivePacket } = this.ospf;
-    if (!this.turnedOn) {
+    if (this.power === PowerState.Shutdown) {
       return;
     }
     const packetAction =
@@ -254,10 +255,10 @@ export class Router {
   turnOn = () => {
     const { config, lsDb } = this.ospf;
     const { helloInterval } = config;
-    if (this.turnedOn === true) {
+    if (this.power === PowerState.On) {
       return;
     }
-    this.turnedOn = true;
+    this.power = PowerState.On;
     for (const [ip, { ipInterface }] of this.ipInterfaces) {
       this.ospf.sendHelloPacket(ipInterface);
       const helloTimer = setInterval(() => {
@@ -273,7 +274,7 @@ export class Router {
   };
 
   turnOff = async () => {
-    this.turnedOn = "turning_off";
+    this.power = PowerState.ShuttingDown;
     this.ospf.lsDb.clearTimers();
     await this.ospf.lsDb.clearDb(true); //TODO: Make graceful shutdown optional
     Object.values(this.ospf.neighborTable).forEach(
@@ -293,7 +294,6 @@ export class Router {
     [...this.ipInterfaces.values()].forEach(({ helloTimer }) => {
       clearInterval(helloTimer);
     });
-    this.turnedOn = false;
-    return { ...this };
+    this.power = PowerState.Shutdown;
   };
 }

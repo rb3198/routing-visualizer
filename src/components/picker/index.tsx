@@ -1,10 +1,10 @@
 // @ts-ignore
 import { IconType } from "react-icons";
 import styles from "./styles.module.css";
-import { MouseEventHandler } from "react";
+import { memo, MouseEventHandler } from "react";
 import { Point2D } from "src/types/geometry";
-import { getPickerPosition } from "../area_manager/utils";
 import { GridCell } from "src/entities/geometry/grid_cell";
+import { usePickerPosition } from "../hooks/usePickerPosition";
 
 export interface PickerOption {
   label: string;
@@ -21,23 +21,25 @@ export interface PickerProps {
   options: PickerOption[];
 }
 
-export const ComponentPicker: React.FC<PickerProps> = (props) => {
+export const ComponentPicker: React.FC<PickerProps> = memo((props) => {
   const { visible, pickerRef, cell, options, gridRect, areaLayerRef } = props;
-  const areaLayer = areaLayerRef.current;
-  const picker = pickerRef.current;
+  const [position, zIndex] = usePickerPosition({
+    visible,
+    cell,
+    gridRect,
+    picker: pickerRef?.current,
+    canvas: areaLayerRef?.current,
+  });
 
-  const position = getPickerPosition(...cell, gridRect, picker, areaLayer);
-  const { top, left } = position;
   return (
     <div
       ref={pickerRef}
       id={styles.container}
       style={{
-        zIndex: visible ? 100 : -1,
+        zIndex,
         opacity: visible ? 1 : 0,
         position: "absolute",
-        top,
-        left,
+        ...position,
       }}
     >
       <p className={styles.description}>Insert...</p>
@@ -55,4 +57,4 @@ export const ComponentPicker: React.FC<PickerProps> = (props) => {
       </ul>
     </div>
   );
-};
+});

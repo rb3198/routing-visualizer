@@ -334,20 +334,11 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     [setLiveNeighborTable]
   );
 
-  const toggleRouterPower = useCallback(async () => {
-    if (!selectedRouter) {
-      return;
-    }
-    const { turnedOn, turnOff, turnOn } = selectedRouter;
-    if (turnedOn) {
-      await turnOff();
-    } else {
-      turnOn();
-    }
+  const onRouterInteractionComplete = useCallback(async () => {
     dispatch({
       type: "router_interaction_completed",
     });
-  }, [selectedRouter]);
+  }, []);
 
   const openRoutingTable = (router: Router) => {
     const { id: routerId, ospf } = router;
@@ -494,7 +485,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         pickerRef={routerMenuRef}
         addRouterConnection={connectRouters}
         selectedRouter={selectedRouter}
-        toggleRouterPower={toggleRouterPower}
+        onRouterInteractionComplete={onRouterInteractionComplete}
         openLsDbModal={openLsDbModal}
         openRoutingTable={openRoutingTable}
         enableDestSelectionMode={enableDestSelectionMode}

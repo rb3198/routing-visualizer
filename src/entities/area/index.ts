@@ -7,6 +7,7 @@ import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
 import { getRxmtInterval } from "../ospf/constants";
+import { RouterPowerState } from "../router/enum/RouterPowerState";
 
 export class OSPFArea {
   /**
@@ -90,7 +91,7 @@ export class OSPFArea {
         32
       ),
       this.ospfConfig,
-      simulationPlaying // new router is turned on if the simulation is playing
+      simulationPlaying ? RouterPowerState.On : RouterPowerState.Shutdown // new router is turned on if the simulation is playing
     );
     this.routerLocations.set(key, router);
     return router;

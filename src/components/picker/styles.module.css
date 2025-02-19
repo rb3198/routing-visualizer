@@ -6,7 +6,6 @@
     width: 10vmax;
     overflow: hidden;
     transition: opacity .25s ease;
-    transition-delay: left .5s;
 }
 
 #container ul {
