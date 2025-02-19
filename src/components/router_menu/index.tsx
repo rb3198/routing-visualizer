@@ -1,8 +1,8 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./styles.module.css";
 import { CiRouter, CiViewTable } from "react-icons/ci";
 import { Router } from "../../entities/router";
-import { PiPathFill, PiPower } from "react-icons/pi";
+import { PiPathFill, PiPowerDuotone } from "react-icons/pi";
 import { GoDatabase } from "react-icons/go";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { AreaTree } from "src/entities/area_tree";
@@ -10,6 +10,7 @@ import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { Point2D } from "src/types/geometry";
 import { GridCell } from "src/entities/geometry/grid_cell";
 import { usePickerPosition } from "../hooks/usePickerPosition";
+import { RouterPowerState } from "src/entities/router/enum/RouterPowerState";
 
 export interface RouterMenuProps {
   cell: Point2D;
@@ -28,7 +29,7 @@ export interface RouterMenuProps {
   /**
    * Turns the router ON or OFF.
    */
-  toggleRouterPower?: (router: Router) => unknown;
+  onRouterInteractionComplete: () => unknown;
 }
 
 /**
@@ -49,9 +50,9 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
     openNeighborTable,
     openLsDbModal,
     addRouterConnection,
-    toggleRouterPower,
     enableDestSelectionMode,
     openRoutingTable,
+    onRouterInteractionComplete,
   } = props;
 
   const [position, zIndex] = usePickerPosition({
@@ -62,23 +63,41 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
     canvas: areaLayerRef?.current,
   });
 
+  const [routerPower, setRouterPower] = useState<RouterPowerState>(
+    selectedRouter?.power || RouterPowerState.Shutdown
+  );
+
   const Controls = useMemo(() => {
-    const { turnedOn } = selectedRouter || {};
-    const onClick = () => {
-      toggleRouterPower &&
-        selectedRouter &&
-        turnedOn !== "turning_off" &&
-        toggleRouterPower(selectedRouter);
+    const onClick = async () => {
+      if (!selectedRouter) return;
+      const { turnOff, turnOn } = selectedRouter;
+      switch (routerPower) {
+        case RouterPowerState.Shutdown:
+          turnOn();
+          setRouterPower(RouterPowerState.On);
+          break;
+        case RouterPowerState.On:
+          setRouterPower(RouterPowerState.ShuttingDown);
+          await turnOff();
+          setRouterPower(RouterPowerState.Shutdown);
+          break;
+        default:
+          break;
+      }
+      onRouterInteractionComplete();
     };
     return (
       <div id={styles.controls_container} onClick={onClick}>
-        <div id={styles.power_icon} data-status={turnedOn}>
-          <PiPower />
-        </div>
-        Turn {turnedOn === true ? " Off" : turnedOn ? "ing Off" : " On"}
+        <PiPowerDuotone id={styles.power_icon} data-status={routerPower} />
+        Turn
+        {routerPower === RouterPowerState.On
+          ? " Off"
+          : routerPower === RouterPowerState.ShuttingDown
+          ? "ing Off"
+          : " On"}
       </div>
     );
-  }, [selectedRouter, toggleRouterPower]);
+  }, [selectedRouter, routerPower, onRouterInteractionComplete]);
 
   const openLsDb = useCallback(() => {
     if (!selectedRouter) {
@@ -179,6 +198,12 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       .filter(({ connectionOptions }) => connectionOptions.length > 0)
       .sort((a, b) => a.id - b.id);
   }, [areaTreeRef, selectedRouter]);
+
+  useEffect(() => {
+    if (!selectedRouter) return;
+    const { power } = selectedRouter;
+    setRouterPower(power);
+  }, [selectedRouter]);
   return (
     <div
       ref={pickerRef}

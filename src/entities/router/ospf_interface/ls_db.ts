@@ -17,6 +17,7 @@ import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
 import { printLsaHtml } from "src/utils/ui";
+import { RouterPowerState } from "../enum/RouterPowerState";
 
 export type LsId = {
   lsType: LSType;
@@ -417,7 +418,10 @@ export class LsDb {
         const areaDb = this.db[areaId];
         delete areaDb[LsDb.getLsDbKey(header)];
         action += `<li>${printLsaHtml(header)}.<br>`;
-        if (advertisingRouter.equals(router.id) && router.turnedOn === true) {
+        if (
+          advertisingRouter.equals(router.id) &&
+          router.power === RouterPowerState.On
+        ) {
           action += `Generated a new ${lsTypeToString(
             lsType
           )} LSA and scheduled recalculation of the 
@@ -438,7 +442,7 @@ export class LsDb {
               break;
           }
         } else {
-          recalculateTable = router.turnedOn === true;
+          recalculateTable = router.power === RouterPowerState.On;
         }
       }
     }
@@ -662,7 +666,7 @@ export class LsDb {
   clearDb = async (graceful?: boolean) => {
     const { router } = this.ospfInterface;
     const { id: routerId } = router;
-    const isAreaBorderRouter = Object.keys(this.db).length > 0;
+    const isAreaBorderRouter = Object.keys(this.db).length > 1;
     const connectedAreas = Object.keys(this.db);
     if (graceful) {
       const routerLsaKey = LsDb.getLsDbKey({
