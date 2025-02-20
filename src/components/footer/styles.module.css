@@ -1,0 +1,43 @@
+#container {
+    height: 7.5vh;
+    background-color: #324ca8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1.5vmax;
+    color: white;
+}
+
+#name {
+    font-size: 1.25vmax;
+    font-family: "Playfair Display";
+}
+
+.about {
+    display: flex;
+    align-items: center;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+a {
+    color: white;
+}
+
+#copyright {
+    width: .75vmax;
+    height: .75vmax;
+    margin-right: 4px;
+}
+
+.icon {
+    width: 1.1vmax;
+    height: 1.1vmax;
+    margin-right: .618rem;
+}
+
+.icon:first-of-type {
+    margin-left: 1.25rem;
+}

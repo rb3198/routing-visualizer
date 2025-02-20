@@ -33,3 +33,7 @@ code {
 #root {
   height: 100vh;
 }
+
+#grid_container{
+  height: 92.5vh;
+}

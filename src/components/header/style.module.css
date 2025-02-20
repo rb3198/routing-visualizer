@@ -5,6 +5,9 @@
     justify-content: space-between;
     align-items: center;
     padding-left: 1.5vmax;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 #header-title {

@@ -6,20 +6,24 @@ import { store } from "./store";
 import { EventLog } from "./components/event_log";
 import { ModalManager as EventModalManager } from "./components/modals/manager";
 import styles from "./App.module.css";
+import { Footer } from "./components/footer";
 
 function App() {
   return (
     <div className={styles.App}>
       <Provider store={store}>
         <Header />
-        <GridManager />
-        <EventLog
-          showControlPanel
-          classes={styles.event_log}
-          showExpandToggle
-        />
-        <NotificationTooltip />
-        <EventModalManager />
+        <div id="grid_container">
+          <GridManager />
+          <EventLog
+            showControlPanel
+            classes={styles.event_log}
+            showExpandToggle
+          />
+          <NotificationTooltip />
+          <EventModalManager />
+        </div>
+        <Footer />
       </Provider>
     </div>
   );
