@@ -44,7 +44,11 @@ export const PacketLegend: React.FC = () => {
       className={(open && styles.opened) || ""}
       onClick={toggleLegend}
     >
-      <div id={styles.list_container} ref={listContainerRef}></div>
+      <div
+        id={styles.list_container}
+        className={(open && styles.opened) || ""}
+        ref={listContainerRef}
+      ></div>
       <div id={styles.main}>
         <p>Packet Legend</p>
         <MdKeyboardArrowUp

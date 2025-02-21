@@ -1,16 +1,12 @@
 h4 {
     text-decoration: underline;
     font-size: .764rem;
-    margin-bottom: .309rem;
+    margin-top: .309rem;
 }
 
 .row {
     display: flex;
-    margin-bottom: .75vmax;
-}
-
-.row:last-of-type {
-    margin-bottom: 0;
+    margin-top: .309rem;
 }
 
 .row > .col:last-of-type {
@@ -35,17 +31,26 @@ h4 {
     color: #aaa;
     font-size: .764rem;
     width: 100%;
-    margin-bottom: .309rem;
     display: flex;
     justify-content: space-between;
     cursor: pointer;
 }
 
-
 .label > span {
     color: #324ca8;
     font-weight: bold;
     margin-left: .25vw;
+}
+
+.checkbox_container {
+    margin-top: .309rem;
+    display: flex;
+    align-items: center;
+}
+
+.checkbox_label {
+    margin-left: .309rem;
+    display: initial;
 }
 
 .slider {

@@ -1,6 +1,8 @@
 import React, {
   MouseEventHandler,
+  MutableRefObject,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -8,27 +10,39 @@ import React, {
 } from "react";
 import styles from "./styles.module.css";
 import { FaPause, FaPlay, FaStop } from "react-icons/fa";
-import { getRxmtInterval } from "src/entities/ospf/constants";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { ConfigOption, ConfigOptionProps } from "./config_option";
-import { DEFAULT_PROPAGATION_DELAY } from "src/reducers/propagation_delay";
+import { DEFAULT_PROPAGATION_DELAY } from "src/entities/ospf/config/ospf_globals";
+import { IRootReducer } from "src/reducers";
+import { bindActionCreators, Dispatch } from "redux";
+import { connect, ConnectedProps } from "react-redux";
+import {
+  setGlobalGracefulShutdown,
+  setPropagationDelay,
+} from "src/action_creators";
+import { AreaTree } from "src/entities/area_tree";
 
-interface ToolbarProps {
+interface IToolbarProps {
   startSimulation: () => boolean;
   pauseSimulation: () => any;
-  propagationDelay: number;
-  setPropagationDelay: (delay: number) => any;
   showTooltip?: (message: string) => any;
+  areaTree: MutableRefObject<AreaTree>;
   playing?: boolean;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = (props) => {
+type ToolbarProps = IToolbarProps & ConnectedProps<typeof connector>;
+
+const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
   const {
     playing,
     propagationDelay,
+    gracefulShutdown: globalGracefulShutdown,
+    rxmtInterval,
+    areaTree,
     startSimulation,
     pauseSimulation,
     setPropagationDelay,
+    setGlobalGracefulShutdown,
     showTooltip,
   } = props;
 
@@ -36,6 +50,17 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
   const configContainerRef = useRef<HTMLDivElement>(null);
   const configContentRef = useRef<HTMLDivElement>(null);
   const contentHeight = useRef(0);
+
+  useEffect(() => {
+    if (!areaTree.current) {
+      return;
+    }
+    areaTree.current
+      .inOrderTraversal(areaTree.current.root)
+      .forEach(([, area]) => {
+        area.setRxmtInterval(rxmtInterval);
+      });
+  }, [rxmtInterval, areaTree]);
 
   const togglePlaying: MouseEventHandler<HTMLDivElement> = useCallback(
     (e) => {
@@ -136,6 +161,23 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
     };
   }, []);
 
+  const onGracefulToggle: React.ChangeEventHandler<HTMLInputElement> =
+    useCallback(
+      (e) => {
+        const { target } = e;
+        const { checked } = target;
+        areaTree.current
+          .inOrderTraversal(areaTree.current.root)
+          .forEach(([, area]) =>
+            area.routerLocations.forEach((router) => {
+              router.gracefulShutdown = checked;
+            })
+          );
+        setGlobalGracefulShutdown(checked);
+      },
+      [areaTree, setGlobalGracefulShutdown]
+    );
+
   const ConfigTools = useMemo(() => {
     const onDisabledMouseDown = () => {
       showTooltip?.call(
@@ -148,6 +190,7 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
         section: "Packet Transmission Config",
         params: [
           {
+            type: "range",
             label: "Propagation Delay:",
             value: propagationDelay / 1000,
             unit: "s",
@@ -156,13 +199,25 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
             affects: [
               {
                 label: "Retransmission Interval:",
-                value: getRxmtInterval(propagationDelay) / 1000,
+                value: rxmtInterval / 1000,
               },
             ],
             onReset: resetPropDelay,
             range: [1, 5],
             disabled: playing,
             onDisabledClick: onDisabledMouseDown,
+          },
+        ],
+      },
+      {
+        section: "Default Router Behavior",
+        params: [
+          {
+            type: "checkbox",
+            checked: globalGracefulShutdown,
+            disabled: playing,
+            label: "Shutdown Gracefully",
+            onToggle: onGracefulToggle,
           },
         ],
       },
@@ -183,10 +238,13 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
   }, [
     expanded,
     propagationDelay,
+    rxmtInterval,
+    globalGracefulShutdown,
     onPropDelayChange,
     resetPropDelay,
     playing,
     showTooltip,
+    onGracefulToggle,
   ]);
 
   return (
@@ -199,3 +257,21 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
     </div>
   );
 };
+
+const mapStateToProps = (state: IRootReducer) => {
+  const { simulationConfig } = state;
+  return { ...simulationConfig };
+};
+
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return {
+    setPropagationDelay: bindActionCreators(setPropagationDelay, dispatch),
+    setGlobalGracefulShutdown: bindActionCreators(
+      setGlobalGracefulShutdown,
+      dispatch
+    ),
+  };
+};
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+export const Toolbar = connector(ToolbarComponent);
