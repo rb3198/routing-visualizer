@@ -19,7 +19,7 @@ import { PiRectangleDashed } from "react-icons/pi";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
-import { AnimationToolbar } from "../animation_toolbar";
+import { Toolbar } from "../toolbar";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
@@ -490,7 +490,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         openRoutingTable={openRoutingTable}
         enableDestSelectionMode={enableDestSelectionMode}
       />
-      <AnimationToolbar
+      <Toolbar
         playing={simulationStatus === "playing"}
         propagationDelay={propagationDelay}
         setPropagationDelay={setPropagationDelay}

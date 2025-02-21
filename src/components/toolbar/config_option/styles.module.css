@@ -1,0 +1,88 @@
+h4 {
+    text-decoration: underline;
+    font-size: .764rem;
+    margin-bottom: .309rem;
+}
+
+.row {
+    display: flex;
+    margin-bottom: .75vmax;
+}
+
+.row:last-of-type {
+    margin-bottom: 0;
+}
+
+.row > .col:last-of-type {
+    margin-right: 0;
+}
+
+.col {
+    display: flex;
+    margin-right: 1vmax;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.slider_container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.label {
+    color: #aaa;
+    font-size: .764rem;
+    width: 100%;
+    margin-bottom: .309rem;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+
+.label > span {
+    color: #324ca8;
+    font-weight: bold;
+    margin-left: .25vw;
+}
+
+.slider {
+    accent-color: #324ca8;
+    cursor: pointer;
+}
+
+.slider:disabled {
+    cursor: initial;
+    accent-color: #ccc;
+    outline: none !important;
+    border: none !important;
+    background-color: white;
+}
+
+.disabled_slider_overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: initial;
+}
+
+.reset_button {
+    padding: .618rem;
+    background-color: transparent;
+    border-radius: 3px;
+    color: #324ca8;
+    border: 1px solid #324ca8;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.reset_button[data-disabled="true"] {
+    border-color: #aaa;
+    color: #aaa;
+    cursor: initial;
+}
