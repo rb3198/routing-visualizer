@@ -12,7 +12,8 @@ export class LSUpdatePacketBody {
   nLsa: number;
   lsaList: LSA[];
   constructor(lsaList: LSA[]) {
-    const { propagationDelay } = store.getState();
+    const { simulationConfig } = store.getState();
+    const { propagationDelay } = simulationConfig;
     this.lsaList = lsaList.map((lsa) => {
       const newLsa = copyLsa(lsa);
       const { header } = newLsa;
