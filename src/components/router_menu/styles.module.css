@@ -61,11 +61,17 @@
     padding: 0.5rem .5rem;
     cursor: pointer;
     font-size: 1rem;
+    justify-content: space-between;
 }
 
 #controls_container[data-disabled="true"] {
     opacity: .75;
     cursor: default;
+}
+
+#power_container {
+    display: flex;
+    align-items: center;
 }
 
 #power_icon {
@@ -86,4 +92,32 @@
 #power_icon[data-status="1"] {
     color: yellow;
     cursor: initial;
+}
+
+#graceful_container {
+    font-size: .618rem;
+    display: flex;
+    align-items: center;
+}
+
+#graceful_container[data-applicable="false"] {
+    visibility: hidden;
+}
+
+#graceful_checkbox {
+    margin-left: .309rem;
+    appearance: none;
+    width: .618rem;
+    height: .618rem;
+    outline: 1px solid white;
+    accent-color: transparent;
+    cursor: pointer;
+}
+
+#graceful_checkbox:checked::before {
+    content: "✔";
+    color: white;
+    position: absolute;
+    top: 0;
+    transform: translateY(50%)
 }

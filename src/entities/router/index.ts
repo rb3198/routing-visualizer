@@ -42,12 +42,15 @@ export class Router {
    */
   power: PowerState;
 
+  gracefulShutdown: boolean;
+
   constructor(
     key: string,
     location: Point2D,
     id: IPv4Address,
     ospfConfig: OSPFConfig,
-    power?: PowerState
+    power?: PowerState,
+    gracefulShutdown?: boolean
   ) {
     this.key = key;
     this.location = location;
@@ -55,6 +58,7 @@ export class Router {
     this.ipInterfaces = new Map();
     this.ospf = new OSPFInterface(this, ospfConfig);
     this.power = power ?? PowerState.Shutdown;
+    this.gracefulShutdown = gracefulShutdown ?? true;
   }
 
   addInterface = (ipInterface: IPLinkInterface) => {
@@ -273,7 +277,7 @@ export class Router {
   turnOff = async () => {
     this.power = PowerState.ShuttingDown;
     this.ospf.lsDb.clearTimers();
-    await this.ospf.lsDb.clearDb(true); //TODO: Make graceful shutdown optional
+    await this.ospf.lsDb.clearDb(this.gracefulShutdown);
     Object.values(this.ospf.neighborTable).forEach(
       ({
         deadTimer,
