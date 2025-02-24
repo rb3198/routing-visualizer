@@ -66,9 +66,16 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
   const [routerPower, setRouterPower] = useState<RouterPowerState>(
     selectedRouter?.power || RouterPowerState.Shutdown
   );
+  const [gracefulShutdown, setGracefulShutdown] = useState<boolean>(
+    selectedRouter?.gracefulShutdown ?? false
+  );
+
+  useEffect(() => {
+    selectedRouter && setGracefulShutdown(selectedRouter.gracefulShutdown);
+  }, [selectedRouter]);
 
   const Controls = useMemo(() => {
-    const onClick = async () => {
+    const onPowerClick = async () => {
       if (!selectedRouter) return;
       const { turnOff, turnOn } = selectedRouter;
       switch (routerPower) {
@@ -86,18 +93,50 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       }
       onRouterInteractionComplete();
     };
+
+    const onCheckboxClick = () => {
+      if (!selectedRouter || selectedRouter.power !== RouterPowerState.On) {
+        return;
+      }
+      selectedRouter.gracefulShutdown = !selectedRouter.gracefulShutdown;
+      setGracefulShutdown(selectedRouter.gracefulShutdown);
+    };
     return (
-      <div id={styles.controls_container} onClick={onClick}>
-        <PiPowerDuotone id={styles.power_icon} data-status={routerPower} />
-        Turn
-        {routerPower === RouterPowerState.On
-          ? " Off"
-          : routerPower === RouterPowerState.ShuttingDown
-          ? "ing Off"
-          : " On"}
+      <div id={styles.controls_container}>
+        <div id={styles.power_container} onClick={onPowerClick}>
+          <PiPowerDuotone id={styles.power_icon} data-status={routerPower} />
+          Turn
+          {routerPower === RouterPowerState.On
+            ? " Off"
+            : routerPower === RouterPowerState.ShuttingDown
+            ? "ing Off"
+            : " On"}
+        </div>
+        <div
+          id={styles.graceful_container}
+          data-applicable={routerPower === RouterPowerState.On}
+        >
+          <label
+            htmlFor={styles.graceful_checkbox}
+            className={styles.graceful_label}
+          >
+            Gracefully
+          </label>
+          <input
+            type="checkbox"
+            id={styles.graceful_checkbox}
+            checked={gracefulShutdown}
+            onChange={onCheckboxClick}
+          />
+        </div>
       </div>
     );
-  }, [selectedRouter, routerPower, onRouterInteractionComplete]);
+  }, [
+    selectedRouter,
+    gracefulShutdown,
+    routerPower,
+    onRouterInteractionComplete,
+  ]);
 
   const openLsDb = useCallback(() => {
     if (!selectedRouter) {

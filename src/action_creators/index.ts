@@ -3,6 +3,7 @@ import {
   EventLogAction,
   ModalAction,
   NotificationTooltipAction,
+  SimulationConfigAction,
 } from "../types/actions";
 import { ActionCreator } from "redux";
 import { RectDim } from "../types/geometry";
@@ -106,13 +107,21 @@ export const setEventLogKeepCount: ActionCreator<EventLogAction> = (
   };
 };
 
-export const setPropagationDelay = (delay: number) => {
+export const setPropagationDelay = (delay: number): SimulationConfigAction => {
   return {
     type: "SET_PROPAGATION_DELAY",
     value: delay,
   };
 };
 
+export const setGlobalGracefulShutdown = (
+  graceful: boolean
+): SimulationConfigAction => {
+  return {
+    type: "SET_GRACEFUL_SHUTDOWN",
+    value: graceful,
+  };
+};
 export const openNotificationTooltip = (
   message: string,
   duration?: number

@@ -36,7 +36,7 @@ export const PacketLegend: React.FC = () => {
     const { width, height } = listRef.current.getBoundingClientRect();
     mainOgHeight.current = height;
     containerRef.current.style.width = `${width}px`;
-  }, [open]);
+  }, []);
   return (
     <div
       id={styles.container}

@@ -19,7 +19,7 @@ import { PiRectangleDashed } from "react-icons/pi";
 import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
-import { AnimationToolbar } from "../animation_toolbar";
+import { Toolbar } from "../toolbar";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
@@ -28,7 +28,6 @@ import {
   openNotificationTooltip,
   openRoutingTable,
   setLiveNeighborTable,
-  setPropagationDelay,
 } from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
 import { defaultState, interactiveStateReducer } from "./interaction_manager";
@@ -48,8 +47,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     gridRect,
     defaultAreaSize,
     cellSize,
-    propagationDelay,
-    setPropagationDelayInStore,
     setLiveNeighborTable,
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
@@ -304,18 +301,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     });
   }, []);
 
-  const setPropagationDelay = (delay: number) => {
-    if (!areaTree.current) {
-      return;
-    }
-    areaTree.current
-      .inOrderTraversal(areaTree.current.root)
-      .forEach(([, area]) => {
-        area.setPropagationDelay(delay);
-      });
-    setPropagationDelayInStore(delay);
-  };
-
   //#region Router Menu Methods
   const connectRouters = useCallback((routerA: Router, routerB: Router) => {
     const linkNo = linkInterfaceMap.current.size + 1;
@@ -490,13 +475,12 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         openRoutingTable={openRoutingTable}
         enableDestSelectionMode={enableDestSelectionMode}
       />
-      <AnimationToolbar
+      <Toolbar
         playing={simulationStatus === "playing"}
-        propagationDelay={propagationDelay}
-        setPropagationDelay={setPropagationDelay}
         startSimulation={startSimulation}
         pauseSimulation={pauseSimulation}
         showTooltip={openNotificationTooltip}
+        areaTree={areaTree}
       />
       <PacketLegend />
     </>
@@ -504,8 +488,8 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 };
 
 const mapStateToProps = (state: IRootReducer) => {
-  const { propagationDelay, cellSize } = state;
-  return { propagationDelay, cellSize };
+  const { cellSize } = state;
+  return { cellSize };
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {
@@ -513,10 +497,6 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
     openRoutingTableInStore: bindActionCreators(openRoutingTable, dispatch),
     openLsDbModal: bindActionCreators(openLsDbModal, dispatch),
-    setPropagationDelayInStore: bindActionCreators(
-      setPropagationDelay,
-      dispatch
-    ),
     openNotificationTooltip: bindActionCreators(
       openNotificationTooltip,
       dispatch
