@@ -19,6 +19,7 @@ import { connect, ConnectedProps } from "react-redux";
 import {
   setGlobalGracefulShutdown,
   setHelloInterval,
+  setMaxAge,
   setPropagationDelay,
 } from "src/action_creators";
 import { AreaTree } from "src/entities/area_tree";
@@ -42,10 +43,13 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     helloInterval,
     deadInterval,
     rxmtInterval,
+    MaxAge,
+    LsRefreshTime,
     areaTree,
     startSimulation,
     pauseSimulation,
     setPropagationDelay,
+    setMaxAge,
     setGlobalGracefulShutdown,
     showTooltip,
     setHelloInterval,
@@ -78,6 +82,17 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       );
   }, [areaTree, helloInterval, deadInterval]);
 
+  useEffect(() => {
+    areaTree.current
+      .inOrderTraversal(areaTree.current.root)
+      .forEach(([, area]) =>
+        area.routerLocations.forEach((router) => {
+          router.ospf.config.MaxAge = MaxAge;
+          router.ospf.config.LsRefreshTime = LsRefreshTime;
+        })
+      );
+  }, [areaTree, MaxAge, LsRefreshTime]);
+
   const togglePlaying: MouseEventHandler<HTMLDivElement> = useCallback(
     (e) => {
       e.stopPropagation();
@@ -108,6 +123,16 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         setHelloInterval(parseFloat(value) * 1000);
       },
       [setHelloInterval]
+    );
+
+  const onMaxAgeChange: React.ChangeEventHandler<HTMLInputElement> =
+    useCallback(
+      (e) => {
+        const { target } = e;
+        const { value } = target;
+        setMaxAge(parseFloat(value) * 60);
+      },
+      [setMaxAge]
     );
 
   const resetPropDelay = useCallback(
@@ -268,6 +293,24 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
             unit: "s",
             disabled: playing,
           },
+          {
+            type: "range",
+            range: [2, 60],
+            value: MaxAge / 60,
+            label: "LSA Max Age",
+            onChange: onMaxAgeChange,
+            onReset: () => setMaxAge(),
+            step: 2,
+            unit: "m",
+            disabled: playing,
+            onDisabledClick: onDisabledMouseDown,
+            affects: [
+              {
+                label: "LSA Refresh Time",
+                value: LsRefreshTime / 60,
+              },
+            ],
+          },
         ],
       },
     ];
@@ -290,6 +333,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     rxmtInterval,
     helloInterval,
     deadInterval,
+    MaxAge,
+    LsRefreshTime,
     globalGracefulShutdown,
     onPropDelayChange,
     resetPropDelay,
@@ -298,6 +343,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     onGracefulToggle,
     setHelloInterval,
     onHelloIntervalChange,
+    onMaxAgeChange,
+    setMaxAge,
   ]);
 
   return (
@@ -320,6 +367,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setPropagationDelay: bindActionCreators(setPropagationDelay, dispatch),
     setHelloInterval: bindActionCreators(setHelloInterval, dispatch),
+    setMaxAge: bindActionCreators(setMaxAge, dispatch),
     setGlobalGracefulShutdown: bindActionCreators(
       setGlobalGracefulShutdown,
       dispatch

@@ -27,10 +27,11 @@ export abstract class LSA {
   /**
    * Checks for exact equality with the compared LSA, including age and Sequence number.
    * @param comparedLsa
+   * @param maxAge The configured `MaxAge` of the LSAs.
    * @returns
    */
-  equals(comparedLsa: LSA) {
-    return this.header.equals(comparedLsa);
+  equals(comparedLsa: LSA, maxAge: number) {
+    return this.header.equals(comparedLsa, maxAge);
   }
 
   referenceEquals(comparedLsa: LSA) {

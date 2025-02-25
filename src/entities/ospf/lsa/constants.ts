@@ -7,7 +7,7 @@ export const MaxSequenceNumber = 2 ** 31 - 1;
  *
  * The `MaxAge` is always 1 hour.
  */
-export const MaxAge = 3600; // TODO: Make adjustable
+export const MaxAge = 3600;
 
 /**
  * The maximum time between distinct originations of any particular LSA.
@@ -17,7 +17,7 @@ export const MaxAge = 3600; // TODO: Make adjustable
  *
  * The LS Refresh Time in OSPF is always 1,800,000 ms, i.e. 30 minutes.
  */
-export const LSRefreshTime = MaxAge / 2; // TODO: Make adjustable
+export const LSRefreshTime = MaxAge / 2;
 
 /**
  * The minimum time between distinct originations of any particular LSA.

@@ -2,12 +2,7 @@ import { LSA, LSAHeader } from "src/entities/ospf/lsa";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { LSType, State } from "src/entities/ospf/enum";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
-import {
-  LSInfinity,
-  LSRefreshTime,
-  MaxAge,
-  MinLSInterval,
-} from "src/entities/ospf/lsa/constants";
+import { LSInfinity, MinLSInterval } from "src/entities/ospf/lsa/constants";
 import { OSPFInterface } from ".";
 import { NeighborSMEvent } from "src/entities/ospf/enum/state_machine_events";
 import { NeighborTableRow } from "src/entities/ospf/table_rows";
@@ -67,7 +62,8 @@ export class LsDb {
    * Refreshes the LSA if required.
    */
   private ageLSAs = () => {
-    const { router } = this.ospfInterface;
+    const { router, config } = this.ospfInterface;
+    const { MaxAge, LsRefreshTime } = config;
     const { id: routerId } = router;
     const toRefresh: { areaId: number; lsa: LSA }[] = [];
     Object.keys(this.db).forEach((areaIdStr) => {
@@ -83,7 +79,7 @@ export class LsDb {
         header.lsAge += 1;
         const newLsAge = header.lsAge;
         if (
-          newLsAge % LSRefreshTime === 0 &&
+          newLsAge % LsRefreshTime === 0 &&
           advertisingRouter.equals(routerId)
         ) {
           // Time to refresh the LSA
@@ -231,7 +227,8 @@ export class LsDb {
   ) => {
     const { state, linkStateRequestList, routerId: neighborId } = neighbor;
     const { header } = lsa;
-    const { setNeighbor, neighborStateMachine } = this.ospfInterface;
+    const { setNeighbor, neighborStateMachine, config } = this.ospfInterface;
+    const { MaxAge } = config;
     /**
      * LSA that was previously requested to the neighbor, before getting the current LSA (passed to this function)
      */
@@ -241,7 +238,7 @@ export class LsDb {
     if (!requestedLsa || state === State.Full) {
       return false;
     }
-    if (header.compareAge(requestedLsa) > 0) {
+    if (header.compareAge(requestedLsa, MaxAge) > 0) {
       // New LSA is less recent (older) than the one in the request list of the neighbor. The list won't be truncated.
       return true;
     }
@@ -341,6 +338,8 @@ export class LsDb {
     flood?: boolean,
     skipCalc?: boolean
   ) => {
+    const { config } = this.ospfInterface;
+    const { MaxAge } = config;
     const { header } = lsa;
     const { lsAge } = header;
     const key = LsDb.getLsDbKey(header);
@@ -389,7 +388,8 @@ export class LsDb {
   };
 
   removeMaxAgeLsas = (areaId: number, maxAgeLsaList: LSA[]) => {
-    const { neighborTable, router } = this.ospfInterface;
+    const { neighborTable, router, config } = this.ospfInterface;
+    const { MaxAge } = config;
     let action = "";
     if (!maxAgeLsaList || !maxAgeLsaList.length) {
       return action;
@@ -405,7 +405,7 @@ export class LsDb {
       for (let neighbor of areaNeighbors) {
         const { linkStateRetransmissionList } = neighbor;
         for (let lsRetransmit of linkStateRetransmissionList) {
-          if (lsRetransmit.equals(maxAgeLsa)) {
+          if (lsRetransmit.equals(maxAgeLsa, MaxAge)) {
             toDelete = false;
             break;
           }
@@ -567,7 +567,8 @@ export class LsDb {
    * @returns
    */
   originateSummaryLsas = (sourceAreaId: number, forceRefresh?: boolean) => {
-    const { routingTableManager, router } = this.ospfInterface;
+    const { routingTableManager, router, config } = this.ospfInterface;
+    const { MaxAge } = config;
     const { id: routerId } = router;
     if (Object.keys(this.db).length <= 1) {
       return; // do not originate any summary LSA if the router is not an ABR connected to multiple areas.
@@ -664,7 +665,8 @@ export class LsDb {
   };
 
   clearDb = async (graceful?: boolean) => {
-    const { router } = this.ospfInterface;
+    const { router, config } = this.ospfInterface;
+    const { MaxAge } = config;
     const { id: routerId } = router;
     const isAreaBorderRouter = Object.keys(this.db).length > 1;
     const connectedAreas = Object.keys(this.db);

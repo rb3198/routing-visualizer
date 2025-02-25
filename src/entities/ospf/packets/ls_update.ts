@@ -5,7 +5,6 @@ import { LSA } from "../lsa";
 import { OSPFHeader } from "./header";
 import { OSPFPacket } from "./packet_base";
 import { store } from "src/store";
-import { MaxAge } from "../lsa/constants";
 import { copyLsa } from "src/utils/common";
 
 export class LSUpdatePacketBody {
@@ -13,7 +12,7 @@ export class LSUpdatePacketBody {
   lsaList: LSA[];
   constructor(lsaList: LSA[]) {
     const { simulationConfig } = store.getState();
-    const { propagationDelay } = simulationConfig;
+    const { propagationDelay, MaxAge } = simulationConfig;
     this.lsaList = lsaList.map((lsa) => {
       const newLsa = copyLsa(lsa);
       const { header } = newLsa;

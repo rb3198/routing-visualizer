@@ -35,6 +35,8 @@
 
 .control {
     margin-right: .75vmax;
+    display: flex;
+    align-items: center;
 }
 
 .control:last-of-type {

@@ -17,6 +17,7 @@ import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 import { NetworkEvent } from "src/entities/network_event";
+import { MaxAge } from "src/entities/ospf/lsa/constants";
 
 export type VizArgs = {
   color: string;
@@ -120,6 +121,13 @@ export const setHelloInterval = (
   return {
     type: "SET_DEF_HELLO_INTERVAL",
     value: helloInterval,
+  };
+};
+
+export const setMaxAge = (maxAge?: number): SimulationConfigAction => {
+  return {
+    type: "SET_MAX_AGE",
+    value: maxAge ?? MaxAge,
   };
 };
 

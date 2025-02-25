@@ -2,14 +2,13 @@ import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
 import { PacketHandlerBase } from "./base";
 import { IPPacket } from "src/entities/ip/packets";
 import { LSA, LSAHeader } from "src/entities/ospf/lsa";
-import { MaxAge } from "src/entities/ospf/lsa/constants";
 import { printLsaHtml } from "src/utils/ui";
 
 export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
   _handle = (interfaceId: string, ipPacket: IPPacket, packet: LSAckPacket) => {
     const { config, neighborTable, sendLSUpdatePacket, setNeighbor } =
       this.ospfInterface;
-    const { rxmtInterval } = config;
+    const { rxmtInterval, MaxAge } = config;
     const { header, body: acknowledgements } = packet;
     const { routerId: neighborId, areaId } = header;
     const neighbor = neighborTable[neighborId.toString()];
@@ -27,7 +26,7 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
     acknowledgements.forEach((ack) => {
       question += "<li>" + printLsaHtml(ack, true);
       const lsIdx = linkStateRetransmissionList.findIndex((lsa) =>
-        lsa.header.equals(LSAHeader.from(ack))
+        lsa.header.equals(LSAHeader.from(ack), MaxAge)
       );
       if (lsIdx !== -1) {
         const lsa = linkStateRetransmissionList[lsIdx];
