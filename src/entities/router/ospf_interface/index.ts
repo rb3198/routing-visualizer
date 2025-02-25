@@ -30,7 +30,6 @@ import {
 } from "./packet_handlers";
 import { LSAckPacket } from "src/entities/ospf/packets/ls_ack";
 import { RoutingTableManager } from "./routing_table";
-import { MaxAge } from "src/entities/ospf/lsa/constants";
 
 export class OSPFInterface {
   config: OSPFConfig;
@@ -250,8 +249,10 @@ export class OSPFInterface {
   };
 
   sendDDPacket = (neighborId: IPv4Address) => {
-    const { router, neighborTable } = this;
-    const { propagationDelay } = store.getState();
+    const { router, neighborTable, config } = this;
+    const { MaxAge } = config;
+    const { simulationConfig } = store.getState();
+    const { propagationDelay } = simulationConfig;
     const neighbor = neighborTable[neighborId.toString()];
     if (!neighbor) {
       console.warn("Didn't find the neighbor to send DD Packet to.");

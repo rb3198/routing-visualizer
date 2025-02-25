@@ -6,7 +6,6 @@ import { GridCell } from "../geometry/grid_cell";
 import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
-import { getRxmtInterval } from "../ospf/constants";
 import { RouterPowerState } from "../router/enum/RouterPowerState";
 
 export class OSPFArea {
@@ -65,9 +64,9 @@ export class OSPFArea {
     this.id = id;
     this.name = `Area ${id}`;
     this.ip = new IPv4Address(byte1, byte2, 0, 0, areaSubnetMask);
-    const { propagationDelay } = store.getState();
-    const rxmtInterval = getRxmtInterval(propagationDelay);
-    this.ospfConfig = new OSPFConfig(id, undefined, rxmtInterval);
+    const { simulationConfig } = store.getState();
+    const { helloInterval, rxmtInterval, MaxAge } = simulationConfig;
+    this.ospfConfig = new OSPFConfig(id, helloInterval, rxmtInterval, MaxAge);
     this.routerLocations = new Map();
   }
 
@@ -80,6 +79,8 @@ export class OSPFArea {
     simulationPlaying?: boolean
   ) => {
     const key = this.getRouterLocationKey(row, col);
+    const { simulationConfig } = store.getState();
+    const { gracefulShutdown } = simulationConfig;
     const router = new Router(
       key,
       [col, row],
@@ -91,7 +92,8 @@ export class OSPFArea {
         32
       ),
       this.ospfConfig,
-      simulationPlaying ? RouterPowerState.On : RouterPowerState.Shutdown // new router is turned on if the simulation is playing
+      simulationPlaying ? RouterPowerState.On : RouterPowerState.Shutdown, // new router is turned on if the simulation is playing
+      gracefulShutdown
     );
     this.routerLocations.set(key, router);
     return router;
@@ -155,8 +157,7 @@ export class OSPFArea {
     }
   };
 
-  setPropagationDelay = (delay: number) => {
-    const rxmtInterval = getRxmtInterval(delay);
+  setRxmtInterval = (rxmtInterval: number) => {
     this.routerLocations.forEach((router) => {
       router.ospf.config.rxmtInterval = rxmtInterval;
     });

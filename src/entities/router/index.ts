@@ -5,7 +5,6 @@ import { IPPacket } from "../ip/packets";
 import { IPProtocolNumber } from "../ip/enum/ip_protocol_number";
 import { OSPFInterface } from "./ospf_interface";
 import { OSPFConfig } from "../ospf/config";
-import { RoutingTableRow as BGPTableRow } from "../bgp/tables"; // TODO: Create a separate BGP interface and add to that.
 import { BACKBONE_AREA_ID } from "../ospf/constants";
 import { store } from "../../store";
 import { emitEvent } from "../../action_creators";
@@ -38,26 +37,28 @@ export class Router {
     }
   >;
   ospf: OSPFInterface;
-  bgpTable: BGPTableRow[];
   /**
    * Boolean to indicate if the router is turned on.
    */
   power: PowerState;
+
+  gracefulShutdown: boolean;
 
   constructor(
     key: string,
     location: Point2D,
     id: IPv4Address,
     ospfConfig: OSPFConfig,
-    power?: PowerState
+    power?: PowerState,
+    gracefulShutdown?: boolean
   ) {
     this.key = key;
     this.location = location;
     this.id = id;
     this.ipInterfaces = new Map();
-    this.bgpTable = [];
     this.ospf = new OSPFInterface(this, ospfConfig);
     this.power = power ?? PowerState.Shutdown;
+    this.gracefulShutdown = gracefulShutdown ?? true;
   }
 
   addInterface = (ipInterface: IPLinkInterface) => {
@@ -276,7 +277,7 @@ export class Router {
   turnOff = async () => {
     this.power = PowerState.ShuttingDown;
     this.ospf.lsDb.clearTimers();
-    await this.ospf.lsDb.clearDb(true); //TODO: Make graceful shutdown optional
+    await this.ospf.lsDb.clearDb(this.gracefulShutdown);
     Object.values(this.ospf.neighborTable).forEach(
       ({
         deadTimer,

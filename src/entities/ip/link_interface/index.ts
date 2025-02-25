@@ -98,7 +98,8 @@ export class IPLinkInterface {
   };
 
   sendMessage = async (src: Router, ipPacket: IPPacket) => {
-    const { propagationDelay: duration, cellSize } = store.getState();
+    const { cellSize, simulationConfig } = store.getState();
+    const { propagationDelay: duration } = simulationConfig;
     const context = window.elementLayer?.getContext("2d");
     const dest = this.getOppositeRouter(src);
     const destIp = this.getSelfIpAddress(dest);

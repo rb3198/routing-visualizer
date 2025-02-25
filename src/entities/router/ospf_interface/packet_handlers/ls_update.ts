@@ -8,7 +8,6 @@ import {
 } from "src/entities/ospf/enum/packet_type";
 import { LSA, LSAHeader } from "src/entities/ospf/lsa";
 import {
-  MaxAge,
   MaxSequenceNumber,
   MinLSArrival,
   MinLSInterval,
@@ -53,7 +52,8 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
   private shouldAcknowledgeAndDiscardLsa = (areaId: number, lsa: LSA) => {
     const { header } = lsa;
     const { lsAge } = header;
-    const { neighborTable, lsDb } = this.ospfInterface;
+    const { neighborTable, lsDb, config } = this.ospfInterface;
+    const { MaxAge } = config;
     const dbCopy = lsDb.getLsa(areaId, header);
     const anyNeighborSynchronizing = Object.values(neighborTable).some(
       (neighbor) =>
@@ -67,7 +67,8 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     receivedLsa: SummaryLSA,
     dbCopy?: SummaryLSA
   ) => {
-    const { lsDb, routingTableManager } = this.ospfInterface;
+    const { lsDb, routingTableManager, config } = this.ospfInterface;
+    const { MaxAge } = config;
     const { header: receivedHeader } = receivedLsa;
     const { linkStateId: prevAdvertisedNetworkIp } = receivedHeader;
     const advertisedNetworkReachable = routingTableManager
@@ -119,7 +120,8 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     receivedLsa: LSA,
     dbCopy?: LSA
   ) => {
-    const { router, lsDb } = this.ospfInterface;
+    const { router, lsDb, config } = this.ospfInterface;
+    const { MaxAge } = config;
     const { id: routerId } = router;
     const { header: dbLsaHeader } = dbCopy || {};
     const { header: receivedHeader } = receivedLsa;
@@ -128,7 +130,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     if (!receivedLsaAdvRouterId.equals(routerId)) {
       return false; // the received LSA is not originated by the router.
     }
-    if ((dbLsaHeader?.compareAge(receivedHeader) ?? 1) < 0) {
+    if ((dbLsaHeader?.compareAge(receivedHeader, MaxAge) ?? 1) < 0) {
       return false; // the DB LSA is younger than the received LSA.
     }
     // If LSA is a summary LSA and router's routing table does not have a route to that destination, FLUSH the LSA
@@ -170,7 +172,9 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     if (!this.validPacket(ipPacket, packet)) {
       return;
     }
-    const { lsDb, neighborTable, router, sendLSAckPacket } = this.ospfInterface;
+    const { lsDb, neighborTable, router, config, sendLSAckPacket } =
+      this.ospfInterface;
+    const { MaxAge } = config;
     const { id: routerId } = router;
     /**
      * List of Acknowledgements to be sent back to the neighbor.
@@ -211,7 +215,8 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       const { header: dbCopyHeader, updatedOn: dbUpdatedOn } = dbCopy || {};
       const { lsAge: dbCopyAge, lsSeqNumber: dbLsSeqNumber } =
         dbCopyHeader || {};
-      const shouldInstallLsa = !dbCopy || dbCopyHeader!.compareAge(header) > 0;
+      const shouldInstallLsa =
+        !dbCopy || dbCopyHeader!.compareAge(header, MaxAge) > 0;
       if (shouldInstallLsa) {
         // Either there is no copy of the LSA in the DB, or the existing copy is older.
         if (this.specialActionTaken(areaId, lsa, dbCopy)) {
@@ -275,11 +280,11 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         this.packetProcessedEventBuilder?.addAction(action);
         return; // The whole function stops, since a neighbor state error has occurred.
       }
-      if (dbCopy.equals(lsa)) {
+      if (dbCopy.equals(lsa, MaxAge)) {
         // Received LSA is the same instance as the database copy.
         if (
           linkStateRetransmissionList.some((neighborLsa) =>
-            neighborLsa.equals(lsa)
+            neighborLsa.equals(lsa, MaxAge)
           )
         ) {
           const { header } = lsa;
@@ -290,7 +295,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
           action += `The received LSA from ${neighborId} is the same instance as the one requested by it. Hence, 
           treating the receipt as an <i>implied acknowledgement</i> from ${neighborId}. No ACK will be sent back to it.`;
           const newRetransmissionList = linkStateRetransmissionList.filter(
-            (neighborLsa) => !neighborLsa.equals(lsa)
+            (neighborLsa) => !neighborLsa.equals(lsa, MaxAge)
           );
           if (!newRetransmissionList.length) {
             clearTimeout(lsRetransmissionRxmtTimer);

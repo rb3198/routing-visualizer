@@ -1,7 +1,7 @@
 import { LSA } from ".";
 import { IPv4Address } from "../../ip/ipv4_address";
 import { LSType } from "../enum";
-import { MaxAge, MaxAgeDiff } from "./constants";
+import { MaxAgeDiff } from "./constants";
 
 export class LSAHeader {
   lsAge: number;
@@ -41,7 +41,7 @@ export class LSAHeader {
    * - **-1** if This LSA is younger than the `comparedLsa`
    * - **1** if This LSA is older than the `comparedLsa`
    */
-  compareAge(comparedLsa: LSAHeader | LSA) {
+  compareAge(comparedLsa: LSAHeader | LSA, maxAge: number) {
     const comparedHeader =
       comparedLsa instanceof LSA ? comparedLsa.header : comparedLsa;
     const { lsAge, lsSeqNumber } = this;
@@ -59,10 +59,10 @@ export class LSAHeader {
     if (lsAge === comparedLsAge) {
       return 0;
     }
-    if (lsAge === MaxAge) {
+    if (lsAge === maxAge) {
       return -1;
     }
-    if (comparedLsAge === MaxAge) {
+    if (comparedLsAge === maxAge) {
       return 1;
     }
     // None of the instances have age = `MaxAge`.
@@ -94,11 +94,12 @@ export class LSAHeader {
    * @param comparedLsa
    * @returns
    */
-  equals(comparedLsa: LSA | LSAHeader) {
+  equals(comparedLsa: LSA | LSAHeader, maxAge: number) {
     const comparedHeader =
       comparedLsa instanceof LSAHeader ? comparedLsa : comparedLsa.header;
     return (
-      this.isInstanceOf(comparedHeader) && this.compareAge(comparedHeader) === 0
+      this.isInstanceOf(comparedHeader) &&
+      this.compareAge(comparedHeader, maxAge) === 0
     );
   }
 

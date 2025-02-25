@@ -24,7 +24,8 @@ class RoutingTableCalculationWorkerPool {
       const task = this.queue.shift();
       if (task) {
         const { ospfInterface, prevTableMap } = task.tableRef;
-        const { lsDb, router, neighborTable } = ospfInterface;
+        const { lsDb, router, config } = ospfInterface;
+        const { MaxAge } = config;
         worker.onmessage = this.getOnMessageCallback(worker, task.tableRef);
         worker.postMessage(
           JSON.parse(
@@ -32,7 +33,7 @@ class RoutingTableCalculationWorkerPool {
               lsDb: lsDb.db[task.areaId],
               prevTable: prevTableMap[task.areaId],
               areaId: task.areaId,
-              neighborTable,
+              MaxAge,
               routerId: router.id.toString(),
               routerInterfaces: Array.from(router.ipInterfaces.keys()),
             })
@@ -48,7 +49,8 @@ class RoutingTableCalculationWorkerPool {
     const worker = this.workerPool.shift();
     if (worker) {
       const { ospfInterface, prevTableMap } = tableRef;
-      const { lsDb, router, neighborTable } = ospfInterface;
+      const { lsDb, router, config } = ospfInterface;
+      const { MaxAge } = config;
       worker.onmessage = this.getOnMessageCallback(worker, tableRef);
       worker.postMessage(
         JSON.parse(
@@ -56,7 +58,7 @@ class RoutingTableCalculationWorkerPool {
             lsDb: lsDb.db[areaId],
             prevTable: prevTableMap[areaId] ?? [],
             areaId,
-            neighborTable,
+            MaxAge,
             routerInterfaces: Array.from(router.ipInterfaces.keys()),
             routerId: router.id.toString(),
           })

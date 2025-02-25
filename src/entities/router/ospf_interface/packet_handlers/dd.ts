@@ -121,8 +121,9 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
     areaId: number,
     lsaHeaders: LSAHeader[]
   ) => {
-    const { neighborTable, lsDb, setNeighborLsRequestList } =
+    const { neighborTable, lsDb, config, setNeighborLsRequestList } =
       this.ospfInterface;
+    const { MaxAge } = config;
     const neighbor = neighborTable[neighborId];
     if (!neighbor) {
       return;
@@ -134,7 +135,7 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
       let requestLsa = false;
       if (lsa) {
         // LSA Exists, compare which one is newer.
-        requestLsa = header.compareAge(lsa) < 0;
+        requestLsa = header.compareAge(lsa, MaxAge) < 0;
       } else {
         // This is a new LSA.
         requestLsa = true;

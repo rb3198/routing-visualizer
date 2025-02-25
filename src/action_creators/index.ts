@@ -3,6 +3,7 @@ import {
   EventLogAction,
   ModalAction,
   NotificationTooltipAction,
+  SimulationConfigAction,
 } from "../types/actions";
 import { ActionCreator } from "redux";
 import { RectDim } from "../types/geometry";
@@ -16,6 +17,7 @@ import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 import { NetworkEvent } from "src/entities/network_event";
+import { MaxAge } from "src/entities/ospf/lsa/constants";
 
 export type VizArgs = {
   color: string;
@@ -106,13 +108,37 @@ export const setEventLogKeepCount: ActionCreator<EventLogAction> = (
   };
 };
 
-export const setPropagationDelay = (delay: number) => {
+export const setPropagationDelay = (delay: number): SimulationConfigAction => {
   return {
     type: "SET_PROPAGATION_DELAY",
     value: delay,
   };
 };
 
+export const setHelloInterval = (
+  helloInterval: number
+): SimulationConfigAction => {
+  return {
+    type: "SET_DEF_HELLO_INTERVAL",
+    value: helloInterval,
+  };
+};
+
+export const setMaxAge = (maxAge?: number): SimulationConfigAction => {
+  return {
+    type: "SET_MAX_AGE",
+    value: maxAge ?? MaxAge,
+  };
+};
+
+export const setGlobalGracefulShutdown = (
+  graceful: boolean
+): SimulationConfigAction => {
+  return {
+    type: "SET_GRACEFUL_SHUTDOWN",
+    value: graceful,
+  };
+};
 export const openNotificationTooltip = (
   message: string,
   duration?: number

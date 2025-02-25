@@ -2,7 +2,7 @@ import { CANDIDATE_LIST_DEGREE } from "src/constants/routing_table";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { LSType, RouterLinkType } from "src/entities/ospf/enum";
 import { LSA } from "src/entities/ospf/lsa";
-import { LSInfinity, MaxAge } from "src/entities/ospf/lsa/constants";
+import { LSInfinity } from "src/entities/ospf/lsa/constants";
 import { RouterLSA } from "src/entities/ospf/lsa/router_lsa";
 import { SummaryLSABody } from "src/entities/ospf/lsa/summary_lsa";
 import {
@@ -27,13 +27,15 @@ type TableCalculationSources = {
   prevTable: RoutingTable;
   areaId: number;
   routerInterfaces: string[];
+  MaxAge: number;
 };
 
 const addInterAreaRoutes = (
   routerId: IPv4Address,
   areaId: number,
   table: RoutingTable,
-  lsDb: Record<string, LSA>
+  lsDb: Record<string, LSA>,
+  MaxAge: number
 ) => {
   const areaIp = getAreaIp(areaId);
   for (const lsa of Object.values(lsDb)) {
@@ -220,6 +222,7 @@ const calculateNextHops = (
  */
 const processRouterLinks = (
   lsDb: Record<string, LSA>,
+  MaxAge: number,
   tree: Tree<TransitVertexData>,
   vNode: TreeNode<TransitVertexData>,
   queue: PriorityQueue<TreeNode<TransitVertexData>>
@@ -310,7 +313,11 @@ const processRouterLinks = (
   }
 };
 
-const initTree = (routerId: IPv4Address, lsDb: Record<string, LSA>) => {
+const initTree = (
+  routerId: IPv4Address,
+  lsDb: Record<string, LSA>,
+  MaxAge: number
+) => {
   const selfRouterLsaKey = LsDb.getLsDbKey({
     advertisingRouter: routerId,
     linkStateId: routerId,
@@ -330,7 +337,13 @@ const initTree = (routerId: IPv4Address, lsDb: Record<string, LSA>) => {
     nextHops: [],
   });
   const shortestPathTree = new Tree<TransitVertexData>(rootData);
-  processRouterLinks(lsDb, shortestPathTree, shortestPathTree.root, queue);
+  processRouterLinks(
+    lsDb,
+    MaxAge,
+    shortestPathTree,
+    shortestPathTree.root,
+    queue
+  );
   return { shortestPathTree, queue, table };
 };
 
@@ -338,9 +351,10 @@ const calculateIntraAreaTable = (
   areaId: number,
   routerId: IPv4Address,
   routerInterfaces: Set<string>,
-  lsDb: Record<string, LSA>
+  lsDb: Record<string, LSA>,
+  MaxAge: number
 ) => {
-  const init = initTree(routerId, lsDb);
+  const init = initTree(routerId, lsDb, MaxAge);
   if (!init) {
     return init;
   }
@@ -384,7 +398,7 @@ const calculateIntraAreaTable = (
     added vertex' LSA.
     */
     shortestPathTree.insertNode(vNode);
-    processRouterLinks(lsDb, shortestPathTree, vNode, queue);
+    processRouterLinks(lsDb, MaxAge, shortestPathTree, vNode, queue);
   }
   // Stage 2 - Adding stub links
   for (let vNode of shortestPathTree.bfsTraversal()) {
@@ -441,7 +455,7 @@ const calculateIntraAreaTable = (
       });
   }
   // Stage 3 - Adding Inter area routes
-  addInterAreaRoutes(routerId, areaId, table, lsDb);
+  addInterAreaRoutes(routerId, areaId, table, lsDb, MaxAge);
   return { tree: shortestPathTree, table };
 };
 
@@ -450,13 +464,20 @@ const calculateIntraAreaTable = (
  * @param e An object containing an areaId, the LS DB for the given area ID, and the previous table of that area.
  */
 self.onmessage = async function (e: MessageEvent<TableCalculationSources>) {
-  const { routerId: routerIdStr, lsDb, areaId, routerInterfaces } = e.data;
+  const {
+    routerId: routerIdStr,
+    lsDb,
+    areaId,
+    routerInterfaces,
+    MaxAge,
+  } = e.data;
   const routerId = IPv4Address.fromString(routerIdStr);
   const init = calculateIntraAreaTable(
     areaId,
     routerId,
     new Set(routerInterfaces),
-    lsDb
+    lsDb,
+    MaxAge
   );
   if (!init) {
     console.warn("No root node found for intra area table calculation");
