@@ -18,9 +18,11 @@ import { bindActionCreators, Dispatch } from "redux";
 import { connect, ConnectedProps } from "react-redux";
 import {
   setGlobalGracefulShutdown,
+  setHelloInterval,
   setPropagationDelay,
 } from "src/action_creators";
 import { AreaTree } from "src/entities/area_tree";
+import { DEFAULT_HELLO_INTERVAL } from "src/entities/ospf/constants";
 
 interface IToolbarProps {
   startSimulation: () => boolean;
@@ -37,6 +39,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     playing,
     propagationDelay,
     gracefulShutdown: globalGracefulShutdown,
+    helloInterval,
+    deadInterval,
     rxmtInterval,
     areaTree,
     startSimulation,
@@ -44,6 +48,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     setPropagationDelay,
     setGlobalGracefulShutdown,
     showTooltip,
+    setHelloInterval,
   } = props;
 
   const [expanded, setExpanded] = useState(false);
@@ -61,6 +66,17 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         area.setRxmtInterval(rxmtInterval);
       });
   }, [rxmtInterval, areaTree]);
+
+  useEffect(() => {
+    areaTree.current
+      .inOrderTraversal(areaTree.current.root)
+      .forEach(([, area]) =>
+        area.routerLocations.forEach((router) => {
+          router.ospf.config.helloInterval = helloInterval;
+          router.ospf.config.deadInterval = deadInterval;
+        })
+      );
+  }, [areaTree, helloInterval, deadInterval]);
 
   const togglePlaying: MouseEventHandler<HTMLDivElement> = useCallback(
     (e) => {
@@ -82,6 +98,16 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         setPropagationDelay(parseFloat(value) * 1000);
       },
       [setPropagationDelay]
+    );
+
+  const onHelloIntervalChange: React.ChangeEventHandler<HTMLInputElement> =
+    useCallback(
+      (e) => {
+        const { target } = e;
+        const { value } = target;
+        setHelloInterval(parseFloat(value) * 1000);
+      },
+      [setHelloInterval]
     );
 
   const resetPropDelay = useCallback(
@@ -179,10 +205,10 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     );
 
   const ConfigTools = useMemo(() => {
-    const onDisabledMouseDown = () => {
+    const onDisabledMouseDown = (propName: string) => {
       showTooltip?.call(
         null,
-        "Cannot Change the propagation delay once the simulation has started. Please STOP the simulation to change this delay."
+        `Cannot change the ${propName} once the simulation has started. Please STOP the simulation to change this delay.`
       );
     };
     const config: ConfigOptionProps[] = [
@@ -191,14 +217,14 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         params: [
           {
             type: "range",
-            label: "Propagation Delay:",
+            label: "Propagation Delay",
             value: propagationDelay / 1000,
             unit: "s",
             step: 0.1,
             onChange: onPropDelayChange,
             affects: [
               {
-                label: "Retransmission Interval:",
+                label: "Retransmission Interval",
                 value: rxmtInterval / 1000,
               },
             ],
@@ -221,6 +247,29 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
           },
         ],
       },
+      {
+        section: "OSPF Configuration",
+        params: [
+          {
+            type: "range",
+            range: [8, 20],
+            value: helloInterval / 1000,
+            affects: [
+              {
+                label: "Dead Interval",
+                value: deadInterval / 1000,
+              },
+            ],
+            label: "Hello Interval",
+            onChange: onHelloIntervalChange,
+            onDisabledClick: onDisabledMouseDown,
+            onReset: setHelloInterval.bind(null, DEFAULT_HELLO_INTERVAL),
+            step: 0.2,
+            unit: "s",
+            disabled: playing,
+          },
+        ],
+      },
     ];
     return (
       <div
@@ -239,12 +288,16 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     expanded,
     propagationDelay,
     rxmtInterval,
+    helloInterval,
+    deadInterval,
     globalGracefulShutdown,
     onPropDelayChange,
     resetPropDelay,
     playing,
     showTooltip,
     onGracefulToggle,
+    setHelloInterval,
+    onHelloIntervalChange,
   ]);
 
   return (
@@ -266,6 +319,7 @@ const mapStateToProps = (state: IRootReducer) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setPropagationDelay: bindActionCreators(setPropagationDelay, dispatch),
+    setHelloInterval: bindActionCreators(setHelloInterval, dispatch),
     setGlobalGracefulShutdown: bindActionCreators(
       setGlobalGracefulShutdown,
       dispatch

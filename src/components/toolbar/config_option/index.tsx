@@ -10,11 +10,11 @@ type Param =
       unit: string;
       onChange: React.ChangeEventHandler<HTMLInputElement>;
       onReset: () => unknown;
-      onDisabledClick?: React.MouseEventHandler;
+      onDisabledClick?: (propName: string) => unknown;
       range: [number, number];
       affects: {
         label: string;
-        value: string | number;
+        value: number;
       }[];
       disabled?: boolean;
     }
@@ -41,6 +41,7 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
         const {
           value,
           unit,
+          range,
           step,
           affects,
           onChange,
@@ -48,12 +49,14 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
           onDisabledClick,
         } = param;
         const id = `${styles.slider}_${label}`;
+        const onDisabledMouseDown = () =>
+          onDisabledClick && onDisabledClick(label);
         return (
           <div className={styles.row} key={id}>
             <div className={styles.col}>
               <div className={styles.slider_container}>
                 <label htmlFor={id} className={styles.label}>
-                  <p>{label}</p>
+                  <p>{label}:</p>
                   <span>
                     {value.toFixed(1)}
                     {unit}
@@ -61,8 +64,8 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
                 </label>
                 <input
                   type="range"
-                  min={1}
-                  max={5}
+                  min={range[0]}
+                  max={range[1]}
                   step={step}
                   value={value}
                   className={styles.slider}
@@ -73,7 +76,7 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
                 {disabled && (
                   <div
                     className={styles.disabled_slider_overlay}
-                    onClick={onDisabledClick}
+                    onClick={onDisabledMouseDown}
                   />
                 )}
               </div>
@@ -82,9 +85,9 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
               {affects.map(({ label, value }) => (
                 <div key={label}>
                   <label htmlFor={id} className={styles.label}>
-                    <p>{label}</p>
+                    <p>{label}:</p>
                     <span>
-                      {value}
+                      {value.toFixed(1)}
                       {unit}
                     </span>
                   </label>
@@ -93,7 +96,7 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
             </div>
             <div className={styles.col}>
               <button
-                onClick={disabled ? onDisabledClick : onReset}
+                onClick={disabled ? onDisabledMouseDown : onReset}
                 className={styles.reset_button}
                 data-disabled={disabled}
               >

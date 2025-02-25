@@ -114,6 +114,15 @@ export const setPropagationDelay = (delay: number): SimulationConfigAction => {
   };
 };
 
+export const setHelloInterval = (
+  helloInterval: number
+): SimulationConfigAction => {
+  return {
+    type: "SET_DEF_HELLO_INTERVAL",
+    value: helloInterval,
+  };
+};
+
 export const setGlobalGracefulShutdown = (
   graceful: boolean
 ): SimulationConfigAction => {

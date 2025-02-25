@@ -65,8 +65,8 @@ export class OSPFArea {
     this.name = `Area ${id}`;
     this.ip = new IPv4Address(byte1, byte2, 0, 0, areaSubnetMask);
     const { simulationConfig } = store.getState();
-    const { rxmtInterval } = simulationConfig;
-    this.ospfConfig = new OSPFConfig(id, undefined, rxmtInterval);
+    const { helloInterval, rxmtInterval } = simulationConfig;
+    this.ospfConfig = new OSPFConfig(id, helloInterval, rxmtInterval);
     this.routerLocations = new Map();
   }
 
