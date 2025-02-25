@@ -242,6 +242,9 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         params: [
           {
             type: "range",
+            description: `Propagation Delay is the time taken by a link to transport a packet from router A to router B.\n
+            Ex: If propagation delay is 10s and router A transmits a packet,
+            then it would take 10 seconds for the packet to reach router B.`,
             label: "Propagation Delay",
             value: propagationDelay / 1000,
             unit: "s",
@@ -265,6 +268,11 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         params: [
           {
             type: "checkbox",
+            description: `If enabled, the router ages its LSAs to MaxAge (hence making the LSAs unusable)
+            and transmits them to its neighbors before shutting down.
+            This way, all the neighbors know the unavailability of the router in advance, 
+            and update their tables accordingly before the router actually shuts down. This
+            prevents the network from experiencing "shocks", i.e. packets being transported through unusable routes.`,
             checked: globalGracefulShutdown,
             disabled: playing,
             label: "Shutdown Gracefully",
@@ -278,6 +286,10 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
           {
             type: "range",
             range: [8, 20],
+            description: `Dictates the interval between the 
+            transmission of two consecutive Hello packets.\n
+            Ex: If helloInterval is set to 10s, then every router would send 
+            a hello packet to each of its neighbors every 10s to let them know that its alive.`,
             value: helloInterval / 1000,
             affects: [
               {
@@ -296,6 +308,10 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
           {
             type: "range",
             range: [2, 60],
+            description: `
+            The maximum age that an LSA can attain. When an LSA's LS age field reaches MaxAge,
+            it is re-flooded in an attempt to flush the LSA from the routing domain.
+            `,
             value: MaxAge / 60,
             label: "LSA Max Age",
             onChange: onMaxAgeChange,

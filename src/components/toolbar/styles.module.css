@@ -2,7 +2,6 @@
     align-items: center;
     background-color: white;
     position: absolute;
-    overflow: hidden;
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
