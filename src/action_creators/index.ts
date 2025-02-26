@@ -32,6 +32,12 @@ export const emitEvent = (event: NetworkEvent): EventLogAction => {
   };
 };
 
+export const clearEventLog = (): EventLogAction => {
+  return {
+    type: "CLEAR_ALL_LOGS",
+  };
+};
+
 export const setCellSize: ActionCreator<CellSizeAction> = (
   cellSize: number
 ) => {

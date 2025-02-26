@@ -12,15 +12,18 @@ export const eventLogReducer: Reducer<EventLogState, EventLogAction> = (
   },
   action
 ) => {
-  const { type, data } = action;
+  const { type } = action;
   const { logs } = state;
   switch (type) {
     case "ADD_LOG":
+      const { data } = action;
       const newLogs = [data, ...logs];
       return {
         ...state,
         logs: newLogs,
       };
+    case "CLEAR_ALL_LOGS":
+      return { ...state, logs: [] };
     default:
       return state;
   }

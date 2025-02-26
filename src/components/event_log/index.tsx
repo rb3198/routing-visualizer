@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import styles from "./styles.module.css";
-import { Dispatch } from "redux";
+import { bindActionCreators, Dispatch } from "redux";
 import { BiSearch } from "react-icons/bi";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { NetworkEvent } from "src/entities/network_event";
 import { CiFilter } from "react-icons/ci";
 import { VscClearAll } from "react-icons/vsc";
+import { clearEventLog } from "src/action_creators";
 
 export type EventLogProps = {
   filter?: {
@@ -33,6 +34,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     showExpandToggle,
     noBorders,
     expanded: defaultExpanded,
+    clearEventLog,
   } = props;
 
   const [expanded, setExpanded] = useState(defaultExpanded || false);
@@ -54,12 +56,16 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         <div className={styles.control} title="Filter">
           <CiFilter />
         </div>
-        <div className={styles.control} title="Clear All">
+        <div
+          className={styles.control}
+          title="Clear All"
+          onClick={clearEventLog}
+        >
           <VscClearAll />
         </div>
       </div>
     );
-  }, []);
+  }, [clearEventLog]);
 
   const toggleEventLog = useCallback(() => {
     setExpanded((prevExpanded) => !prevExpanded);
@@ -153,8 +159,10 @@ const mapStateToProps = (state: IRootReducer) => {
   };
 };
 
-const mapDispatchToProps = (_: Dispatch) => {
-  return {};
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return {
+    clearEventLog: bindActionCreators(clearEventLog, dispatch),
+  };
 };
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
