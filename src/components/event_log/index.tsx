@@ -6,6 +6,8 @@ import { Dispatch } from "redux";
 import { BiSearch } from "react-icons/bi";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { NetworkEvent } from "src/entities/network_event";
+import { CiFilter } from "react-icons/ci";
+import { VscClearAll } from "react-icons/vsc";
 
 export type EventLogProps = {
   filter?: {
@@ -40,7 +42,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
   const ControlPanel = useMemo(() => {
     return (
       <div id={styles.control_panel}>
-        <div id={styles.search_box}>
+        <div id={styles.search_box} className={styles.control}>
           <label htmlFor={styles.search_input}>
             <BiSearch size={24} />
           </label>
@@ -48,6 +50,12 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
             id={styles.search_input}
             placeholder="Search through the logs..."
           />
+        </div>
+        <div className={styles.control} title="Filter">
+          <CiFilter />
+        </div>
+        <div className={styles.control} title="Clear All">
+          <VscClearAll />
         </div>
       </div>
     );

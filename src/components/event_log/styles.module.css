@@ -52,24 +52,35 @@
 
 #control_panel {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 0.25vmax 1vmax;
     margin-bottom: 2vh;
 }
 
-#search_box {
+.control {
     box-shadow: 0 0 5px 1px #ccc;
-    border: none;
     height: 2vmax;
-    border-radius: 6px;
-    width: 50%;
+    width: 2vmax;
+    margin-right: .618rem;
     display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    font-size: 1.309rem;
+    cursor: pointer;
+}
+
+#search_box {
+    border: none;
+    width: auto;
+    padding: 0 .618rem;
+    font-size: 1rem;
+    justify-content: flex-start;
+    cursor: initial;
 }
 
 #search_box label {
     display: flex;
-    flex-grow: 0.3;
     justify-content: center;
     align-items: center;
 }
@@ -79,6 +90,7 @@
     border: none;
     display: flex;
     flex-grow: 1;
+    padding-left: .309rem;
     border-radius: 6px;
     font-size: .75vmax;
 }
