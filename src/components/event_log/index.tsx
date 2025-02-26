@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import styles from "./styles.module.css";
-import { bindActionCreators, Dispatch } from "redux";
-import { setEventLogKeepCount } from "src/action_creators";
+import { Dispatch } from "redux";
 import { BiSearch } from "react-icons/bi";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { NetworkEvent } from "src/entities/network_event";
@@ -25,7 +24,6 @@ type ReduxProps = ConnectedProps<typeof connector>;
 const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
   const {
     eventLog,
-    keepCount,
     filter,
     showControlPanel,
     classes,
@@ -33,7 +31,6 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     showExpandToggle,
     noBorders,
     expanded: defaultExpanded,
-    setEventLogKeepCount,
   } = props;
 
   const [expanded, setExpanded] = useState(defaultExpanded || false);
@@ -41,15 +38,6 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
   const { type, routerId } = filter || {};
 
   const ControlPanel = useMemo(() => {
-    const changeHandler: React.ChangeEventHandler<HTMLSelectElement> = (e) => {
-      const { target } = e;
-      const { value } = target;
-      const keep = parseInt(value);
-      if (isNaN(keep)) {
-        return;
-      }
-      setEventLogKeepCount(keep);
-    };
     return (
       <div id={styles.control_panel}>
         <div id={styles.search_box}>
@@ -61,21 +49,9 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
             placeholder="Search through the logs..."
           />
         </div>
-        <div id={styles.log_size_selector_container}>
-          <label htmlFor={styles.log_size_selector}>Keep the last:</label>
-          <select
-            id={styles.log_size_selector}
-            onChange={changeHandler}
-            defaultValue={keepCount}
-          >
-            <option value={200}>200 Logs</option>
-            <option value={600}>600 Logs</option>
-            <option value={1000}>1000 Logs</option>
-          </select>
-        </div>
       </div>
     );
-  }, [keepCount, setEventLogKeepCount]);
+  }, []);
 
   const toggleEventLog = useCallback(() => {
     setExpanded((prevExpanded) => !prevExpanded);
@@ -105,6 +81,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
             .filter((event) =>
               type === "neighbor" ? event.router === routerId : true
             )
+            .slice(0, 50)
             .map((event) => (
               <Event event={event} key={event.id} hideLinks={hideLinks} />
             ))}
@@ -162,17 +139,14 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
 
 const mapStateToProps = (state: IRootReducer) => {
   const { eventLog } = state;
-  const { logs, keepCount } = eventLog;
+  const { logs } = eventLog;
   return {
     eventLog: logs,
-    keepCount,
   };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
-  return {
-    setEventLogKeepCount: bindActionCreators(setEventLogKeepCount, dispatch),
-  };
+const mapDispatchToProps = (_: Dispatch) => {
+  return {};
 };
 
 const connector = connect(mapStateToProps, mapDispatchToProps);

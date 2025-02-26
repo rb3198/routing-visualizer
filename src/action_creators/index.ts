@@ -13,7 +13,6 @@ import {
   NeighborTableSnapshot,
 } from "src/entities/ospf/table_rows";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
-import { EVENT_LOG_STORAGE_COUNT_KEY } from "src/constants/storage";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 import { NetworkEvent } from "src/entities/network_event";
@@ -95,16 +94,6 @@ export const openRoutingTable: ActionCreator<ModalAction> = (
 export const closeModal: ActionCreator<ModalAction> = () => {
   return {
     type: "CLOSE_MODAL",
-  };
-};
-
-export const setEventLogKeepCount: ActionCreator<EventLogAction> = (
-  keepCount: number
-) => {
-  localStorage.setItem(EVENT_LOG_STORAGE_COUNT_KEY, keepCount.toString());
-  return {
-    type: "SET_KEEP_COUNT",
-    data: keepCount,
   };
 };
 
