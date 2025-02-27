@@ -37,7 +37,9 @@
 }
 #main {
     background-color: white;
-    overflow-y: scroll;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
     height: 92.5vh;
     border-left: 1px solid #ccc;
 }
@@ -106,12 +108,15 @@
     top: 0;
     background-color: white;
 }
-#log_list {
+
+.log_list {
     list-style: none;
     list-style-position: inside;
     text-align: justify;
     padding: 0 1.25vh;
     font-size: .75vmax;
+    flex-grow: 1;
+    overflow-y: auto;
 }
 
 .event {

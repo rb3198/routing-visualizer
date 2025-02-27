@@ -9,6 +9,7 @@ import { NetworkEvent } from "src/entities/network_event";
 import { CiFilter } from "react-icons/ci";
 import { VscClearAll } from "react-icons/vsc";
 import { clearEventLog } from "src/action_creators";
+import { VirtualList } from "../virtual_list";
 
 export type EventLogProps = {
   filter?: {
@@ -90,16 +91,17 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
       <div id={styles.main} data-no-borders={noBorders}>
         <h2 id={styles.title}>Recent Events</h2>
         {(showControlPanel && ControlPanel) || <></>}
-        <ul id={styles.log_list}>
-          {eventLog
-            .filter((event) =>
-              type === "neighbor" ? event.router === routerId : true
-            )
-            .slice(0, 50)
-            .map((event) => (
-              <Event event={event} key={event.id} hideLinks={hideLinks} />
-            ))}
-        </ul>
+        <VirtualList
+          estimatedHeight={300}
+          items={eventLog.filter((event) =>
+            type === "neighbor" ? event.router === routerId : true
+          )}
+          keyExtractor={(item) => item.id}
+          renderItem={(event) => <Event event={event} hideLinks={hideLinks} />}
+          windowSize={30}
+          refreshDelta={30}
+          classes={styles.log_list}
+        />
       </div>
     </div>
   );
