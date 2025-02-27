@@ -46,11 +46,18 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
     Date.now(),
     Date.now() + MS_IN_DAY,
   ]);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const { type, routerId } = filter || {};
   const routers = useMemo(
     () => Array.from(new Set(eventLog.map((event) => event.router))).sort(),
     [eventLog]
   );
+
+  const onSearchInputChange: React.ChangeEventHandler<HTMLInputElement> =
+    useCallback((e) => {
+      const { target } = e;
+      setSearchKeyword(target.value);
+    }, []);
 
   const ControlPanel = useMemo(() => {
     const onFilterClick = () => setFiltersVisible((prev) => !prev);
@@ -62,6 +69,8 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
           </label>
           <input
             id={styles.search_input}
+            value={searchKeyword}
+            onChange={onSearchInputChange}
             placeholder="Search through the logs..."
           />
         </div>
@@ -77,7 +86,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         </div>
       </div>
     );
-  }, [clearEventLog]);
+  }, [searchKeyword, onSearchInputChange, clearEventLog]);
 
   const toggleEventLog = useCallback(() => {
     setExpanded((prevExpanded) => !prevExpanded);
@@ -182,14 +191,23 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
         <VirtualList
           estimatedHeight={300}
           items={eventLog.filter((event) => {
-            const { router, timestamp } = event;
+            const { router, timestamp, actions, title, actionLine } = event;
             const [minTime, maxTime] = timeBounds;
             if (type === "neighbor") {
               return router === routerId;
             }
             const routerValid = !filterByRouter || router === filterByRouter;
             const timeValid = timestamp >= minTime && timestamp <= maxTime;
-            return routerValid && timeValid;
+            let searchValid = true;
+            if (searchKeyword) {
+              searchValid = false;
+              searchValid ||= title.includes(searchKeyword);
+              searchValid ||= actionLine?.includes(searchKeyword) ?? false;
+              searchValid ||= actions.some((action) =>
+                action.includes(searchKeyword)
+              );
+            }
+            return routerValid && timeValid && searchValid;
           })}
           keyExtractor={(item) => item.id}
           renderItem={(event) => <Event event={event} hideLinks={hideLinks} />}
