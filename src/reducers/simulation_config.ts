@@ -1,9 +1,8 @@
 import { Reducer } from "redux";
+import { CONFIG_STORAGE_KEY } from "src/constants/storage";
 import { OSPFGlobals } from "src/entities/ospf/config/ospf_globals";
 import { getDeadInterval, getRxmtInterval } from "src/entities/ospf/constants";
 import { SimulationConfigAction } from "src/types/actions";
-
-const CONFIG_STORAGE_KEY = "SIMULATION_CONFIG";
 
 const configFromStorage = localStorage.getItem(CONFIG_STORAGE_KEY);
 const initialState = configFromStorage

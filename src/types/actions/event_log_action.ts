@@ -6,6 +6,5 @@ export type EventLogAction =
       data: NetworkEvent;
     }
   | {
-      type: "SET_KEEP_COUNT";
-      data: number;
+      type: "CLEAR_ALL_LOGS";
     };

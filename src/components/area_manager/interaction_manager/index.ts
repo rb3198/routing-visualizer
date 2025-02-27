@@ -309,15 +309,17 @@ export const interactiveStateReducer: Reducer<
   if (type === "play") {
     const { areaTree } = action;
     let newSelectedRouter = prevSelectedRouter;
-    areaTree.inOrderTraversal(areaTree.root).forEach(([, ar]) => {
-      const { routerLocations } = ar;
-      for (const router of routerLocations.values()) {
-        const newRouter = router.turnOn();
-        if (router === prevSelectedRouter) {
-          newSelectedRouter = newRouter;
+    setTimeout(() =>
+      areaTree.inOrderTraversal(areaTree.root).forEach(([, ar]) => {
+        const { routerLocations } = ar;
+        for (const router of routerLocations.values()) {
+          const newRouter = router.turnOn();
+          if (router === prevSelectedRouter) {
+            newSelectedRouter = newRouter;
+          }
         }
-      }
-    });
+      })
+    );
     const newState: InteractiveState = {
       ...state,
       simulationStatus: "playing",
