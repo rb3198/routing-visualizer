@@ -77,7 +77,7 @@ export const RoutingTableVisual: React.FC<RoutingTableProps> = (props) => {
   }, [table]);
   const rows = Object.values(table);
   return (
-    <Table>
+    <Table classes={styles.table}>
       <tr>
         {columns.map((col, idx) => (
           <TC

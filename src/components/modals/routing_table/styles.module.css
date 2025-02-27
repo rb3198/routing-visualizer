@@ -1,6 +1,13 @@
 .fixed_modal {
     height: 75vh !important;
 }
+
+#container {
+    height: 100%;
+}
+#main {
+    height: 100%;
+}
 #description {
     margin-top: 1vmax;
     display: flex;
