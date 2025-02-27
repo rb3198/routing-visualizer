@@ -11,6 +11,7 @@ import { VscClearAll } from "react-icons/vsc";
 import { clearEventLog } from "src/action_creators";
 import { VirtualList } from "../virtual_list";
 
+const MS_IN_DAY = 86400000;
 export type EventLogProps = {
   filter?: {
     type: "neighbor"; // Add new types if required here.
@@ -39,10 +40,20 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
   } = props;
 
   const [expanded, setExpanded] = useState(defaultExpanded || false);
-
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [filterByRouter, setFilterByRouter] = useState<string>();
+  const [timeBounds, setTimeBounds] = useState<[number, number]>([
+    Date.now(),
+    Date.now() + MS_IN_DAY,
+  ]);
   const { type, routerId } = filter || {};
+  const routers = useMemo(
+    () => Array.from(new Set(eventLog.map((event) => event.router))).sort(),
+    [eventLog]
+  );
 
   const ControlPanel = useMemo(() => {
+    const onFilterClick = () => setFiltersVisible((prev) => !prev);
     return (
       <div id={styles.control_panel}>
         <div id={styles.search_box} className={styles.control}>
@@ -54,7 +65,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
             placeholder="Search through the logs..."
           />
         </div>
-        <div className={styles.control} title="Filter">
+        <div className={styles.control} title="Filter" onClick={onFilterClick}>
           <CiFilter />
         </div>
         <div
@@ -71,6 +82,82 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
   const toggleEventLog = useCallback(() => {
     setExpanded((prevExpanded) => !prevExpanded);
   }, []);
+
+  const onMinTimeChange: React.ChangeEventHandler<HTMLInputElement> =
+    useCallback((e) => {
+      const { value } = e.target;
+      setTimeBounds((prev) => {
+        const epoch = Date.parse(new Date(value).toString());
+        if (!prev) return prev;
+        if (epoch > prev[1]) return [epoch, epoch];
+        return [epoch, prev[1]];
+      });
+    }, []);
+
+  const onMaxTimeChange: React.ChangeEventHandler<HTMLInputElement> =
+    useCallback((e) => {
+      const { value } = e.target;
+      setTimeBounds((prev) => {
+        const epoch = Date.parse(new Date(value).toString());
+        if (epoch < prev[0]) return [epoch, epoch];
+        return [prev[0], epoch];
+      });
+    }, []);
+
+  const Filters = useMemo(() => {
+    const [minTime, maxTime] = timeBounds;
+    const minDate = new Date(minTime);
+    const maxDate = new Date(maxTime);
+
+    return (
+      <div id={styles.filter_container} data-visible={filtersVisible}>
+        <h5 id={styles.filters_title}>Filters:</h5>
+        <table id={styles.filter_table}>
+          <tbody>
+            <tr>
+              <th>By Router:</th>
+              <td>
+                <select
+                  onChange={(e) => setFilterByRouter(e.currentTarget.value)}
+                  className={styles.drop_down}
+                >
+                  <option value={""}>All</option>
+                  {routers.map((router) => (
+                    <option key={router} value={router}>
+                      {router}
+                    </option>
+                  ))}
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <th>By Time Range:</th>
+              <td>
+                <div style={{ display: "flex", flexFlow: "column" }}>
+                  <div className={styles.date_input_container}>
+                    <label className={styles.date_label}>From:</label>
+                    <input
+                      type="datetime-local"
+                      value={minDate.toLocaleString("sv").split("Z")[0]}
+                      onChange={onMinTimeChange}
+                    />
+                  </div>
+                  <div className={styles.date_input_container}>
+                    <label className={styles.date_label}>To:</label>
+                    <input
+                      type="datetime-local"
+                      value={maxDate.toLocaleString("sv").split("Z")[0]}
+                      onChange={onMaxTimeChange}
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }, [filtersVisible, routers, timeBounds, onMinTimeChange, onMaxTimeChange]);
 
   return (
     <div
@@ -91,11 +178,19 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
       <div id={styles.main} data-no-borders={noBorders}>
         <h2 id={styles.title}>Recent Events</h2>
         {(showControlPanel && ControlPanel) || <></>}
+        {(showControlPanel && Filters) || <></>}
         <VirtualList
           estimatedHeight={300}
-          items={eventLog.filter((event) =>
-            type === "neighbor" ? event.router === routerId : true
-          )}
+          items={eventLog.filter((event) => {
+            const { router, timestamp } = event;
+            const [minTime, maxTime] = timeBounds;
+            if (type === "neighbor") {
+              return router === routerId;
+            }
+            const routerValid = !filterByRouter || router === filterByRouter;
+            const timeValid = timestamp >= minTime && timestamp <= maxTime;
+            return routerValid && timeValid;
+          })}
           keyExtractor={(item) => item.id}
           renderItem={(event) => <Event event={event} hideLinks={hideLinks} />}
           windowSize={30}

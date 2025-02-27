@@ -56,7 +56,6 @@
     display: flex;
     align-items: center;
     padding: 0.25vmax 1vmax;
-    margin-bottom: 2vh;
 }
 
 .control {
@@ -113,7 +112,7 @@
     list-style: none;
     list-style-position: inside;
     text-align: justify;
-    padding: 0 1.25vh;
+    padding: 0 1vmax;
     font-size: .75vmax;
     flex-grow: 1;
     overflow-y: auto;
@@ -122,7 +121,7 @@
 .event {
     opacity: 0;
     transition: opacity .5s;
-    margin-bottom: 1.25vh;
+    margin-bottom: .25vmax;
 }
 
 .event.visible {
@@ -157,6 +156,71 @@ ul ul, ul ol {
     margin-left: 2rem;
 }
 
+#filter_container {
+    max-height: 0;
+    transition: max-height .25s ease-in, opacity .25s ease-in;
+    margin: 0 1vmax;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
+    opacity: 0;
+}
+
+#filter_container[data-visible="true"] {
+    max-height: 15vh;
+    height: 15vh;
+    opacity: 1;
+}
+
+#filters_title {
+    color: #aaa;
+    font-weight: 600;
+}
+
+#filter_table {
+    border-spacing: 0 1vh;
+    border-collapse: separate;
+    width: max-content;
+}
+
+#filter_table th {
+    text-align: left;
+    vertical-align: middle;
+    font-weight: 600;
+}
+
+#filter_table td {
+    padding-left: 1vw;
+}
+
+.drop_down, .date_input_container input {
+    box-shadow: 0 0 5px 1px #ccc;
+    border-radius: 6px;
+    outline: none;
+    border: none;
+    padding: .309rem .618rem;
+}
+
+.date_input_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .309rem;    
+}
+
+.date_input_container:last-of-type {
+    margin-bottom: 0;
+}
+
+.date_label {
+    font-size: .764rem;
+    color: #aaa;
+    margin-right: .618rem;
+}
 :global(.ls_req_container) {
     display: flex;
     border: 1px solid #ccc;
