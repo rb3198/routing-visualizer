@@ -7,7 +7,7 @@ import { OSPFInterface } from "./ospf_interface";
 import { OSPFConfig } from "../ospf/config";
 import { BACKBONE_AREA_ID } from "../ospf/constants";
 import { store } from "../../store";
-import { emitEvent } from "../../action_creators";
+import { emitEvent, openNotificationTooltip } from "../../action_creators";
 import { RoutingTableRow } from "../ospf/table_rows";
 import { IPacket } from "../interfaces/IPacket";
 import { IPHeader } from "../ip/packets/header";
@@ -124,6 +124,16 @@ export class Router {
     return longestMatchRow;
   };
 
+  private emitPacketNotSentNotification = (destination: IPv4Address) => {
+    store.dispatch(
+      openNotificationTooltip(
+        `Unable to route the message to destination ${destination}.
+          The router doesn't know a path to ${destination} right now.`,
+        5000
+      )
+    );
+  };
+
   sendIpPacket = (ipPacket: IPPacket, isSelfOriginated?: boolean) => {
     const { header } = ipPacket;
     const { destination, source } = header;
@@ -135,7 +145,7 @@ export class Router {
     }
     const longestMatchRow = this.routingTableLookup(destination);
     if (!longestMatchRow || !longestMatchRow.nextHops.length) {
-      // TODO: Show tooltip.
+      this.emitPacketNotSentNotification(destination);
       console.warn(`Unable to route the message to destination ${destination}`);
       return;
     }
@@ -179,8 +189,7 @@ export class Router {
     }
     const longestMatchRow = this.routingTableLookup(destination);
     if (!longestMatchRow) {
-      // TODO: Show tooltip.
-      console.warn(`Unable to route the message to destination ${destination}`);
+      this.emitPacketNotSentNotification(destination);
       return;
     }
     const { nextHops, lastUsedNextHopIdx } = longestMatchRow;

@@ -6,6 +6,11 @@
     animation: deletedAnim 5s ease-in normal forwards;
 }
 
+.table {
+    max-height: 80%;
+    overflow-y: auto;
+}
+
 @keyframes addedAnim {
     0% {
         opacity: 0;
