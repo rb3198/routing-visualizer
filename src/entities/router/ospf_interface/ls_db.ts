@@ -260,6 +260,7 @@ export class LsDb {
    * @param areaId
    * @param lsas
    * @param receivedFrom The ID of the Neighbor that this LSA was received from. `undefined` if self-originated LSA.
+   * @returns `true` if some of the LSAs were flooded. `false` otherwise.
    */
   floodLsa = (
     areaId: number,
@@ -277,6 +278,7 @@ export class LsDb {
         )
         .join(",")}`
     );
+    let sendingLsas = false;
     for (const neighbor of Object.values(neighborTable)) {
       const {
         state,
@@ -301,6 +303,7 @@ export class LsDb {
       linkStateRetransmissionList.push(
         ...lsasToAdvertise.map((lsa) => copyLsa(lsa))
       );
+      sendingLsas = true;
       setNeighbor({
         ...neighbor,
         lsRetransmissionRxmtTimer:
@@ -321,6 +324,7 @@ export class LsDb {
       );
       !lsRetransmissionRxmtTimer && sendLSUpdatePacket(neighborId);
     }
+    return sendingLsas;
   };
 
   appendToAction = (subAction: string, action?: string) => {
@@ -338,7 +342,11 @@ export class LsDb {
     flood?: boolean,
     skipCalc?: boolean
   ) => {
-    const { config } = this.ospfInterface;
+    const { config, router } = this.ospfInterface;
+    const { power } = router;
+    if (power !== RouterPowerState.On) {
+      return;
+    }
     const { MaxAge } = config;
     const { header } = lsa;
     const { lsAge } = header;
@@ -385,6 +393,18 @@ export class LsDb {
       this.ospfInterface.routingTableManager.calculate(areaId);
     }
     return action;
+  };
+
+  postprocessLsRetransmissionListClearout = (
+    areaId: number,
+    retransmissionList: LSA[]
+  ) => {
+    const { config } = this.ospfInterface;
+    const { MaxAge } = config;
+    const pendingMaxAgeLsaList = retransmissionList.filter(
+      (lsa) => lsa.header.lsAge === MaxAge
+    );
+    this.removeMaxAgeLsas(areaId, pendingMaxAgeLsaList);
   };
 
   removeMaxAgeLsas = (areaId: number, maxAgeLsaList: LSA[]) => {
@@ -459,7 +479,10 @@ export class LsDb {
 
   originateRouterLsa = (areaId: number, flood?: boolean) => {
     const { router } = this.ospfInterface;
-    const { id: routerId } = router;
+    const { id: routerId, power } = router;
+    if (power !== RouterPowerState.On) {
+      return;
+    }
     const areaExists = !!this.db[areaId];
     if (!areaExists) {
       this.db[areaId] = {};
@@ -569,9 +592,12 @@ export class LsDb {
   originateSummaryLsas = (sourceAreaId: number, forceRefresh?: boolean) => {
     const { routingTableManager, router, config } = this.ospfInterface;
     const { MaxAge } = config;
-    const { id: routerId } = router;
+    const { id: routerId, power } = router;
     if (Object.keys(this.db).length <= 1) {
       return; // do not originate any summary LSA if the router is not an ABR connected to multiple areas.
+    }
+    if (power !== RouterPowerState.On) {
+      return;
     }
     const { tableMap, prevTableMap } = routingTableManager;
     const table = tableMap[sourceAreaId];
@@ -699,13 +725,27 @@ export class LsDb {
             }
           }
         }
-        this.floodLsa(parseInt(areaId), toFlushLsaMap[areaId], []);
+        const isFlooded = this.floodLsa(
+          parseInt(areaId),
+          toFlushLsaMap[areaId],
+          []
+        );
+        if (!isFlooded) {
+          delete toFlushLsaMap[areaId];
+        }
       }
       // Await until the max aged LSAs have been removed from the LS DB.
       await new Promise((resolve) => {
         const check = () => {
           let shouldResolve = true;
+          if (Object.keys(toFlushLsaMap).length === 0) {
+            resolve(true);
+            return;
+          }
           for (let [areaId, areaDb] of Object.entries(this.db)) {
+            if (!Array.isArray(toFlushLsaMap[areaId])) {
+              continue;
+            }
             for (const lsa of toFlushLsaMap[areaId]) {
               const { header } = lsa;
               const lsKey = LsDb.getLsDbKey(header);
