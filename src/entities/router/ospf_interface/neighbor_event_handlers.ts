@@ -51,7 +51,12 @@ const helloReceived: NeighborEventHandler = function (neighbor) {
  * @returns Description of what actions took place.
  */
 const oneWayReceived: NeighborEventHandler = function (neighbor) {
-  const { state, routerId: neighborId, areaId } = neighbor;
+  const {
+    state,
+    routerId: neighborId,
+    areaId,
+    linkStateRetransmissionList,
+  } = neighbor;
   if (state >= State.TwoWay) {
     this.setNeighbor({
       ...neighbor,
@@ -60,6 +65,9 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
       linkStateRetransmissionList: [],
       dbSummaryList: [],
     });
+    this.lsDb.postprocessLsRetransmissionListClearout(areaId, [
+      ...linkStateRetransmissionList,
+    ]);
   }
   if (state === State.Full) {
     this.lsDb.originateRouterLsa(areaId, true);
@@ -201,10 +209,15 @@ const seqNumberMismatch: NeighborEventHandler = function (
   neighbor,
   desc?: string
 ) {
-  const { config } = this;
+  const { config, lsDb } = this;
   const { rxmtInterval } = config;
-  const { state, lsRequestRxmtTimer, lsRetransmissionRxmtTimer, areaId } =
-    neighbor;
+  const {
+    state,
+    lsRequestRxmtTimer,
+    lsRetransmissionRxmtTimer,
+    areaId,
+    linkStateRetransmissionList,
+  } = neighbor;
   clearInterval(lsRequestRxmtTimer);
   clearTimeout(lsRetransmissionRxmtTimer);
   if (state >= State.Exchange) {
@@ -222,6 +235,9 @@ const seqNumberMismatch: NeighborEventHandler = function (
       lsRequestRxmtTimer: undefined,
       lsRetransmissionRxmtTimer: undefined,
     });
+    lsDb.postprocessLsRetransmissionListClearout(areaId, [
+      ...linkStateRetransmissionList,
+    ]);
     this.lsDb.originateRouterLsa(areaId, true);
     return (
       (desc || "") +
@@ -263,8 +279,13 @@ const badLsRequest: NeighborEventHandler = function (neighbor, reason) {
  * @param neighbor The OSPF Neighbor
  * @returns Description of what actions took place.
  */
-const killNeighbor: NeighborEventHandler = function (neighbor) {
-  const { deadTimer, routerId: neighborId, areaId } = neighbor;
+const killNeighbor: NeighborEventHandler = function (this, neighbor) {
+  const {
+    deadTimer,
+    routerId: neighborId,
+    areaId,
+    linkStateRetransmissionList,
+  } = neighbor;
   clearTimeout(deadTimer);
   this.setNeighbor({
     ...neighbor,
@@ -275,6 +296,9 @@ const killNeighbor: NeighborEventHandler = function (neighbor) {
     deadTimer: undefined,
     lastReceivedDdPacket: undefined,
   });
+  this.lsDb.postprocessLsRetransmissionListClearout(areaId, [
+    ...linkStateRetransmissionList,
+  ]);
   this.lsDb.originateRouterLsa(areaId, true);
   return `
   Dead timer of ${neighborId} triggered. The neighbor is being set to the <code>DOWN</code> state.

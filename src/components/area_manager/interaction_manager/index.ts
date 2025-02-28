@@ -138,7 +138,7 @@ const placeRouter = (
     );
   const rect = gridRect[row][col];
   const router = placeRouter(row, col, nGlobalRouters, simulationPlaying);
-  rect.drawRouter(context, router.id.ip);
+  rect.drawRouter(context, router.id.ip, router.power);
 };
 
 const highlightDestinationRouters = (
@@ -307,29 +307,37 @@ export const interactiveStateReducer: Reducer<
     };
   }
   if (type === "play") {
-    const { areaTree } = action;
-    let newSelectedRouter = prevSelectedRouter;
+    const { areaTree, compLayer } = action;
+    const context = compLayer?.getContext("2d");
     setTimeout(() =>
       areaTree.inOrderTraversal(areaTree.root).forEach(([, ar]) => {
         const { routerLocations } = ar;
         for (const router of routerLocations.values()) {
-          const newRouter = router.turnOn();
-          if (router === prevSelectedRouter) {
-            newSelectedRouter = newRouter;
-          }
+          router.turnOn(gridRect, context);
         }
       })
     );
     const newState: InteractiveState = {
       ...state,
       simulationStatus: "playing",
+      state: "hovering",
+      selectedRouter: undefined,
+      routerMenu: defaultRouterMenuState,
+      componentPicker: defaultPickerState,
     };
-    if (newSelectedRouter !== prevSelectedRouter) {
-      newState.selectedRouter = newSelectedRouter;
-    }
     return newState;
   }
-  // TODO: Type = Pause / Stop.
+  // TODO: Type = Pause.
+  if (type === "stop") {
+    return {
+      ...state,
+      simulationStatus: "stopped",
+      state: "hovering",
+      selectedRouter: undefined,
+      routerMenu: defaultRouterMenuState,
+      componentPicker: defaultPickerState,
+    };
+  }
   if (type === "hover") {
     const { cell, iconLayer, draw, cursor } = action;
     if (prevInteractionState !== "hovering") {
@@ -354,7 +362,6 @@ export const interactiveStateReducer: Reducer<
     const context = overlayLayer.getContext("2d");
     const { width, height } = overlayLayer.getBoundingClientRect();
     context?.clearRect(0, 0, width, height);
-    // Show tooltip - Routing to router ID on destination interface {dest interface}
     prevSelectedRouter.originateIpPacket(
       IPv4Address.fromString(destinationIp),
       IPProtocolNumber.udp,

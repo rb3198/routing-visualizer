@@ -153,7 +153,7 @@ export class OSPFArea {
     for (let [loc, router] of this.routerLocations.entries()) {
       const [row, col] = loc.split("_").map((l) => parseInt(l));
       gridRect[row][col] &&
-        gridRect[row][col].drawRouter(context, router.id.ip);
+        gridRect[row][col].drawRouter(context, router.id.ip, router.power);
     }
   };
 

@@ -28,6 +28,7 @@ import { DEFAULT_HELLO_INTERVAL } from "src/entities/ospf/constants";
 interface IToolbarProps {
   startSimulation: () => boolean;
   pauseSimulation: () => any;
+  stopSimulation: () => any;
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
   playing?: boolean;
@@ -47,7 +48,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     LsRefreshTime,
     areaTree,
     startSimulation,
-    pauseSimulation,
+    stopSimulation,
     setPropagationDelay,
     setMaxAge,
     setGlobalGracefulShutdown,
@@ -93,18 +94,6 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       );
   }, [areaTree, MaxAge, LsRefreshTime]);
 
-  const togglePlaying: MouseEventHandler<HTMLDivElement> = useCallback(
-    (e) => {
-      e.stopPropagation();
-      if (playing) {
-        pauseSimulation();
-      } else {
-        startSimulation();
-      }
-    },
-    [playing, pauseSimulation, startSimulation]
-  );
-
   const onPropDelayChange: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (e) => {
@@ -142,9 +131,13 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
 
   const SimulationControls = useMemo(() => {
     const pauseImplemented = false;
+    const onPlayPauseClick: MouseEventHandler<HTMLDivElement> = (e) => {
+      e.stopPropagation();
+      playing ? stopSimulation() : startSimulation();
+    };
     return (
       <>
-        <div onClick={togglePlaying} className={styles.control}>
+        <div onClick={onPlayPauseClick} className={styles.control}>
           {playing ? (
             pauseImplemented ? (
               <FaPause color="black" />
@@ -156,13 +149,13 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
           )}
         </div>
         {pauseImplemented && (
-          <div className={styles.control}>
+          <div className={styles.control} onClick={stopSimulation}>
             <FaStop color="black" />
           </div>
         )}
       </>
     );
-  }, [playing, togglePlaying]);
+  }, [playing, startSimulation, stopSimulation]);
 
   const ExpandConfig = useMemo(() => {
     return (

@@ -17,6 +17,7 @@ export interface RouterMenuProps {
   gridRect: GridCell[][];
   areaTreeRef: React.MutableRefObject<AreaTree>;
   areaLayerRef: React.RefObject<HTMLCanvasElement>;
+  componentLayerRef: React.RefObject<HTMLCanvasElement>;
   selectedRouter?: Router;
   visible?: boolean;
   pickerRef?: React.RefObject<HTMLDivElement>;
@@ -42,6 +43,7 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
     cell,
     gridRect,
     areaLayerRef,
+    componentLayerRef,
     visible,
     pickerRef,
     areaTreeRef,
@@ -77,15 +79,16 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
   const Controls = useMemo(() => {
     const onPowerClick = async () => {
       if (!selectedRouter) return;
+      const context = componentLayerRef.current?.getContext("2d");
       const { turnOff, turnOn } = selectedRouter;
       switch (routerPower) {
         case RouterPowerState.Shutdown:
-          turnOn();
+          turnOn(gridRect, context);
           setRouterPower(RouterPowerState.On);
           break;
         case RouterPowerState.On:
           setRouterPower(RouterPowerState.ShuttingDown);
-          await turnOff();
+          await turnOff(gridRect, context);
           setRouterPower(RouterPowerState.Shutdown);
           break;
         default:
@@ -132,9 +135,11 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       </div>
     );
   }, [
+    gridRect,
     selectedRouter,
     gracefulShutdown,
     routerPower,
+    componentLayerRef,
     onRouterInteractionComplete,
   ]);
 

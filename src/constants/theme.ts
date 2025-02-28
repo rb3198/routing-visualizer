@@ -10,6 +10,7 @@ export const Colors = {
   lsUpdate: "#32A88E",
   lsAck: "#5A32A8",
   droppedPacket: "#E13A1E",
+  disabled: "#484848",
 };
 
 export const OspfPacketColorMap = new Map<PacketType, string>([
