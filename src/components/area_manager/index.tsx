@@ -24,6 +24,7 @@ import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import {
+  clearEventLog,
   openLsDbModal,
   openNotificationTooltip,
   openRoutingTable,
@@ -51,6 +52,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
     openNotificationTooltip,
+    clearEventLog,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -291,6 +293,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     dispatch({
       type: "play",
       areaTree: areaTree.current,
+      compLayer: componentLayerRef.current,
     });
     return true;
   }, [openNotificationTooltip]);
@@ -300,6 +303,28 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       type: "pause",
     });
   }, []);
+
+  const stopSimulation = useCallback(async () => {
+    const context = componentLayerRef.current?.getContext("2d");
+    openNotificationTooltip(`Stopping the simulation... Please note that it may 
+      take a long time to stop if Graceful Shutdown is set to ON.`);
+    for (let [, area] of areaTree.current.inOrderTraversal(
+      areaTree.current.root
+    )) {
+      const { routerLocations } = area;
+      for (let [, router] of routerLocations) {
+        await router.turnOff(gridRect, context);
+      }
+    }
+    openNotificationTooltip(
+      "Stopped the simulation - All routers shutdown, all processes stopped",
+      4000
+    );
+    dispatch({
+      type: "stop",
+    });
+    clearEventLog();
+  }, [gridRect, openNotificationTooltip, clearEventLog]);
 
   //#region Router Menu Methods
   const connectRouters = useCallback((routerA: Router, routerB: Router) => {
@@ -462,6 +487,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       <RouterMenu
         {...routerMenu}
         areaLayerRef={areaLayerRef}
+        componentLayerRef={componentLayerRef}
         gridRect={gridRect}
         cell={cell}
         areaTreeRef={areaTree}
@@ -479,6 +505,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         playing={simulationStatus === "playing"}
         startSimulation={startSimulation}
         pauseSimulation={pauseSimulation}
+        stopSimulation={stopSimulation}
         showTooltip={openNotificationTooltip}
         areaTree={areaTree}
       />
@@ -501,6 +528,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       openNotificationTooltip,
       dispatch
     ),
+    clearEventLog: bindActionCreators(clearEventLog, dispatch),
   };
 };
 

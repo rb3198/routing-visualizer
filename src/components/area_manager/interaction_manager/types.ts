@@ -75,6 +75,7 @@ export type InteractiveAction =
   | {
       type: "play";
       areaTree: AreaTree;
+      compLayer?: HTMLCanvasElement | null;
     }
   | {
       type: "component_picked";
