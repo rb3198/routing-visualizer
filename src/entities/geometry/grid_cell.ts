@@ -4,6 +4,7 @@ import {
   drawRouterBox,
   drawRouterButtons,
 } from "../../utils/grid_cell";
+import { RouterPowerState } from "../router/enum/RouterPowerState";
 
 /**
  * Class representing a single cell in the grid.
@@ -90,10 +91,18 @@ export class GridCell {
     context.restore();
   };
 
-  drawRouter = (context: CanvasRenderingContext2D, routerIp: string) => {
+  drawRouter = (
+    context: CanvasRenderingContext2D,
+    routerIp: string,
+    power = RouterPowerState.Shutdown
+  ) => {
     const { x, y, size } = this;
+    context.clearRect(x, y, size, size);
     context.beginPath();
-    context.fillStyle = Colors.complementary;
+    context.fillStyle =
+      power === RouterPowerState.Shutdown
+        ? Colors.disabled
+        : Colors.complementary;
     context.rect(x, y, size, size);
     context.fill();
     context.closePath();

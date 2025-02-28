@@ -18,6 +18,7 @@ import { PacketSentEventBuilder } from "../network_event/event_builders/packets/
 import { PacketDroppedEventBuilder } from "../network_event/event_builders/packets/dropped";
 import { InterfaceEventBuilder } from "../network_event/event_builders/interfaces";
 import { RouterPowerState as PowerState } from "./enum/RouterPowerState";
+import { GridCell } from "../geometry/grid_cell";
 
 export class Router {
   key: string;
@@ -262,7 +263,10 @@ export class Router {
     context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
   };
 
-  turnOn = () => {
+  turnOn = (
+    gridRect: GridCell[][],
+    context?: CanvasRenderingContext2D | null
+  ) => {
     const { config, lsDb } = this.ospf;
     const { helloInterval } = config;
     if (this.power === PowerState.On) {
@@ -279,11 +283,16 @@ export class Router {
         helloTimer,
       });
     }
+    const [x, y] = this.location;
+    context &&
+      gridRect[y][x]?.drawRouter(context, this.id.toString(), this.power);
     lsDb.startTimers();
-    return { ...this };
   };
 
-  turnOff = async () => {
+  turnOff = async (
+    gridRect: GridCell[][],
+    context?: CanvasRenderingContext2D | null
+  ) => {
     this.power = PowerState.ShuttingDown;
     this.ospf.lsDb.clearTimers();
     await this.ospf.lsDb.clearDb(this.gracefulShutdown);
@@ -305,5 +314,8 @@ export class Router {
       clearInterval(helloTimer);
     });
     this.power = PowerState.Shutdown;
+    const [x, y] = this.location;
+    context &&
+      gridRect[y][x]?.drawRouter(context, this.id.toString(), this.power);
   };
 }
