@@ -246,6 +246,14 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
             affects: [
               {
                 label: "Retransmission Interval",
+                description: `<ul>
+                <li>Retransmission Interval, i.e. <code>RxmtInterval</code>, is the interval at which routers
+                send each other Database Descriptions (DD), Link State Requests, and Link State Updates.</li>
+                <li>These packets continue to be sent on every <code>RxmtInterval</code> seconds till 
+                they're acknowledged, or the next desired state is achieved.</li>
+                <li>It is typically set to a value well above the typical round-trip delay
+                <br><code>(2 * propagation delay)</code> between any two routers.</li>
+                `,
                 value: rxmtInterval / 1000,
               },
             ],
@@ -280,14 +288,23 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
             type: "range",
             range: [8, 20],
             description: `Dictates the interval between the 
-            transmission of two consecutive Hello packets.\n
-            Ex: If helloInterval is set to 10s, then every router would send 
+            transmission of two consecutive Hello packets.<br>
+            Ex: If hello interval is set to 10s, then every router would send 
             a hello packet to each of its neighbors every 10s to let them know that its alive.`,
             value: helloInterval / 1000,
             affects: [
               {
                 label: "Dead Interval",
                 value: deadInterval / 1000,
+                description: `
+                <ul>
+                  <li>Hello packets are used to communicate the liveliness of routers to their neighbors.</li>
+                  <li>Dead Interval also known as <code>RouterDeadInterval</code> is the 
+                  number of seconds that a router waits for a hello packet before declaring its neighbor to be down.
+                  </li>
+                  <li>It is typically set to a multiple (typically 4) of the hello interval.</li>
+                </ul>
+                `,
               },
             ],
             label: "Hello Interval",
@@ -317,6 +334,16 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
               {
                 label: "LSA Refresh Time",
                 value: LsRefreshTime / 60,
+                description: `
+                <ul>
+                  <li>If the <code>LSAge</code> field of one of the router's self-originated
+                  LSAs reaches the value <code>LSRefreshTime</code>, a new instance of the LSA
+                  is originated, even though the contents of the LSA (apart from
+                  the LSA header) will be the same.</li>
+                  <li>This is done to ensure the freshness of LSAs.</li>
+                  <li>The value of LSRefreshTime is set to half of the <code>MaxAge</code>.</li>
+                </ul>
+                `,
               },
             ],
           },

@@ -112,3 +112,11 @@ h4 {
     padding: .618rem;
     z-index: 100;
 }
+
+.tooltip ul {
+    list-style-position: inside;
+}
+
+.tooltip code {
+    background-color: #484848;
+}
