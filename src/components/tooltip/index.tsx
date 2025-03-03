@@ -50,8 +50,11 @@ export const Tooltip: React.FC<TooltipProps> = (props) => {
   }, [visible, element, position]);
   if (!visible) return <></>;
   return (
-    <div ref={ref} id={styles.container} className={classes}>
-      {message}
-    </div>
+    <div
+      ref={ref}
+      id={styles.container}
+      className={classes}
+      dangerouslySetInnerHTML={{ __html: message }}
+    />
   );
 };

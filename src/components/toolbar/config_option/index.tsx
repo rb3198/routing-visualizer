@@ -16,7 +16,7 @@ type Param =
       onDisabledClick?: (propName: string) => unknown;
       range: [number, number];
       affects: {
-        description?: string;
+        description: string;
         label: string;
         value: number;
       }[];
@@ -55,16 +55,15 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
               onDisabledMouseDown={onDisabledMouseDown}
             />
             <div className={styles.col}>
-              {affects.map(({ label, value }) => (
-                <div key={label}>
-                  <label htmlFor={id} className={styles.label}>
-                    <p>{label}:</p>
-                    <span>
-                      {value.toFixed(1)}
-                      {unit}
-                    </span>
-                  </label>
-                </div>
+              {affects.map(({ label, value, description }) => (
+                <Effect
+                  key={label}
+                  description={description}
+                  id={id}
+                  label={label}
+                  unit={unit}
+                  value={value}
+                />
               ))}
             </div>
             <div className={styles.col}>
@@ -168,22 +167,22 @@ const Slider: React.FC<
   }, []);
   return (
     <div className={styles.col}>
+      <label htmlFor={id} className={styles.label}>
+        <p>{label}:</p>
+        <div
+          className={styles.question}
+          ref={questionRef}
+          onMouseEnter={showTooltip}
+          onMouseLeave={hideTooltip}
+        >
+          <AiOutlineQuestionCircle />
+        </div>
+        <span>
+          {value.toFixed(1)}
+          {unit}
+        </span>
+      </label>
       <div className={styles.slider_container}>
-        <label htmlFor={id} className={styles.label}>
-          <p>{label}:</p>
-          <div
-            className={styles.question}
-            ref={questionRef}
-            onMouseEnter={showTooltip}
-            onMouseLeave={hideTooltip}
-          >
-            <AiOutlineQuestionCircle />
-          </div>
-          <span>
-            {value.toFixed(1)}
-            {unit}
-          </span>
-        </label>
         <input
           type="range"
           min={range[0]}
@@ -202,6 +201,51 @@ const Slider: React.FC<
           />
         )}
       </div>
+      <Tooltip
+        visible={tooltipVisible}
+        element={questionRef}
+        position="top"
+        classes={styles.tooltip}
+        message={description}
+      />
+    </div>
+  );
+};
+
+const Effect: React.FC<{
+  description: string;
+  value: number;
+  label: string;
+  unit: string;
+  id: string;
+}> = ({ label, value, description, unit, id }) => {
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const questionRef = useRef<HTMLDivElement>(null);
+
+  const showTooltip = useCallback(() => {
+    setTooltipVisible(true);
+  }, []);
+  const hideTooltip = useCallback(() => {
+    setTooltipVisible(false);
+  }, []);
+
+  return (
+    <div key={label}>
+      <label htmlFor={id} className={styles.label}>
+        <p>{label}:</p>
+        <div
+          className={styles.question}
+          ref={questionRef}
+          onMouseEnter={showTooltip}
+          onMouseLeave={hideTooltip}
+        >
+          <AiOutlineQuestionCircle />
+        </div>
+        <span>
+          {value.toFixed(1)}
+          {unit}
+        </span>
+      </label>
       <Tooltip
         visible={tooltipVisible}
         element={questionRef}

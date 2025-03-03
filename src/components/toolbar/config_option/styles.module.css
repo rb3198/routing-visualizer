@@ -26,6 +26,7 @@ h4 {
     display: flex;
     flex-direction: column;
     position: relative;
+    width: 100%;
 }
 
 .label {
@@ -35,7 +36,6 @@ h4 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
 }
 
 .question {
@@ -111,4 +111,12 @@ h4 {
 .tooltip {
     padding: .618rem;
     z-index: 100;
+}
+
+.tooltip ul {
+    list-style-position: inside;
+}
+
+.tooltip code {
+    background-color: #484848;
 }
