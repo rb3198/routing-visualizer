@@ -26,6 +26,7 @@ h4 {
     display: flex;
     flex-direction: column;
     position: relative;
+    width: 100%;
 }
 
 .label {
@@ -35,7 +36,6 @@ h4 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
 }
 
 .question {

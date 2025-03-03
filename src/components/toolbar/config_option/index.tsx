@@ -168,22 +168,22 @@ const Slider: React.FC<
   }, []);
   return (
     <div className={styles.col}>
+      <label htmlFor={id} className={styles.label}>
+        <p>{label}:</p>
+        <div
+          className={styles.question}
+          ref={questionRef}
+          onMouseEnter={showTooltip}
+          onMouseLeave={hideTooltip}
+        >
+          <AiOutlineQuestionCircle />
+        </div>
+        <span>
+          {value.toFixed(1)}
+          {unit}
+        </span>
+      </label>
       <div className={styles.slider_container}>
-        <label htmlFor={id} className={styles.label}>
-          <p>{label}:</p>
-          <div
-            className={styles.question}
-            ref={questionRef}
-            onMouseEnter={showTooltip}
-            onMouseLeave={hideTooltip}
-          >
-            <AiOutlineQuestionCircle />
-          </div>
-          <span>
-            {value.toFixed(1)}
-            {unit}
-          </span>
-        </label>
         <input
           type="range"
           min={range[0]}
