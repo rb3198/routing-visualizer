@@ -13,8 +13,7 @@
     z-index: 101;
     position: absolute;
     background-color: white;
-    min-width: 50vw;
-    max-width: 90vw;
+    width: 75vw;
     left: 50vw;
     top: 50vh;
     max-height: 90vh;
