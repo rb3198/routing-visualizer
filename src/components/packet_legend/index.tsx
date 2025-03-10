@@ -64,7 +64,7 @@ export const PacketLegend: React.FC = () => {
             .map((packetType) => {
               return (
                 // TODO: on click, open `What is {PacketType}?` modal.
-                <li key={packetType}>
+                <li key={packetType} onClick={(e) => e.stopPropagation()}>
                   <div
                     className={styles.packet}
                     style={{

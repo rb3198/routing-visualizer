@@ -129,6 +129,7 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
                 <select
                   onChange={(e) => setFilterByRouter(e.currentTarget.value)}
                   className={styles.drop_down}
+                  name="Routers"
                 >
                   <option value={""}>All</option>
                   {routers.map((router) => (
@@ -144,16 +145,28 @@ const EventLogComponent: React.FC<ReduxProps & EventLogProps> = (props) => {
               <td>
                 <div style={{ display: "flex", flexFlow: "column" }}>
                   <div className={styles.date_input_container}>
-                    <label className={styles.date_label}>From:</label>
+                    <label
+                      className={styles.date_label}
+                      htmlFor="event_log_dt_from"
+                    >
+                      From:
+                    </label>
                     <input
+                      id="event_log_dt_from"
                       type="datetime-local"
                       value={minDate.toLocaleString("sv").split("Z")[0]}
                       onChange={onMinTimeChange}
                     />
                   </div>
                   <div className={styles.date_input_container}>
-                    <label className={styles.date_label}>To:</label>
+                    <label
+                      className={styles.date_label}
+                      htmlFor="event_log_dt_to"
+                    >
+                      To:
+                    </label>
                     <input
+                      id="event_log_dt_to"
                       type="datetime-local"
                       value={maxDate.toLocaleString("sv").split("Z")[0]}
                       onChange={onMaxTimeChange}

@@ -6,11 +6,12 @@ type ModalProps = {
   title: string;
   visible?: boolean;
   modalRef?: React.LegacyRef<HTMLDivElement>;
+  classes?: string;
   close: () => any;
 };
 
 export const Modal: React.FC<PropsWithChildren<ModalProps>> = (props) => {
-  const { visible, title, close, children, modalRef } = props;
+  const { visible, title, close, children, classes, modalRef } = props;
   const onBackdropClick: React.MouseEventHandler = useCallback(
     (e) => {
       const { target, currentTarget } = e;
@@ -26,7 +27,7 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = (props) => {
     >
       <div
         id={styles.container}
-        className={visible ? styles.visible : ""}
+        className={`${classes || ""} ${visible ? styles.visible : ""}`}
         ref={modalRef}
       >
         <div id={styles.title}>
