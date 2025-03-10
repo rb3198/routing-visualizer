@@ -85,7 +85,7 @@ export const ConfigOption: React.FC<ConfigOptionProps> = (props) => {
   };
   return (
     <div>
-      <h4>{section}</h4>
+      <h4 className={styles.section_title}>{section}</h4>
       {params.map((param) => renderControl(param))}
     </div>
   );
