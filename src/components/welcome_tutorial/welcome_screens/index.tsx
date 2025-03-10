@@ -4,6 +4,7 @@ import styles from "./styles.module.css";
 import { Emoji } from "src/constants/emojis";
 import { getExpertiseCards } from "src/constants/welcome_tutorial";
 import { ExpertiseCard } from "src/types/welcome_tutorial/expertise_card";
+import { BiChevronRight } from "react-icons/bi";
 
 type Props = {
   setScreen: (
@@ -97,6 +98,7 @@ const Card: React.FC<ExpertiseCard> = ({
       </ul>
       <button className={styles.navigator} onClick={onClick}>
         {buttonLabel}
+        <BiChevronRight />
       </button>
     </div>
   );

@@ -56,6 +56,13 @@
     cursor: pointer;
     border-radius: 6px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navigator svg {
+    font-size: 1rem;
 }
 
 .desc_list {
