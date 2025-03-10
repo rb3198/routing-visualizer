@@ -1,7 +1,7 @@
 import { OSPFInterface } from ".";
 import { routingTableCalcWorkerPool } from "src/worker_pools/ospf/routing_table_calculation_pool";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
-import { RoutingTableCalculationResult } from "src/types/ospf/routing_table_calc_result";
+import { RoutingTableCalculationResult } from "src/entities/ospf/summaries/routing_table_calc_result";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { store } from "src/store";
 import { openRoutingTable } from "src/action_creators";

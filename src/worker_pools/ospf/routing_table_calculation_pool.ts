@@ -1,6 +1,6 @@
 import { RoutingTableManager } from "src/entities/router/ospf_interface/routing_table";
 import { MAX_WORKERS_PER_POOL } from "../n_workers";
-import { RoutingTableCalculationResult } from "src/types/ospf/routing_table_calc_result";
+import { RoutingTableCalculationResult } from "src/entities/ospf/summaries/routing_table_calc_result";
 
 class RoutingTableCalculationWorkerPool {
   nWorkers: number;
