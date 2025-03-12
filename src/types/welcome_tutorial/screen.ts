@@ -11,10 +11,27 @@ export enum TutorialScreen {
   VisualizerTutorial = 9,
   Complete = 10,
 }
-
+export type SubScreen = {
+  title: string;
+  screen: JSX.Element;
+};
 export type ITutorialScreen = {
   title: string;
-  subScreens: { title: string; screen: JSX.Element }[];
+  subScreens: SubScreen[];
+};
+
+export const ScreenNameMap: Record<TutorialScreen, string> = {
+  [TutorialScreen.Welcome]: "Welcome",
+  [TutorialScreen.InternetIntro]: "Introduction to Internet",
+  [TutorialScreen.DeviceAddressing]: "Device Addressing",
+  [TutorialScreen.OSIModel]: "OSI Model",
+  [TutorialScreen.UpperLayers]: "OSI Upper Layers",
+  [TutorialScreen.NetworkLayer]: "OSI Network Layer",
+  [TutorialScreen.OSPFIntro]: "Intro to OSPF",
+  [TutorialScreen.NetworkTypesByTopology]: "Network Types",
+  [TutorialScreen.OSPFDetail]: "OSPF In Detail",
+  [TutorialScreen.VisualizerTutorial]: "Visualizer Tutorial",
+  [TutorialScreen.Complete]: "Close Tutorial",
 };
 
 export type TutorialScreenCache = {
@@ -27,3 +44,9 @@ export type TutorialScreenCache = {
    */
   subScreenIdx: number;
 };
+
+export type SetScreenCallback = (
+  screen: TutorialScreen,
+  subScreenIdx: number,
+  writeToStorage?: boolean
+) => unknown;

@@ -45,19 +45,15 @@ function App() {
       nextSubScreenIdx: number,
       writeToStorage?: boolean
     ) => {
-      if (nextScreen !== tutScreen) {
-        setTutScreen(nextScreen);
-        setSubScreenIdx(0);
-      } else {
-        setSubScreenIdx(nextSubScreenIdx);
-      }
+      setTutScreen(nextScreen);
+      setSubScreenIdx(nextSubScreenIdx);
       writeToStorage &&
         writeTutScreenToStorage({
           screen: nextScreen,
           subScreenIdx: nextSubScreenIdx,
         });
     },
-    [tutScreen]
+    []
   );
 
   const openTutScreen = useCallback(

@@ -51,6 +51,7 @@
     flex-grow: 1;
     min-height: 0;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 @media screen and (max-width: 1367px) {
