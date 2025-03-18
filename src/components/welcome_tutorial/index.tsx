@@ -46,7 +46,7 @@ const WelcomeTutorial: React.FC<WelcomeScreenProps> = (props) => {
             : ScreenNameMap[nextScreen]
         }`;
       }
-      return `Proceed to ${nextSubScrTitle}`;
+      return nextSubScrTitle;
     };
     const getPrevTitle = () => {
       if (subScreenIdx === 0) {

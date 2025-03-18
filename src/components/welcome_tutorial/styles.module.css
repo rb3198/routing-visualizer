@@ -11,25 +11,23 @@
 
 #sub_screen_container {
     flex-grow: 1;
-    padding-left: 2vw;
+    padding-left: 2.5vw;
 }
 
 #controls_container {
     position: fixed;
-    left: 50%;
+    right: 0;
     bottom: 1vmax;
     display: flex;
-    flex-grow: 1;
-    justify-content: center;
     background-color: white;
 }
 
 .control {
     border: none;
+    padding: .618rem;
     background-color: transparent;
     color: #324ca8;
     font-weight: 600;
-    margin-right: 5vmax;
     cursor: pointer;
     display: flex;
     align-items: center;

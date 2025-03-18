@@ -5,6 +5,9 @@ import {
   TutorialScreen,
 } from "src/types/welcome_tutorial/screen";
 import { Emoji } from "./emojis";
+import { PlaceHolder } from "src/components/placeholder";
+import { CourierLocal } from "src/components/welcome_tutorial/screens/internet/courier_local";
+import { NetworkDefinition } from "src/components/welcome_tutorial/screens/internet/network_definition";
 
 export const screenMap: Record<Screen, IScreen> = {
   [Screen.Welcome]: {
@@ -13,7 +16,28 @@ export const screenMap: Record<Screen, IScreen> = {
   },
   [Screen.InternetIntro]: {
     title: "Introduction to the Internet",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "Building a Local Courier Service",
+        screen: CourierLocal({}),
+      },
+      {
+        title: "Defining a Network",
+        screen: NetworkDefinition({}),
+      },
+      {
+        title: "Scaling up our Courier Service",
+        screen: PlaceHolder(),
+      },
+      {
+        title: "A Network of Networks",
+        screen: PlaceHolder(),
+      },
+      {
+        title: "Communication in the internet",
+        screen: PlaceHolder(),
+      },
+    ],
   },
   [Screen.OSIModel]: {
     title: "The OSI Model",
@@ -33,7 +57,12 @@ export const screenMap: Record<Screen, IScreen> = {
   },
   [Screen.DeviceAddressing]: {
     title: "Device Addressing",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "Device Addressing Intro",
+        screen: PlaceHolder(),
+      },
+    ],
   },
   [Screen.OSPFIntro]: {
     title: "Introduction to OSPF",

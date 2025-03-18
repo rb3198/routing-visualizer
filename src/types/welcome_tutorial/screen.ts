@@ -1,3 +1,5 @@
+import React from "react";
+
 export enum TutorialScreen {
   Welcome = 0,
   InternetIntro = 1, // What is the internet and Network types by size
@@ -13,7 +15,7 @@ export enum TutorialScreen {
 }
 export type SubScreen = {
   title: string;
-  screen: JSX.Element;
+  screen: JSX.Element | React.ReactNode;
 };
 export type ITutorialScreen = {
   title: string;
