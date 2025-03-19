@@ -103,8 +103,12 @@ export const CourierLocal: React.FC = () => {
     <div>
       <p>
         Welcome to your journey of exploring the internet!
-        <br /> To understand how the internet is built up, we'll start by
-        building a <b>local courier service</b>.<br />
+        <br /> This may sound counterintuitive, but to understand how the
+        internet is built up, we'll start by building a{" "}
+        <b>local courier service</b>.<br />
+        Don't worry about its relevance just yet. We'll soon draw parallels
+        between the services offered by a computer network and a courier
+        service. (Spoiler Alert: They're very similar).
       </p>
       <h3 className={commonStyles.heading}>Building a Local Courier Service</h3>
       <p>
