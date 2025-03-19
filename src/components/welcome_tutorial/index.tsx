@@ -123,7 +123,7 @@ const WelcomeTutorial: React.FC<WelcomeScreenProps> = (props) => {
             selectedSubScreenIdx={subScreenIdx}
             writeToStorage={writeToStorage}
           />
-          <div id={styles.sub_screen_container}>
+          <div id={styles.sub_screen_container} data-nav-expanded={navExpanded}>
             {subScreens[subScreenIdx]?.screen}
             {renderControls()}
           </div>

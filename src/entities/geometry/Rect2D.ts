@@ -55,4 +55,10 @@ export class Rect2D implements IArea {
       this.isWithinBounds(p4)
     );
   };
+
+  getPoints = () => {
+    const { low, high } = this;
+    const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
+    return [p1, p2, p3, p4] as [Point2D, Point2D, Point2D, Point2D];
+  };
 }

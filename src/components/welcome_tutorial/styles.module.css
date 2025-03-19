@@ -12,19 +12,24 @@
 #sub_screen_container {
     flex-grow: 1;
     padding-left: 2.5vw;
+    box-sizing: border-box;
+}
+
+#sub_screen_container[data-nav-expanded="true"] {
+    max-width: 70%;
 }
 
 #controls_container {
     position: fixed;
     right: 0;
-    bottom: 1vmax;
+    bottom: 0;
     display: flex;
     background-color: white;
 }
 
 .control {
     border: none;
-    padding: .618rem;
+    padding: .309rem .618rem;
     background-color: transparent;
     color: #324ca8;
     font-weight: 600;
