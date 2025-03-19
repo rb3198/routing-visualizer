@@ -18,7 +18,7 @@ export const NetworkDefinition: React.FC = () => {
         computer network.
       </p>
       <h4 className={commonStyles.sub_heading}>Humans vs Devices</h4>
-      <ul className={styles.list}>
+      <ul className={commonStyles.list}>
         <li>
           Similar to how us humans play the roles of senders and recipients for
           shipments of a courier service, {italicBold("our computing devices")}{" "}
@@ -30,14 +30,14 @@ export const NetworkDefinition: React.FC = () => {
         </li>
       </ul>
       <h4 className={commonStyles.sub_heading}>Shipments vs Packets</h4>
-      <ul className={styles.list}>
+      <ul className={commonStyles.list}>
         <li>A courier network delivers {italicBold("shipments")}.</li>
         <li>
           A computer network delivers data wrapped in {italicBold("packets")}.
         </li>
       </ul>
       <h4 className={commonStyles.sub_heading}>Addresses</h4>
-      <ul className={styles.list}>
+      <ul className={commonStyles.list}>
         <li>
           Senders and recipients in a {italicBold("courier network")}{" "}
           communicate from {underlineBold("physical addresses,")} which may
@@ -64,7 +64,7 @@ export const NetworkDefinition: React.FC = () => {
         </li>
       </ul>
       <h4 className={commonStyles.sub_heading}>Routes in the Network</h4>
-      <ul className={styles.list}>
+      <ul className={commonStyles.list}>
         <li>
           Routes in a {italicBold("courier network")} might be composed of
           roads, air, or water ways.
@@ -84,7 +84,7 @@ export const NetworkDefinition: React.FC = () => {
       <h4 className={commonStyles.sub_heading}>
         Routing the Packages (Packets)
       </h4>
-      <ul className={styles.list}>
+      <ul className={commonStyles.list}>
         <li>
           In a courier service network, the employees are tasked with shipping
           the package to the appropriate destination.
@@ -105,7 +105,7 @@ export const NetworkDefinition: React.FC = () => {
         communication protocols. The key components of a computer network
         include:
       </p>
-      <ol className={styles.list} id={styles.components_list}>
+      <ol className={commonStyles.list} id={styles.components_list}>
         <li>
           {underlineBold("Network Devices")} wanting to communicate with each
           other

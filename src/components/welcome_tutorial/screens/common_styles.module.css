@@ -8,3 +8,19 @@
     font-size: 1.1rem;
     font-style: italic;
 }
+
+.list {
+    list-style-position: inside;
+}
+
+ul.list {
+    list-style-type: circle;
+}
+
+.list li {
+    margin: .309rem 0;
+}
+
+.bold_ol li::marker {
+    font-weight: bold;
+}

@@ -119,7 +119,7 @@ export const CourierLocal: React.FC = () => {
         philosophy!
       </p>
       <h4 className={commonStyles.sub_heading}>Basic Objectives</h4>
-      <ol className={styles.list}>
+      <ol className={`${commonStyles.list} ${commonStyles.bold_ol}`}>
         <li>
           The {underlineBold("primary task")} of a courier service is to deliver
           messages / shipments from a source address to a destination.
@@ -134,7 +134,7 @@ export const CourierLocal: React.FC = () => {
         </li>
       </ol>
       <h4 className={commonStyles.sub_heading}>Designing the Operations</h4>
-      <ul className={styles.list}>
+      <ul className={commonStyles.list}>
         <li>
           To {underlineBold("deliver shipments")}, the service establishes a{" "}
           {underlineBold("protocol")}:<br />
