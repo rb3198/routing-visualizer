@@ -23,5 +23,6 @@ export enum Emoji {
   Toolbox = "\u{1f528}",
   SatelliteDish = "\u{1f4e1}",
   Electricity = "\u{26a1}",
+  Bulb = "\u{1f4a1}",
   //#endregion
 }
