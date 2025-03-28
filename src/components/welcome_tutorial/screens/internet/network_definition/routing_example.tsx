@@ -1,24 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import styles from "./styles.module.css";
-import { Point2D } from "src/types/geometry";
+import { Point2D, RectPoints } from "src/types/geometry";
 import { Colors } from "src/constants/theme";
 import { Rect2D } from "src/entities/geometry/Rect2D";
-
-type RectPoints = [Point2D, Point2D, Point2D, Point2D];
-type House = {
-  roof: [Point2D, Point2D, Point2D];
-  wall: RectPoints;
-  wallColor: string;
-  door: RectPoints;
-  doorColor: string;
-};
-
-type Office = {
-  roof: RectPoints;
-  wall: RectPoints;
-  door: RectPoints;
-  windows: RectPoints[];
-};
+import { House, Office } from "src/types/welcome_tutorial/animation_entities";
 
 class NetworkElement {
   x: number;
@@ -253,6 +238,7 @@ const CourierCanvas = function (canvas: HTMLCanvasElement) {
       }
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.closePath();
     }
     ctx.restore();
   };

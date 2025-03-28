@@ -86,8 +86,8 @@ export const NetworkDefinition: React.FC = () => {
       </h4>
       <ul className={commonStyles.list}>
         <li>
-          In a courier service network, the employees are tasked with shipping
-          the package to the appropriate destination.
+          In a courier service network, the courier hubs are tasked with
+          shipping the package to the appropriate destination.
         </li>
         <li>
           In a computer network, {italicBold("routers")} or{" "}
