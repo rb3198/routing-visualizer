@@ -8,6 +8,7 @@ import { Emoji } from "./emojis";
 import { PlaceHolder } from "src/components/placeholder";
 import { CourierLocal } from "src/components/welcome_tutorial/screens/internet/courier_local";
 import { NetworkDefinition } from "src/components/welcome_tutorial/screens/internet/network_definition";
+import { ScalingUp } from "src/components/welcome_tutorial/screens/internet/scaling_up_courier";
 
 export const screenMap: Record<Screen, IScreen> = {
   [Screen.Welcome]: {
@@ -27,14 +28,19 @@ export const screenMap: Record<Screen, IScreen> = {
       },
       {
         title: "Scaling up our Courier Service",
-        screen: PlaceHolder(),
+        screen: ScalingUp({}),
       },
       {
-        title: "A Network of Networks",
+        title: "A Network of Autonomous Systems",
         screen: PlaceHolder(),
       },
+    ],
+  },
+  [Screen.DeviceAddressing]: {
+    title: "Device Addressing",
+    subScreens: [
       {
-        title: "Communication in the internet",
+        title: "Device Addressing Intro",
         screen: PlaceHolder(),
       },
     ],
@@ -54,15 +60,6 @@ export const screenMap: Record<Screen, IScreen> = {
   [Screen.NetworkTypesByTopology]: {
     title: "Types of Networks - By Topology",
     subScreens: [],
-  },
-  [Screen.DeviceAddressing]: {
-    title: "Device Addressing",
-    subScreens: [
-      {
-        title: "Device Addressing Intro",
-        screen: PlaceHolder(),
-      },
-    ],
   },
   [Screen.OSPFIntro]: {
     title: "Introduction to OSPF",

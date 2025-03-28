@@ -106,3 +106,17 @@ export const getLinkInterfaceCoords = (
 export const getDefaultPacketRect = (cellSize: number): RectDim => {
   return { w: cellSize / 2, h: cellSize / 3.5 };
 };
+
+/**
+ * Given a textual label, returns its height & width given the Canvas Context with font style.
+ * @param ctx
+ * @param text
+ */
+export const getTextDimensions = (
+  ctx: CanvasRenderingContext2D,
+  text: string
+) => {
+  const { actualBoundingBoxAscent, actualBoundingBoxDescent, width } =
+    ctx.measureText(text);
+  return { height: actualBoundingBoxAscent + actualBoundingBoxDescent, width };
+};
