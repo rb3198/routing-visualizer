@@ -308,7 +308,34 @@ export const CoreDistEdge: React.FC = () => {
         <Distribution />
         <p>Figure: The Distribution Layer</p>
       </div>
-      <h4 className={commonStyles.sub_heading}>The Network Core</h4>
+      <h4 className={commonStyles.sub_heading}>
+        {Emoji.Bulb} What is the need of the Distribution Layer?
+      </h4>
+      <ul className={commonStyles.list}>
+        <li>
+          If you think about it, some edge networks can be directly connected to
+          each other and communicate faster with each other. <br />
+          Example: Look at the Network Edge Networks 4 & 5 in the figure above.
+        </li>
+        <li>
+          This is not optimal since{" "}
+          {italicBold("Edge Networks are unreliable.")} If these networks rely
+          on each other for routing, their learned routes could collapse and
+          re-routing may be required in case a single edge network goes down.
+        </li>
+        <li>
+          Another reason is that by routing through the distribution layer,{" "}
+          <b>
+            routers don't need to store a large number of IP Addresses in their
+            routing tables.
+          </b>
+          They simply store aggregated addresses and hence operate more
+          efficiently.
+        </li>
+      </ul>
+      <h4 className={commonStyles.sub_heading}>
+        <u>The Network Core</u>
+      </h4>
       <ul className={commonStyles.list}>
         <li>
           The {underlineBold("Network Core")} is composed of networks with
@@ -342,6 +369,13 @@ export const CoreDistEdge: React.FC = () => {
         In conclusion, this is what the architecture of the internet looks like:
       </b>
       <Core />
+      <h3 className={commonStyles.heading}>Up Next</h3>
+      <p>
+        In the next chapter, we will finally learn about IP Addressing. We will
+        find that these addresses are structured in a way that allows simple
+        aggregation of addresses, and pave the way for the hierarchical
+        structure of the internet.
+      </p>
     </div>
   );
 };
