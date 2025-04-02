@@ -5,10 +5,11 @@ import {
   TutorialScreen,
 } from "src/types/welcome_tutorial/screen";
 import { Emoji } from "./emojis";
-import { PlaceHolder } from "src/components/placeholder";
 import { CourierLocal } from "src/components/welcome_tutorial/screens/internet/courier_local";
 import { NetworkDefinition } from "src/components/welcome_tutorial/screens/internet/network_definition";
 import { ScalingUp } from "src/components/welcome_tutorial/screens/internet/scaling_up_courier";
+import { CoreDistEdge } from "src/components/welcome_tutorial/screens/internet/core_dist_edge";
+import { NetworkOfAs } from "src/components/welcome_tutorial/screens/internet/network_of_as";
 
 export const screenMap: Record<Screen, IScreen> = {
   [Screen.Welcome]: {
@@ -31,17 +32,21 @@ export const screenMap: Record<Screen, IScreen> = {
         screen: ScalingUp({}),
       },
       {
-        title: "A Network of Autonomous Systems",
-        screen: PlaceHolder(),
+        title: "The Core, Distribution, and Edge",
+        screen: CoreDistEdge({}),
       },
     ],
   },
-  [Screen.DeviceAddressing]: {
-    title: "Device Addressing",
+  [Screen.IPAddressing]: {
+    title: "IP Addressing",
+    subScreens: [],
+  },
+  [Screen.Structure]: {
+    title: "Architecture of the Internet",
     subScreens: [
       {
-        title: "Device Addressing Intro",
-        screen: PlaceHolder(),
+        title: "Autonomous Systems",
+        screen: NetworkOfAs({}),
       },
     ],
   },
@@ -130,10 +135,10 @@ export const getExpertiseCards = (
         text: `Know barely anything about the OSPF Protocol but would love to learn it. ${Emoji.Rocket}`,
       },
     ],
-    buttonLabel: `Explore the OSI Model`,
+    buttonLabel: `Explore IP Addressing`,
     onClick: setScreen.bind(
       null,
-      TutorialScreen.DeviceAddressing,
+      TutorialScreen.IPAddressing,
       0,
       writeToStorage
     ),
@@ -159,12 +164,7 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Dive Into OSPF`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.DeviceAddressing,
-      0,
-      writeToStorage
-    ),
+    onClick: setScreen.bind(null, TutorialScreen.OSPFIntro, 0, writeToStorage),
   },
   {
     title: `${Emoji.Electricity} The Network Pro`,
