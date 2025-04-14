@@ -121,7 +121,7 @@ export class GridCell {
     const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
       context.measureText(routerIp);
     const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
-    context.fillText(routerIp, x, y + fontHeight);
+    context.fillText(routerIp, x, y + fontHeight, size);
     context.strokeStyle = "";
     this.type = "router";
   };

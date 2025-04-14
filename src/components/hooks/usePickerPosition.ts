@@ -59,7 +59,8 @@ const getPosition = (
   const canvasY = canvas.getBoundingClientRect().y;
   const horizontalPosition = x + width > canvas.clientWidth ? "left" : "right";
   const verticalPosition =
-    canvas.getBoundingClientRect().y + y + height > canvas.clientHeight
+    canvas.getBoundingClientRect().y + y + height >
+    document.documentElement.clientHeight
       ? "top"
       : "bottom";
   if (horizontalPosition === "right") {
