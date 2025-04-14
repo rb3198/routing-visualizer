@@ -6,7 +6,6 @@ import { PiPathFill, PiPowerDuotone } from "react-icons/pi";
 import { GoDatabase } from "react-icons/go";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { AreaTree } from "src/entities/area_tree";
-import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { Point2D } from "src/types/geometry";
 import { GridCell } from "src/entities/geometry/grid_cell";
 import { usePickerPosition } from "../hooks/usePickerPosition";
@@ -209,19 +208,7 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
     const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces.keys()));
     const areas = areaTree.inOrderTraversal(areaTree.root);
     return areas
-      .filter(([, area]) => {
-        const { ospf } = selectedRouter;
-        const { config: selectedRouterConfig } = ospf;
-        const { connectedToBackbone, areaId: routerArea } =
-          selectedRouterConfig;
-        if (routerArea === BACKBONE_AREA_ID) {
-          return !area.ospfConfig.connectedToBackbone;
-        }
-        if (connectedToBackbone) {
-          return area.id !== BACKBONE_AREA_ID && area.routerLocations.size > 0;
-        }
-        return area.routerLocations.size > 0;
-      })
+      .filter(([, area]) => area.routerLocations.size > 0)
       .map(([, area]) => {
         const { routerLocations, id, name } = area;
         return {

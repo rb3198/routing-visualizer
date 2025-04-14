@@ -30,7 +30,7 @@ class RoutingTableCalculationWorkerPool {
         worker.postMessage(
           JSON.parse(
             JSON.stringify({
-              lsDb: lsDb.db[task.areaId],
+              lsDb: lsDb.db,
               prevTable: prevTableMap[task.areaId],
               areaId: task.areaId,
               MaxAge,
@@ -55,7 +55,7 @@ class RoutingTableCalculationWorkerPool {
       worker.postMessage(
         JSON.parse(
           JSON.stringify({
-            lsDb: lsDb.db[areaId],
+            lsDb: lsDb.db,
             prevTable: prevTableMap[areaId] ?? [],
             areaId,
             MaxAge,
