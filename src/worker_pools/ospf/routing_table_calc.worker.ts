@@ -23,7 +23,7 @@ import {
 
 type TableCalculationSources = {
   routerId: string;
-  lsDb: Record<string, LSA>;
+  lsDb: Record<number, Record<string, LSA>>;
   prevTable: RoutingTable;
   areaId: number;
   routerInterfaces: string[];
@@ -34,14 +34,14 @@ const addInterAreaRoutes = (
   routerId: IPv4Address,
   areaId: number,
   table: RoutingTable,
-  lsDb: Record<string, LSA>,
+  lsDb: Record<number, Record<string, LSA>>,
   MaxAge: number
 ) => {
   const areaIp = getAreaIp(areaId);
-  for (const lsa of Object.values(lsDb)) {
+  for (const lsa of Object.values(lsDb[areaId])) {
     const { header, body } = lsa;
     const { lsAge, lsType, linkStateId } = header;
-    if (lsType !== LSType.SummaryIpLSA && lsType !== LSType.SummaryAsBrLSA) {
+    if (![LSType.SummaryIpLSA, LSType.SummaryAsBrLSA].includes(lsType)) {
       continue;
     }
     const destinationIp = new IPv4Address(...linkStateId.bytes);
@@ -49,6 +49,12 @@ const addInterAreaRoutes = (
       ...header.advertisingRouter.bytes
     );
     const { metric: costFromBrToDest, networkMask } = body as SummaryLSABody;
+    if (lsType === LSType.SummaryIpLSA) {
+      const areaDescribed = destinationIp.bytes[1] - 1;
+      if (lsDb[areaDescribed]) {
+        continue;
+      }
+    }
     if (
       areaIp.equals(destinationIp) ||
       routerId.equals(advertisingRouter) ||
@@ -96,7 +102,7 @@ const addInterAreaRoutes = (
       table[existingRouteIdx] = newRow;
       continue;
     }
-    existingRoute.nextHops.push(...nextHopsToBr);
+    cost === existingCost && existingRoute.nextHops.push(...nextHopsToBr);
   }
 };
 
@@ -347,14 +353,14 @@ const initTree = (
   return { shortestPathTree, queue, table };
 };
 
-const calculateIntraAreaTable = (
+const calculateTable = (
   areaId: number,
   routerId: IPv4Address,
   routerInterfaces: Set<string>,
-  lsDb: Record<string, LSA>,
+  lsDb: Record<number, Record<string, LSA>>,
   MaxAge: number
 ) => {
-  const init = initTree(routerId, lsDb, MaxAge);
+  const init = initTree(routerId, lsDb[areaId], MaxAge);
   if (!init) {
     return init;
   }
@@ -398,7 +404,7 @@ const calculateIntraAreaTable = (
     added vertex' LSA.
     */
     shortestPathTree.insertNode(vNode);
-    processRouterLinks(lsDb, MaxAge, shortestPathTree, vNode, queue);
+    processRouterLinks(lsDb[areaId], MaxAge, shortestPathTree, vNode, queue);
   }
   // Stage 2 - Adding stub links
   for (let vNode of shortestPathTree.bfsTraversal()) {
@@ -472,7 +478,7 @@ self.onmessage = async function (e: MessageEvent<TableCalculationSources>) {
     MaxAge,
   } = e.data;
   const routerId = IPv4Address.fromString(routerIdStr);
-  const init = calculateIntraAreaTable(
+  const init = calculateTable(
     areaId,
     routerId,
     new Set(routerInterfaces),

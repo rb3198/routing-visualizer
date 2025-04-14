@@ -9,7 +9,7 @@ export const Core: React.FC = () => {
       viewBox="0 0 800 600"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <text x="650" y="240" font-family="Arial" font-size="14">
+      <text x="650" y="240" fontFamily="Arial" fontSize="14">
         Core Layer
       </text>
 
@@ -20,7 +20,7 @@ export const Core: React.FC = () => {
         height="40"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
         rx="5"
       />
       <rect
@@ -30,7 +30,7 @@ export const Core: React.FC = () => {
         height="40"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
         rx="5"
       />
 
@@ -41,15 +41,9 @@ export const Core: React.FC = () => {
         height="80"
         fill="transparent"
         stroke="transparent"
-        stroke-width="2"
+        strokeWidth="2"
       />
-      <text
-        x="650"
-        y="360"
-        text-anchor="start"
-        font-family="Arial"
-        font-size="14"
-      >
+      <text x="650" y="360" textAnchor="start" fontFamily="Arial" fontSize="14">
         Distribution Layer
       </text>
 
@@ -60,7 +54,7 @@ export const Core: React.FC = () => {
         height="40"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
         rx="25"
       />
       <rect
@@ -70,7 +64,7 @@ export const Core: React.FC = () => {
         height="40"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
         rx="25"
       />
 
@@ -81,9 +75,9 @@ export const Core: React.FC = () => {
         height="80"
         fill="transparent"
         stroke="transparent"
-        stroke-width="2"
+        strokeWidth="2"
       />
-      <text x="650" y="460" font-family="Arial" font-size="14">
+      <text x="650" y="460" fontFamily="Arial" fontSize="14">
         Access Layer
       </text>
 
@@ -94,7 +88,7 @@ export const Core: React.FC = () => {
         height="20"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <rect
         x="280"
@@ -103,7 +97,7 @@ export const Core: React.FC = () => {
         height="20"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <rect
         x="430"
@@ -112,7 +106,7 @@ export const Core: React.FC = () => {
         height="20"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <rect
         x="580"
@@ -121,7 +115,7 @@ export const Core: React.FC = () => {
         height="20"
         fill={Colors.accent}
         stroke="#006064"
-        stroke-width="2"
+        strokeWidth="2"
       />
 
       <rect
@@ -131,7 +125,7 @@ export const Core: React.FC = () => {
         height="20"
         fill="#b2dfdb"
         stroke="#009688"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <rect
         x="230"
@@ -140,7 +134,7 @@ export const Core: React.FC = () => {
         height="20"
         fill="#b2dfdb"
         stroke="#009688"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <rect
         x="330"
@@ -149,7 +143,7 @@ export const Core: React.FC = () => {
         height="20"
         fill="#b2dfdb"
         stroke="#009688"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <rect
         x="430"
@@ -158,7 +152,7 @@ export const Core: React.FC = () => {
         height="20"
         fill="#b2dfdb"
         stroke="#009688"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <rect
         x="530"
@@ -167,7 +161,7 @@ export const Core: React.FC = () => {
         height="20"
         fill="#b2dfdb"
         stroke="#009688"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <rect
         x="630"
@@ -176,7 +170,7 @@ export const Core: React.FC = () => {
         height="20"
         fill="#b2dfdb"
         stroke="#009688"
-        stroke-width="1"
+        strokeWidth="1"
       />
 
       <path
@@ -184,7 +178,7 @@ export const Core: React.FC = () => {
         fill={Colors.accent}
         fillOpacity={0.25}
         stroke={Colors.accent}
-        stroke-width={2}
+        strokeWidth={2}
       />
       <text
         fill={Colors.accent}
@@ -201,7 +195,7 @@ export const Core: React.FC = () => {
         x2="200"
         y2="220"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="600"
@@ -209,7 +203,7 @@ export const Core: React.FC = () => {
         x2="600"
         y2="220"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
 
       <line
@@ -218,7 +212,7 @@ export const Core: React.FC = () => {
         x2="580"
         y2="240"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
 
       <line
@@ -227,7 +221,7 @@ export const Core: React.FC = () => {
         x2="200"
         y2="340"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="600"
@@ -235,7 +229,7 @@ export const Core: React.FC = () => {
         x2="600"
         y2="340"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="200"
@@ -243,7 +237,7 @@ export const Core: React.FC = () => {
         x2="600"
         y2="340"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="600"
@@ -251,7 +245,7 @@ export const Core: React.FC = () => {
         x2="200"
         y2="340"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
 
       <line
@@ -260,7 +254,7 @@ export const Core: React.FC = () => {
         x2="130"
         y2="440"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="200"
@@ -268,7 +262,7 @@ export const Core: React.FC = () => {
         x2="280"
         y2="440"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="600"
@@ -276,7 +270,7 @@ export const Core: React.FC = () => {
         x2="430"
         y2="440"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <line
         x1="600"
@@ -284,7 +278,7 @@ export const Core: React.FC = () => {
         x2="580"
         y2="440"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
 
       <line
@@ -293,7 +287,7 @@ export const Core: React.FC = () => {
         x2="150"
         y2="520"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <line
         x1="150"
@@ -301,7 +295,7 @@ export const Core: React.FC = () => {
         x2="230"
         y2="520"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <line
         x1="300"
@@ -309,7 +303,7 @@ export const Core: React.FC = () => {
         x2="330"
         y2="520"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <line
         x1="450"
@@ -317,7 +311,7 @@ export const Core: React.FC = () => {
         x2="430"
         y2="520"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <line
         x1="450"
@@ -325,7 +319,7 @@ export const Core: React.FC = () => {
         x2="530"
         y2="520"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <line
         x1="600"
@@ -333,7 +327,7 @@ export const Core: React.FC = () => {
         x2="630"
         y2="520"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
     </svg>
   );
