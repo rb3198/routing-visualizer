@@ -621,7 +621,9 @@ export const ScalingUp: React.FC = () => {
       <h4 className={commonStyles.sub_heading}>
         Storing the Routes: Routing Tables
       </h4>
-      <p>{underlineBold("Local Offices")}</p>
+      <h4 className={commonStyles.sub_heading}>
+        {underlineBold("Local Offices")}
+      </h4>
       <ul className={commonStyles.list}>
         <li>
           {underlineBold("Chicago, 60661")}: It handles deliveries to 60661
@@ -655,6 +657,11 @@ export const ScalingUp: React.FC = () => {
             {renderTableRow("xxxxx", "Detroit Regional Hub", 5)}
           </RoutingTable>
         </li>
+      </ul>
+      <h4 className={commonStyles.sub_heading}>
+        {underlineBold("Regional Hubs")}
+      </h4>
+      <ul className={commonStyles.list}>
         <li>
           {underlineBold("Chicago Hub, IL")}: It handles deliveries to the
           Chicago area and routes other packages to the Midwest National Hub.
@@ -673,6 +680,11 @@ export const ScalingUp: React.FC = () => {
             {renderTableRow("xxxxx", "Midwest Regional Hub", 10)}
           </RoutingTable>
         </li>
+      </ul>
+      <h4 className={commonStyles.sub_heading}>
+        {underlineBold("National Hubs")}
+      </h4>
+      <ul className={commonStyles.list}>
         <li>
           {underlineBold("Midwest National Hub")}: It handles deliveries to the
           Midwest region - It has routes for Detroit and Chicago. For Any zip
