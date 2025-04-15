@@ -18,7 +18,7 @@ export const debounce = (func: Function, wait: number) => {
 export const onCanvasLayout = (canvas: HTMLCanvasElement) => {
   const { documentElement } = document;
   const { clientHeight, clientWidth } = documentElement;
-  canvas.height = 0.92 * clientHeight;
+  canvas.height = 0.88 * clientHeight;
   canvas.width = clientWidth;
 };
 
