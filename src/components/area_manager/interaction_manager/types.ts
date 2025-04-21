@@ -1,5 +1,6 @@
 import { AreaTree } from "src/entities/area_tree";
 import { GridCell } from "src/entities/geometry/grid_cell";
+import { IPLinkInterface } from "src/entities/ip/link_interface";
 import { Router } from "src/entities/router";
 import { Point2D } from "src/types/geometry";
 
@@ -31,6 +32,7 @@ export type InteractiveState = {
   gridRect: GridCell[][];
   cursor: "initial" | "pointer";
   cell: Point2D;
+  zoom: number;
 } & (
   | {
       simulationStatus: "playing" | "paused" | "stopped";
@@ -71,6 +73,12 @@ export type InteractiveAction =
     }
   | {
       type: "pause" | "stop";
+    }
+  | {
+      type: "zoomed";
+      zoom: number;
+      areaTree: AreaTree;
+      linkInterfaceMap: Map<string, IPLinkInterface>;
     }
   | {
       type: "play";
