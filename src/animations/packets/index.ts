@@ -1,6 +1,10 @@
 import { Router } from "../../entities/router";
 import { Point2D, RectDim } from "../../types/geometry";
-import { getDefaultPacketRect } from "../../utils/drawing";
+import {
+  beforeDraw,
+  getDefaultPacketRect,
+  postDraw,
+} from "../../utils/drawing";
 import {
   getAllRectPointsFromCentroid,
   getEuclideanDistance,
@@ -80,7 +84,9 @@ export const packetAnimations = {
       const { p1: low } = getAllRectPointsFromCentroid(position, rectW, rectH);
       position = await new Promise<Point2D>((resolve) => {
         window.requestAnimationFrame(() => {
+          beforeDraw(context);
           context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
+          postDraw(context);
           resolve(
             drawPacket(
               context,
@@ -152,6 +158,7 @@ export const packetAnimations = {
             rectW,
             rectH
           );
+          beforeDraw(context);
           context.clearRect(
             prevLow[0] - 1,
             prevLow[1] - 1,
@@ -168,7 +175,6 @@ export const packetAnimations = {
             rectH
           );
           const [, lowY] = low;
-          context.save();
           context.fillStyle = color;
           if (lowY > cp1y) {
             context.globalAlpha = (destY - y) / (destY - cp1y);
@@ -177,12 +183,14 @@ export const packetAnimations = {
           context.rect(...low, rectW, rectH);
           context.fill();
           context.closePath();
-          context.restore();
+          postDraw(context);
           resolve();
         })
       );
     }
     const { p1: low } = getAllRectPointsFromCentroid(position, rectW, rectH);
+    beforeDraw(context);
     context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
+    postDraw(context);
   },
 };

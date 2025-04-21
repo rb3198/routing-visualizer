@@ -3,7 +3,11 @@ import { TwoWayMap } from "../../../utils/two_way_map";
 import { Router } from "../../router";
 import { BACKBONE_AREA_ID } from "../../ospf/constants";
 import { Colors, OspfPacketColorMap } from "../../../constants/theme";
-import { getLinkInterfaceCoords } from "../../../utils/drawing";
+import {
+  beforeDraw,
+  getLinkInterfaceCoords,
+  postDraw,
+} from "../../../utils/drawing";
 import { store } from "../../../store";
 import { vmax } from "src/utils/geometry";
 import { IPPacket } from "../packets";
@@ -169,7 +173,7 @@ export class IPLinkInterface {
       } = context.measureText(ip);
       const textWidth = left + right;
       const textHeight = asc + dsc;
-      context.save();
+      beforeDraw(context);
       context.font = "1vmin sans-serif";
       context.strokeStyle = "white";
       context.fillStyle = "black";
@@ -190,7 +194,7 @@ export class IPLinkInterface {
       context.fillStyle = "white";
       context.fillText(ip.toString(), padding, padding);
       context.closePath();
-      context.restore();
+      postDraw(context);
     });
   };
 
@@ -208,7 +212,7 @@ export class IPLinkInterface {
       startX += cellSize / 2;
       endX += cellSize / 2;
     }
-    context.save();
+    beforeDraw(context);
     context.strokeStyle = "black";
     context.fillStyle = "black";
     context.beginPath();
@@ -229,7 +233,7 @@ export class IPLinkInterface {
     const x = -width / 2;
     context.fillText(this.baseIp.toString(), x, 12.5);
     context.closePath();
-    context.restore();
+    postDraw(context);
     this.drawIps(context, routerA, routerB);
   };
 }

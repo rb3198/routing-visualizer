@@ -7,6 +7,7 @@ import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
 import { RouterPowerState } from "../router/enum/RouterPowerState";
+import { beforeDraw, postDraw } from "src/utils/drawing";
 
 export class OSPFArea {
   /**
@@ -107,44 +108,41 @@ export class OSPFArea {
    * @param fillStyle
    */
   draw = (
-    context: CanvasRenderingContext2D,
+    areaLayerCtx: CanvasRenderingContext2D,
+    compLayerCtx: CanvasRenderingContext2D,
     strokeStyle: string,
     fillStyle: string,
     gridRect: GridCell[][]
   ) => {
     const { cellSize } = store.getState();
     const { low, high } = this.boundingBox;
-    context.clearRect(
+    const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
+    beforeDraw(areaLayerCtx);
+    areaLayerCtx.clearRect(
       low[0] * cellSize,
       low[1] * cellSize,
       (high[0] - low[0]) * cellSize,
       (high[1] - low[1]) * cellSize
     );
-    const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
-    for (let i = p1[0]; i < p3[0]; i++) {
-      for (let j = p1[1]; j < p3[1]; j++) {
-        gridRect[j][i].drawEmpty(context);
-      }
-    }
-    context.beginPath();
-    context.strokeStyle = strokeStyle;
-    context.fillStyle = fillStyle;
-    context.setLineDash([3, 3]);
-    context.moveTo(p1[0] * cellSize, p1[1] * cellSize);
-    context.lineTo(p2[0] * cellSize, p2[1] * cellSize);
-    context.lineTo(p3[0] * cellSize, p3[1] * cellSize);
-    context.lineTo(p4[0] * cellSize, p4[1] * cellSize);
-    context.lineTo(p1[0] * cellSize, p1[1] * cellSize);
-    context.stroke();
-    context.fill();
-    context.closePath();
-    context.setLineDash([]);
-    context.font = `${cellSize / 3}px sans-serif`;
+    areaLayerCtx.beginPath();
+    areaLayerCtx.strokeStyle = strokeStyle;
+    areaLayerCtx.fillStyle = fillStyle;
+    areaLayerCtx.setLineDash([3, 3]);
+    areaLayerCtx.moveTo(p1[0] * cellSize, p1[1] * cellSize);
+    areaLayerCtx.lineTo(p2[0] * cellSize, p2[1] * cellSize);
+    areaLayerCtx.lineTo(p3[0] * cellSize, p3[1] * cellSize);
+    areaLayerCtx.lineTo(p4[0] * cellSize, p4[1] * cellSize);
+    areaLayerCtx.lineTo(p1[0] * cellSize, p1[1] * cellSize);
+    areaLayerCtx.stroke();
+    areaLayerCtx.fill();
+    areaLayerCtx.closePath();
+    areaLayerCtx.setLineDash([]);
+    areaLayerCtx.font = `${cellSize / 3}px sans-serif`;
     const { actualBoundingBoxAscent, actualBoundingBoxDescent } =
-      context.measureText(this.name);
+      areaLayerCtx.measureText(this.name);
     const textHeight = actualBoundingBoxAscent + actualBoundingBoxDescent;
-    context.fillStyle = strokeStyle;
-    context.fillText(
+    areaLayerCtx.fillStyle = strokeStyle;
+    areaLayerCtx.fillText(
       this.name,
       low[0] * cellSize + textHeight / 4,
       low[1] * cellSize + (5 * textHeight) / 4,
@@ -153,8 +151,9 @@ export class OSPFArea {
     for (let [loc, router] of this.routerLocations.entries()) {
       const [row, col] = loc.split("_").map((l) => parseInt(l));
       gridRect[row][col] &&
-        gridRect[row][col].drawRouter(context, router.id.ip, router.power);
+        gridRect[row][col].drawRouter(compLayerCtx, router.id.ip, router.power);
     }
+    postDraw(areaLayerCtx);
   };
 
   setRxmtInterval = (rxmtInterval: number) => {

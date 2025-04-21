@@ -1,3 +1,4 @@
+import { beforeDraw, postDraw } from "src/utils/drawing";
 import { Colors } from "../../constants/theme";
 import {
   drawRouterAntennas,
@@ -29,15 +30,10 @@ export class GridCell {
     this.size = size;
   }
 
-  private beforeDraw = (context: CanvasRenderingContext2D, stroke?: string) => {
-    const prevStrokeStyle = context.strokeStyle;
+  private beforeDraw = (context: CanvasRenderingContext2D) => {
+    beforeDraw(context);
     context.clearRect(this.x, this.y, this.size, this.size);
     context.beginPath();
-    context.rect(this.x, this.y, this.size, this.size);
-    context.strokeStyle = stroke || this.cellStrokeColor;
-    context.stroke();
-    context.closePath();
-    context.strokeStyle = prevStrokeStyle;
   };
 
   /**
@@ -55,7 +51,7 @@ export class GridCell {
       console.error("Cannot draw on a cell that contains a router or a path.");
       return;
     }
-    context.save();
+    beforeDraw(context);
     context.strokeStyle = plusColor;
     context.beginPath();
     context.arc(
@@ -88,7 +84,7 @@ export class GridCell {
     context.stroke();
     context.fill();
     context.closePath();
-    context.restore();
+    postDraw(context);
   };
 
   drawRouter = (
@@ -97,6 +93,7 @@ export class GridCell {
     power = RouterPowerState.Shutdown
   ) => {
     const { x, y, size } = this;
+    this.beforeDraw(context);
     context.clearRect(x, y, size, size);
     context.beginPath();
     context.fillStyle =
@@ -124,21 +121,28 @@ export class GridCell {
     context.fillText(routerIp, x, y + fontHeight, size);
     context.strokeStyle = "";
     this.type = "router";
+    context.closePath();
+    postDraw(context);
   };
 
   drawEmpty = (context: CanvasRenderingContext2D, stroke?: string) => {
-    this.beforeDraw(context, stroke);
+    this.beforeDraw(context);
+    context.rect(this.x, this.y, this.size, this.size);
+    context.strokeStyle = stroke || this.cellStrokeColor;
+    context.stroke();
     this.type = "none";
+    context.closePath();
+    postDraw(context);
   };
 
   drawOverlay(context: CanvasRenderingContext2D) {
     const { x, y, size } = this;
-    context.save();
+    beforeDraw(context);
     context.fillStyle = "#00000088";
     context.beginPath();
     context.rect(x, y, size, size);
     context.fill();
     context.closePath();
-    context.restore();
+    postDraw(context);
   }
 }

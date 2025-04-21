@@ -1,5 +1,5 @@
 import { Point2D, RectDim } from "../../types/geometry";
-import { getSlopeAngleDist2D } from "../../utils/drawing";
+import { beforeDraw, getSlopeAngleDist2D, postDraw } from "../../utils/drawing";
 import {
   getAllRectPointsFromCentroid,
   getTravelDirection,
@@ -71,13 +71,13 @@ export const packetAnimationUtils = {
       return [x, y];
     }
     const { p1: low } = getAllRectPointsFromCentroid([x, y], rectW, rectH);
-    context.save();
+    beforeDraw(context);
     context.fillStyle = color;
     context.beginPath();
     context.rect(...low, rectW, rectH);
     context.fill();
     context.closePath();
-    context.restore();
+    postDraw(context);
     return [x, y];
   },
 };
