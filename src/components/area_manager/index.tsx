@@ -37,6 +37,8 @@ import { DestinationSelector } from "../destination_selector";
 interface AreaManagerProps {
   gridRect: GridCell[][];
   defaultAreaSize: number;
+  zoom: number;
+  zoomHandler: (this: HTMLCanvasElement, evt: WheelEvent) => any;
 }
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -48,11 +50,13 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     gridRect,
     defaultAreaSize,
     cellSize,
+    zoom,
     setLiveNeighborTable,
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
     openNotificationTooltip,
     clearEventLog,
+    zoomHandler,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -92,6 +96,18 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       gridRect,
     });
   }, [gridRect]);
+
+  useEffect(() => {
+    const canvas = interactionLayerRef.current;
+    if (!canvas) {
+      return;
+    }
+    canvas.addEventListener("wheel", zoomHandler, { passive: false });
+    return () => {
+      canvas.removeEventListener("wheel", zoomHandler);
+    };
+  }, [zoomHandler]);
+
   useLayoutEffect(() => {
     [
       iconLayerRef.current,
@@ -109,7 +125,18 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     window.elementLayer = elementsLayerRef.current;
     window.gridComponentLayer = componentLayerRef.current;
     window.routerConnectionLayer = routerConnectionLayerRef.current;
+    window.areaLayer = areaLayerRef.current;
+    window.iconLayer = iconLayerRef.current;
   }, []);
+
+  useLayoutEffect(() => {
+    dispatch({
+      type: "zoomed",
+      areaTree: areaTree.current,
+      zoom,
+      linkInterfaceMap: linkInterfaceMap.current,
+    });
+  }, [zoom]);
 
   const placeArea: MouseEventHandler = useCallback(() => {
     if (!areaLayerRef.current || !iconLayerRef.current || !cell) {
@@ -122,6 +149,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       areaLayer: areaLayerRef.current,
       areaSize: defaultAreaSize,
       iconLayer: iconLayerRef.current,
+      compLayer: componentLayerRef.current,
     });
   }, [cell, defaultAreaSize]);
 

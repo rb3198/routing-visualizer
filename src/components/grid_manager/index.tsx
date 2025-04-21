@@ -1,32 +1,33 @@
-import React, { useLayoutEffect, useState } from "react";
+import React, { useState } from "react";
 import { Grid } from "../grid";
 import { GridCell } from "../../entities/geometry/grid_cell";
 import { AreaManager } from "../area_manager";
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 5;
+
 export const GridManager: React.FC = () => {
   const [gridSize, setGridSize] = useState(30);
+  const [zoom, setZoom] = useState(1);
   const [grid, setGrid] = useState<GridCell[][]>([]);
 
-  useLayoutEffect(() => {
-    const { documentElement } = document;
-    const { clientWidth } = documentElement;
-    if (clientWidth <= 768) {
-      setGridSize(18);
-      return;
+  const zoomHandler = (evt: WheelEvent) => {
+    const { deltaY, ctrlKey } = evt;
+    if (ctrlKey) {
+      // control key causes the entire page to zoom in / out.
+      evt.preventDefault();
     }
-    if (clientWidth <= 1024) {
-      setGridSize(24);
-      return;
-    }
-    if (clientWidth <= 1368) {
-      setGridSize(26);
-      return;
-    }
-    if (clientWidth < 1800) {
-      setGridSize(28);
-      return;
-    }
-  }, []);
+    const dir = Math.sign(deltaY);
+    const delta = 0.1;
+    setZoom((prev) => {
+      const newZoom = Math.max(
+        MIN_ZOOM,
+        Math.min(MAX_ZOOM, prev + dir * delta)
+      );
+      window.zoom = newZoom;
+      return newZoom;
+    });
+  };
 
   if (!document) {
     return null;
@@ -34,8 +35,13 @@ export const GridManager: React.FC = () => {
 
   return (
     <>
-      <Grid setGrid={setGrid} gridSize={gridSize} gridRect={grid} />
-      <AreaManager gridRect={grid} defaultAreaSize={Math.ceil(gridSize / 5)} />
+      <Grid setGrid={setGrid} gridSize={gridSize} grid={grid} zoom={zoom} />
+      <AreaManager
+        gridRect={grid}
+        defaultAreaSize={Math.ceil(gridSize / 5)}
+        zoomHandler={zoomHandler}
+        zoom={zoom}
+      />
     </>
   );
 };

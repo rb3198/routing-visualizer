@@ -7,14 +7,15 @@ import { setCellSize } from "../../action_creators";
 import { connect, ConnectedProps } from "react-redux";
 
 interface GridProps {
-  gridRect: GridCell[][];
+  grid: GridCell[][];
   gridSize: number;
+  zoom: number;
   setGrid: React.Dispatch<React.SetStateAction<GridCell[][]>>;
 }
 
 type ReduxProps = ConnectedProps<typeof connector>;
 export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
-  const { gridSize, setGrid, setCellSize } = props;
+  const { gridSize, grid, zoom, setGrid, setCellSize } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const constructGrid = useCallback(
@@ -31,7 +32,7 @@ export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
       const context = canvas.getContext("2d");
       let x = 0,
         y = 0;
-      const gridRect: GridCell[][] = [];
+      const grid: GridCell[][] = [];
       while (y <= height) {
         x = 0;
         const row = [];
@@ -42,12 +43,27 @@ export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
           x += cellSize;
         }
         y += cellSize;
-        gridRect.push(row);
+        grid.push(row);
       }
-      return gridRect;
+      return grid;
     },
     [gridSize, setCellSize]
   );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) {
+      return;
+    }
+    const { width, height } = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, width, height);
+    for (const row of grid) {
+      for (const cell of row) {
+        cell.drawEmpty(ctx);
+      }
+    }
+  }, [zoom, grid]);
 
   useEffect(() => {
     if (!canvasRef.current) {
