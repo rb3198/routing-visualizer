@@ -120,3 +120,13 @@ export const getTextDimensions = (
     ctx.measureText(text);
   return { height: actualBoundingBoxAscent + actualBoundingBoxDescent, width };
 };
+
+export const beforeDraw = (ctx: CanvasRenderingContext2D) => {
+  const { zoom = 1 } = window;
+  ctx.save();
+  ctx.scale(1 / zoom, 1 / zoom);
+};
+
+export const postDraw = (ctx: CanvasRenderingContext2D) => {
+  ctx.restore();
+};
