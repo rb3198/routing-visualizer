@@ -30,8 +30,9 @@ export const mapCoordsToGridCell = (
   canvas: HTMLCanvasElement
 ) => {
   const { x: canvasX, y: canvasY } = canvas.getBoundingClientRect();
-  const offsetX = clientX - canvasX;
-  const offsetY = clientY - canvasY;
+  const { zoom = 1 } = window;
+  const offsetX = (clientX - canvasX) * zoom;
+  const offsetY = (clientY - canvasY) * zoom;
   const column = Math.floor(offsetX / cellSize);
   const row = Math.floor(offsetY / cellSize);
   if (row >= gridRect.length || row < 0) {
