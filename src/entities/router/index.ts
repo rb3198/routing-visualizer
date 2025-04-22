@@ -255,12 +255,11 @@ export class Router {
     color: string = Colors.accent
   ) => {
     const context = window.elementLayer?.getContext("2d");
-    const { cellSize } = store.getState();
     if (reason) {
       const event = PacketDroppedEventBuilder(this, packet, reason);
       store.dispatch(emitEvent(event));
     }
-    context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
+    context && packetAnimations.packetDrop(context, this, 500, color);
   };
 
   turnOn = (

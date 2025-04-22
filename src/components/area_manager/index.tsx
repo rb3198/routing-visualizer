@@ -20,7 +20,6 @@ import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
 import { Toolbar } from "../toolbar";
-import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import {
@@ -35,6 +34,7 @@ import { defaultState, interactiveStateReducer } from "./interaction_manager";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
+import { getCellSize } from "src/utils/drawing";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -57,7 +57,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const {
     gridRect,
     defaultAreaSize,
-    cellSize,
     setLiveNeighborTable,
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
@@ -68,6 +67,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightMove,
     onMouseRightUp,
   } = props;
+  const cellSize = getCellSize();
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
@@ -126,7 +126,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     const cb = (evt: WheelEvent) => zoomHandler.call(canvas, evt, onZoom);
     canvas.addEventListener("wheel", cb, { passive: false });
     return () => {
-      canvas.removeEventListener("wheel", zoomHandler);
+      canvas.removeEventListener("wheel", cb);
     };
   }, [onZoom, zoomHandler]);
 
@@ -590,11 +590,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   );
 };
 
-const mapStateToProps = (state: IRootReducer) => {
-  const { cellSize } = state;
-  return { cellSize };
-};
-
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
@@ -608,6 +603,6 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   };
 };
 
-const connector = connect(mapStateToProps, mapDispatchToProps);
+const connector = connect(undefined, mapDispatchToProps);
 
 export const AreaManager = connector(AreaManagerComponent);

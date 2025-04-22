@@ -1,3 +1,4 @@
+import { DEFAULT_CELL_SIZE } from "src/constants/sizing";
 import { Point2D, RectDim } from "../types/geometry";
 import { getTravelDirection } from "./geometry";
 
@@ -140,3 +141,5 @@ export const clearCanvas = (canvas?: HTMLCanvasElement | null) => {
   const ctx = canvas.getContext("2d");
   ctx?.clearRect(0, 0, width, height);
 };
+
+export const getCellSize = () => window.cellSize ?? DEFAULT_CELL_SIZE;

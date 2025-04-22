@@ -5,6 +5,7 @@ import { BACKBONE_AREA_ID } from "../../ospf/constants";
 import { Colors, OspfPacketColorMap } from "../../../constants/theme";
 import {
   beforeDraw,
+  getCellSize,
   getLinkInterfaceCoords,
   postDraw,
 } from "../../../utils/drawing";
@@ -50,7 +51,7 @@ export class IPLinkInterface {
     const { location: locB } = routerB;
     const [bX, bY] = locB;
     const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
-    this.cost = parseInt(distance.toFixed(2));
+    this.cost = parseFloat(distance.toFixed(1));
   }
 
   private assignIps = (routers: [Router, Router], b3: number) => {
@@ -102,7 +103,8 @@ export class IPLinkInterface {
   };
 
   sendMessage = async (src: Router, ipPacket: IPPacket) => {
-    const { cellSize, simulationConfig } = store.getState();
+    const { simulationConfig } = store.getState();
+    const cellSize = getCellSize();
     const { propagationDelay: duration } = simulationConfig;
     const context = window.elementLayer?.getContext("2d");
     const dest = this.getOppositeRouter(src);
@@ -135,7 +137,7 @@ export class IPLinkInterface {
     routerA: Router,
     routerB: Router
   ) => {
-    const { cellSize } = store.getState();
+    const cellSize = getCellSize();
     const ipAStr = this.routers.getKey(routerA);
     const ipBStr = this.routers.getKey(routerB);
     if (!ipAStr || !ipBStr) {
@@ -199,7 +201,7 @@ export class IPLinkInterface {
   };
 
   draw = (routerA: Router, routerB: Router) => {
-    const { cellSize } = store.getState();
+    const cellSize = getCellSize();
     const context = window.routerConnectionLayer?.getContext("2d");
     if (!context) {
       return;
