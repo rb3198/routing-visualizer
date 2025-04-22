@@ -122,11 +122,21 @@ export const getTextDimensions = (
 };
 
 export const beforeDraw = (ctx: CanvasRenderingContext2D) => {
-  const { zoom = 1 } = window;
+  const { zoom = 1, canvasOffset = [0, 0] } = window;
   ctx.save();
   ctx.scale(1 / zoom, 1 / zoom);
+  ctx.translate(...canvasOffset);
 };
 
 export const postDraw = (ctx: CanvasRenderingContext2D) => {
   ctx.restore();
+};
+
+export const clearCanvas = (canvas?: HTMLCanvasElement | null) => {
+  if (!canvas) {
+    return;
+  }
+  const { width, height } = canvas.getBoundingClientRect();
+  const ctx = canvas.getContext("2d");
+  ctx?.clearRect(0, 0, width, height);
 };

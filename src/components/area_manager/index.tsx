@@ -34,11 +34,19 @@ import { PacketLegend } from "../packet_legend";
 import { defaultState, interactiveStateReducer } from "./interaction_manager";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
+import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
+
 interface AreaManagerProps {
   gridRect: GridCell[][];
   defaultAreaSize: number;
-  zoom: number;
-  zoomHandler: (this: HTMLCanvasElement, evt: WheelEvent) => any;
+  zoomHandler: (
+    this: HTMLCanvasElement,
+    evt: WheelEvent,
+    callback?: () => unknown
+  ) => any;
+  onMouseRightDown: MouseRightEventHandler;
+  onMouseRightMove: MouseRightEventHandler;
+  onMouseRightUp: MouseRightEventHandler;
 }
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -50,13 +58,15 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     gridRect,
     defaultAreaSize,
     cellSize,
-    zoom,
     setLiveNeighborTable,
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
     openNotificationTooltip,
     clearEventLog,
     zoomHandler,
+    onMouseRightDown,
+    onMouseRightMove,
+    onMouseRightUp,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -90,6 +100,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     componentPicker;
   const { visible: routerMenuVisible } = routerMenu;
 
+  const onZoom = useCallback(
+    () =>
+      dispatch({
+        type: "zoomed",
+        areaTree: areaTree.current,
+        linkInterfaceMap: linkInterfaceMap.current,
+      }),
+    []
+  );
+
   useEffect(() => {
     dispatch({
       type: "set_grid",
@@ -97,16 +117,18 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     });
   }, [gridRect]);
 
+  // Assigns scroll wheel handler to the canvas so that we can prevent default behavior through a passive listener
   useEffect(() => {
     const canvas = interactionLayerRef.current;
     if (!canvas) {
       return;
     }
-    canvas.addEventListener("wheel", zoomHandler, { passive: false });
+    const cb = (evt: WheelEvent) => zoomHandler.call(canvas, evt, onZoom);
+    canvas.addEventListener("wheel", cb, { passive: false });
     return () => {
       canvas.removeEventListener("wheel", zoomHandler);
     };
-  }, [zoomHandler]);
+  }, [onZoom, zoomHandler]);
 
   useLayoutEffect(() => {
     [
@@ -128,15 +150,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     window.areaLayer = areaLayerRef.current;
     window.iconLayer = iconLayerRef.current;
   }, []);
-
-  useLayoutEffect(() => {
-    dispatch({
-      type: "zoomed",
-      areaTree: areaTree.current,
-      zoom,
-      linkInterfaceMap: linkInterfaceMap.current,
-    });
-  }, [zoom]);
 
   const placeArea: MouseEventHandler = useCallback(() => {
     if (!areaLayerRef.current || !iconLayerRef.current || !cell) {
@@ -168,15 +181,24 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     });
   }, [cell, defaultAreaSize]);
 
-  const onHover: MouseEventHandler = useCallback(
-    (e) => {
+  const pan = useCallback(() => {
+    dispatch({
+      type: "panned",
+      areaTree: areaTree.current,
+      linkInterfaceMap: linkInterfaceMap.current,
+    });
+  }, []);
+
+  const onHover = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
       if (
         !iconLayerRef.current ||
         !areaLayerRef.current ||
         !componentLayerRef.current ||
         !gridRect.length ||
         componentPickerVisible ||
-        routerMenuVisible
+        routerMenuVisible ||
+        onMouseRightMove(e, pan)
       ) {
         return;
       }
@@ -245,6 +267,8 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       });
     },
     [
+      onMouseRightMove,
+      pan,
       gridRect,
       componentPickerVisible,
       routerMenuVisible,
@@ -253,37 +277,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       gridSizeY,
       cellSize,
     ]
-  );
-
-  const onCanvasClick: MouseEventHandler = useCallback(
-    (e) => {
-      if (
-        !iconLayerRef.current ||
-        !areaLayerRef.current ||
-        !overlayLayerRef.current
-      ) {
-        return;
-      }
-      const { clientX, clientY } = e;
-      const { row, column } = mapCoordsToGridCell(
-        cellSize,
-        clientX,
-        clientY,
-        gridRect,
-        iconLayerRef.current
-      );
-      dispatch({
-        type: "click",
-        areaLayer: areaLayerRef.current,
-        cell: [column, row],
-        routerMenuComponent: routerMenuRef.current,
-        componentPickerComponent: componentPickerRef.current,
-        iconLayer: iconLayerRef.current,
-        areaTree: areaTree.current,
-        overlayLayer: overlayLayerRef.current,
-      });
-    },
-    [gridRect, cellSize]
   );
 
   const componentPickerOpts: PickerOption[] = useMemo(() => {
@@ -457,6 +450,59 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     },
     [onConnectionSelect, selectedRouter]
   );
+
+  const handleClick: MouseEventHandler = useCallback(
+    (e) => {
+      if (
+        !iconLayerRef.current ||
+        !areaLayerRef.current ||
+        !overlayLayerRef.current
+      ) {
+        return;
+      }
+      const { clientX, clientY } = e;
+      const { row, column } = mapCoordsToGridCell(
+        cellSize,
+        clientX,
+        clientY,
+        gridRect,
+        iconLayerRef.current
+      );
+      dispatch({
+        type: "click",
+        areaLayer: areaLayerRef.current,
+        cell: [column, row],
+        routerMenuComponent: routerMenuRef.current,
+        componentPickerComponent: componentPickerRef.current,
+        iconLayer: iconLayerRef.current,
+        areaTree: areaTree.current,
+        overlayLayer: overlayLayerRef.current,
+      });
+    },
+    [cellSize, gridRect]
+  );
+
+  const onMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
+    (e) => {
+      if (componentPickerVisible || routerMenuVisible) {
+        return;
+      }
+      onMouseRightDown(e, pan);
+    },
+    [componentPickerVisible, routerMenuVisible, onMouseRightDown, pan]
+  );
+
+  const onMouseUp: MouseEventHandler<HTMLCanvasElement> = useCallback(
+    (e) => {
+      const { button } = e;
+      if (button === MouseButton.Left) {
+        handleClick(e);
+      } else {
+        onMouseRightUp(e);
+      }
+    },
+    [handleClick, onMouseRightUp]
+  );
   return (
     <>
       <canvas
@@ -495,7 +541,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         ref={interactionLayerRef}
         style={{ cursor }}
         onMouseMove={onHover}
-        onClick={onCanvasClick}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onContextMenu={(e) => e.preventDefault()}
       />
       {(cell && (
         <ComponentPicker

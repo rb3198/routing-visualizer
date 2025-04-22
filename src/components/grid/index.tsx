@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { RefObject, useCallback, useEffect } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
 import { onCanvasLayout } from "../../utils/ui";
@@ -7,16 +7,14 @@ import { setCellSize } from "../../action_creators";
 import { connect, ConnectedProps } from "react-redux";
 
 interface GridProps {
-  grid: GridCell[][];
   gridSize: number;
-  zoom: number;
+  gridCanvasRef: RefObject<HTMLCanvasElement>;
   setGrid: React.Dispatch<React.SetStateAction<GridCell[][]>>;
 }
 
 type ReduxProps = ConnectedProps<typeof connector>;
 export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
-  const { gridSize, grid, zoom, setGrid, setCellSize } = props;
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { gridSize, gridCanvasRef, setGrid, setCellSize } = props;
 
   const constructGrid = useCallback(
     (canvas: HTMLCanvasElement) => {
@@ -51,29 +49,14 @@ export const GridComponent: React.FC<GridProps & ReduxProps> = (props) => {
   );
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) {
+    if (!gridCanvasRef.current) {
       return;
     }
-    const { width, height } = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, width, height);
-    for (const row of grid) {
-      for (const cell of row) {
-        cell.drawEmpty(ctx);
-      }
-    }
-  }, [zoom, grid]);
-
-  useEffect(() => {
-    if (!canvasRef.current) {
-      return;
-    }
-    onCanvasLayout(canvasRef.current);
-    const gridRect = constructGrid(canvasRef.current);
+    onCanvasLayout(gridCanvasRef.current);
+    const gridRect = constructGrid(gridCanvasRef.current);
     setGrid(gridRect);
-  }, [setGrid, constructGrid]);
-  return <canvas ref={canvasRef} id={styles.cell_grid} />;
+  }, [gridCanvasRef, setGrid, constructGrid]);
+  return <canvas ref={gridCanvasRef} id={styles.cell_grid} />;
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {

@@ -16,6 +16,8 @@ import { Router } from "src/entities/router";
 import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
+import { clearCanvas } from "src/utils/drawing";
+import { IPLinkInterface } from "src/entities/ip/link_interface";
 
 export const defaultPickerState: DefaultComponentPickerState = {
   visible: false,
@@ -35,7 +37,6 @@ export const defaultState: InteractiveState = {
   cell: [-1, -1],
   gridRect: [],
   cursor: "initial",
-  zoom: 1,
 };
 
 export const drawAddIcon = (
@@ -237,14 +238,40 @@ const drawAreasWithRouters = (
   });
 };
 
-const clearCanvas = (canvas?: HTMLCanvasElement | null) => {
-  if (!canvas) {
-    return;
+const redrawNetwork = (
+  areaTree: AreaTree,
+  gridRect: GridCell[][],
+  linkInterfaceMap: Map<string, IPLinkInterface>
+) => {
+  const {
+    routerConnectionLayer,
+    gridComponentLayer: compLayer,
+    areaLayer,
+    iconLayer,
+    elementLayer,
+  } = window;
+  [
+    areaLayer,
+    compLayer,
+    iconLayer,
+    routerConnectionLayer,
+    elementLayer,
+  ].forEach((canvas) => clearCanvas(canvas));
+  areaLayer &&
+    compLayer &&
+    drawAreasWithRouters(areaTree, areaLayer, compLayer, gridRect);
+  if (routerConnectionLayer) {
+    const { width, height } = routerConnectionLayer.getBoundingClientRect();
+    const ctx = routerConnectionLayer.getContext("2d");
+    ctx?.clearRect(0, 0, width, height);
+    linkInterfaceMap.forEach((link) => {
+      const { routers: routerMap } = link;
+      const routers = Array.from(routerMap.values());
+      link.draw(routers[0], routers[1]);
+    });
   }
-  const { width, height } = canvas.getBoundingClientRect();
-  const ctx = canvas.getContext("2d");
-  ctx?.clearRect(0, 0, width, height);
 };
+
 export const interactiveStateReducer: Reducer<
   InteractiveState,
   InteractiveAction
@@ -257,7 +284,6 @@ export const interactiveStateReducer: Reducer<
     componentPicker: prevComponentPicker,
     cell: prevCell,
     gridRect,
-    zoom,
   } = state;
   if (type === "set_grid") {
     const { gridRect: newGridRect } = action;
@@ -314,7 +340,6 @@ export const interactiveStateReducer: Reducer<
       cell: cell ?? [-1, -1],
       componentPicker: defaultPickerState,
       routerMenu: defaultRouterMenuState,
-      // cursor: TODO
     };
   }
   if (type === "send_packet") {
@@ -382,11 +407,13 @@ export const interactiveStateReducer: Reducer<
     if (prevInteractionState !== "hovering") {
       return state;
     }
-    if (prevCell) {
-      // clear the cell
-      managePreviousHover(prevCell, cell, gridRect, iconLayer);
-    }
-    draw && drawAddIcon(gridRect, cell, iconLayer);
+    window.requestAnimationFrame(() => {
+      if (prevCell) {
+        // clear the cell
+        managePreviousHover(prevCell, cell, gridRect, iconLayer);
+      }
+      draw && drawAddIcon(gridRect, cell, iconLayer);
+    });
     return {
       ...state,
       cell,
@@ -416,7 +443,6 @@ export const interactiveStateReducer: Reducer<
       cursor: "initial",
       gridRect,
       simulationStatus: prevStatus,
-      zoom,
     };
   }
   if (type === "click") {
@@ -497,7 +523,6 @@ export const interactiveStateReducer: Reducer<
           cursor: "initial",
           gridRect,
           simulationStatus: prevStatus,
-          zoom,
         };
         if (!areaTree.root) {
           clearOverlay(overlayLayer);
@@ -529,39 +554,15 @@ export const interactiveStateReducer: Reducer<
         return state;
     }
   }
-  if (type === "zoomed") {
-    const { zoom, areaTree, linkInterfaceMap } = action;
-    const {
-      routerConnectionLayer,
-      gridComponentLayer: compLayer,
-      areaLayer,
-      iconLayer,
-      elementLayer,
-    } = window;
-    [
-      areaLayer,
-      compLayer,
-      iconLayer,
-      routerConnectionLayer,
-      elementLayer,
-    ].forEach((canvas) => clearCanvas(canvas));
-    areaLayer &&
-      compLayer &&
-      drawAreasWithRouters(areaTree, areaLayer, compLayer, gridRect);
-    if (routerConnectionLayer) {
-      const { width, height } = routerConnectionLayer.getBoundingClientRect();
-      const ctx = routerConnectionLayer.getContext("2d");
-      ctx?.clearRect(0, 0, width, height);
-      linkInterfaceMap.forEach((link) => {
-        const { routers: routerMap } = link;
-        const routers = Array.from(routerMap.values());
-        link.draw(routers[0], routers[1]);
-      });
-    }
-    return {
-      ...state,
-      zoom,
-    };
+  if (type === "zoomed" || type === "panned") {
+    const { areaTree, linkInterfaceMap } = action;
+    redrawNetwork(areaTree, gridRect, linkInterfaceMap);
+    return type === "zoomed"
+      ? state
+      : {
+          ...state,
+          cursor: "grabbing",
+        };
   }
   return state;
 };

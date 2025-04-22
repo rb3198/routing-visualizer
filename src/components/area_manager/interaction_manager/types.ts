@@ -30,9 +30,8 @@ export type DefaultRouterMenuState = {
 
 export type InteractiveState = {
   gridRect: GridCell[][];
-  cursor: "initial" | "pointer";
+  cursor: "initial" | "pointer" | "grabbing";
   cell: Point2D;
-  zoom: number;
 } & (
   | {
       simulationStatus: "playing" | "paused" | "stopped";
@@ -75,8 +74,7 @@ export type InteractiveAction =
       type: "pause" | "stop";
     }
   | {
-      type: "zoomed";
-      zoom: number;
+      type: "zoomed" | "panned";
       areaTree: AreaTree;
       linkInterfaceMap: Map<string, IPLinkInterface>;
     }

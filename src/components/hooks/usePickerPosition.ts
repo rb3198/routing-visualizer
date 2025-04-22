@@ -43,6 +43,11 @@ const DEFAULT_POSITION = {
   top: -200,
 };
 
+const getCoord = (coord: number, offset: number) => {
+  const { zoom = 1 } = window;
+  return (coord + offset) / zoom;
+};
+
 const getPosition = (
   column: number,
   row: number,
@@ -53,31 +58,36 @@ const getPosition = (
   if (!canvas || !tooltipElement || !gridRect[row] || !gridRect[row][column]) {
     return { left: -200, top: -200 };
   }
-  const { zoom = 1 } = window;
+  const { canvasOffset = [0, 0] } = window;
   const { height, width } = tooltipElement.getBoundingClientRect();
   const cell = gridRect[row][column];
-  let { x, y } = cell;
-  x /= zoom;
-  y /= zoom;
+  const x = getCoord(cell.x, canvasOffset[0]);
+  const y = getCoord(cell.y, canvasOffset[1]);
   const canvasY = canvas.getBoundingClientRect().y;
   const horizontalPosition = x + width > canvas.clientWidth ? "left" : "right";
   const verticalPosition =
-    canvasY + y / zoom + height > document.documentElement.clientHeight
+    canvasY + y + height > document.documentElement.clientHeight
       ? "top"
       : "bottom";
   if (horizontalPosition === "right") {
     if (verticalPosition === "bottom") {
       const { x, y } = gridRect[row + 1][column + 1];
-      return { left: x / zoom, top: y / zoom + canvasY };
+      return {
+        left: getCoord(x, canvasOffset[0]),
+        top: getCoord(y, canvasOffset[1]) + canvasY,
+      };
     }
     const { x } = gridRect[row - 1][column + 1];
-    return { left: x / zoom, top: y - height + canvasY };
+    return { left: getCoord(x, canvasOffset[0]), top: y - height + canvasY };
   }
   if (verticalPosition === "bottom") {
     const { y } = gridRect[row + 1][column - 1];
-    return { left: x - width, top: y / zoom + canvasY };
+    return { left: x - width, top: canvasY + getCoord(y, canvasOffset[1]) };
   }
-  return { left: x - width, top: y - height + canvasY };
+  return {
+    left: x - width,
+    top: getCoord(y, canvasOffset[1]) - height + canvasY,
+  };
 };
 
 /**

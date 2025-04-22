@@ -5,7 +5,8 @@ declare global {
     elementLayer?: HTMLCanvasElement | null;
     routerConnectionLayer?: HTMLCanvasElement | null;
     iconLayer?: HTMLCanvasElement | null;
-    zoom: number;
+    zoom?: number;
+    canvasOffset?: [number, number];
   }
 }
 
