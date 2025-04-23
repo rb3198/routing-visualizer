@@ -2,6 +2,7 @@ import { Router } from "../../entities/router";
 import { Point2D, RectDim } from "../../types/geometry";
 import {
   beforeDraw,
+  getCellSize,
   getDefaultPacketRect,
   postDraw,
 } from "../../utils/drawing";
@@ -128,22 +129,20 @@ export const packetAnimations = {
    */
   packetDrop: async (
     context: CanvasRenderingContext2D,
-    cellSize: number,
     router: Router,
     duration: number,
     color: string,
-    rectDim: RectDim = getDefaultPacketRect(cellSize)
+    rectDim?: RectDim
   ) => {
+    const cellSize = getCellSize();
+    rectDim ??= getDefaultPacketRect(cellSize);
     const { w: rectW, h: rectH } = rectDim;
     const { location } = router;
     const [col, row] = location;
-    const origin: Point2D = [
-      cellSize * (col + 1 / 2),
-      cellSize * (row + 1 / 2),
-    ];
-    const cp1y = cellSize * (row + 1);
+    const origin: Point2D = [col + cellSize / 2, row + cellSize / 2];
+    const cp1y = row + cellSize;
     // packet ends at the midpoint of the cell below
-    const dest: Point2D = [cellSize * (col + 1 / 2), cellSize * (row + 3 / 2)];
+    const dest: Point2D = [col + cellSize / 2, row + (3 * cellSize) / 2];
     const [, destY] = dest;
     let position: Point2D = [...origin];
     const startTime = Date.now();

@@ -204,26 +204,30 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
     if (!areaTree || !selectedRouter || !areaTree.root) {
       return [];
     }
-    const { ipInterfaces, key: selectedRouterKey } = selectedRouter;
+    const { ipInterfaces, id: selectedRouterId } = selectedRouter;
     const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces.keys()));
     const areas = areaTree.inOrderTraversal(areaTree.root);
     return areas
-      .filter(([, area]) => area.routerLocations.size > 0)
+      .filter(([, area]) => !!area.routerLocations.root)
       .map(([, area]) => {
         const { routerLocations, id, name } = area;
         return {
           id,
           name,
-          connectionOptions: [...routerLocations].filter(([loc, router]) => {
-            // If the same interfaces exist on the router, it means that they're connected already.
-            const isConnectedToRouter = selectedRouterIpInterfaces.some(
-              (interfaceId) =>
-                selectedRouter.ipInterfaces
-                  .get(interfaceId)!
-                  .ipInterface.getOppositeRouter(selectedRouter) === router
-            );
-            return loc !== selectedRouterKey && !isConnectedToRouter;
-          }),
+          connectionOptions: routerLocations
+            .inOrderTraversal(routerLocations.root)
+            .filter(([loc, router]) => {
+              // If the same interfaces exist on the router, it means that they're connected already.
+              const isConnectedToRouter = selectedRouterIpInterfaces.some(
+                (interfaceId) =>
+                  selectedRouter.ipInterfaces
+                    .get(interfaceId)!
+                    .ipInterface.getOppositeRouter(selectedRouter) === router
+              );
+              return (
+                !router.id.equals(selectedRouterId) && !isConnectedToRouter
+              );
+            }),
         };
       })
       .filter(({ connectionOptions }) => connectionOptions.length > 0)
@@ -259,7 +263,7 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
                 <ul>
                   {connectionOptions.map(([loc, router]) => (
                     <Connection
-                      loc={loc}
+                      loc={loc.join("_")}
                       router={router}
                       key={`r_picker_${loc}`}
                       rootRouter={selectedRouter}

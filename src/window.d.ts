@@ -7,6 +7,7 @@ declare global {
     iconLayer?: HTMLCanvasElement | null;
     zoom?: number;
     canvasOffset?: [number, number];
+    cellSize?: number;
   }
 }
 

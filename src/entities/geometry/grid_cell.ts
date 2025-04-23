@@ -1,11 +1,5 @@
 import { beforeDraw, postDraw } from "src/utils/drawing";
 import { Colors } from "../../constants/theme";
-import {
-  drawRouterAntennas,
-  drawRouterBox,
-  drawRouterButtons,
-} from "../../utils/grid_cell";
-import { RouterPowerState } from "../router/enum/RouterPowerState";
 
 /**
  * Class representing a single cell in the grid.
@@ -83,44 +77,6 @@ export class GridCell {
     context.fillStyle = plusColor;
     context.stroke();
     context.fill();
-    context.closePath();
-    postDraw(context);
-  };
-
-  drawRouter = (
-    context: CanvasRenderingContext2D,
-    routerIp: string,
-    power = RouterPowerState.Shutdown
-  ) => {
-    const { x, y, size } = this;
-    this.beforeDraw(context);
-    context.clearRect(x, y, size, size);
-    context.beginPath();
-    context.fillStyle =
-      power === RouterPowerState.Shutdown
-        ? Colors.disabled
-        : Colors.complementary;
-    context.rect(x, y, size, size);
-    context.fill();
-    context.closePath();
-    context.beginPath();
-    drawRouterBox.call(this, context);
-    drawRouterAntennas.call(this, context);
-    drawRouterButtons.call(this, context);
-    context.moveTo(x + 0.55 * size, y + 0.7 * size);
-    context.lineTo(x + 0.825 * size, y + 0.7 * size);
-    context.strokeStyle = "white";
-    context.lineWidth = 1.25;
-    context.stroke();
-    context.closePath();
-    context.fillStyle = "white";
-    context.font = `${size / 4.5}px sans-serif`;
-    const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
-      context.measureText(routerIp);
-    const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
-    context.fillText(routerIp, x, y + fontHeight, size);
-    context.strokeStyle = "";
-    this.type = "router";
     context.closePath();
     postDraw(context);
   };

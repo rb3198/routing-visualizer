@@ -20,7 +20,6 @@ import { Rect2D } from "../../entities/geometry/Rect2D";
 import { Router } from "../../entities/router";
 import { IPLinkInterface } from "../../entities/ip/link_interface";
 import { Toolbar } from "../toolbar";
-import { IRootReducer } from "../../reducers";
 import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import {
@@ -35,6 +34,7 @@ import { defaultState, interactiveStateReducer } from "./interaction_manager";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
+import { getCellSize } from "src/utils/drawing";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -57,7 +57,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const {
     gridRect,
     defaultAreaSize,
-    cellSize,
     setLiveNeighborTable,
     openRoutingTableInStore,
     openLsDbModal: openLsDbModalInStore,
@@ -68,6 +67,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightMove,
     onMouseRightUp,
   } = props;
+  const cellSize = getCellSize();
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
@@ -83,8 +83,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     interactiveStateReducer,
     defaultState
   );
-  const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
-  const gridSizeY = gridRect.length || 0;
 
   const {
     componentPicker,
@@ -123,12 +121,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     if (!canvas) {
       return;
     }
-    const cb = (evt: WheelEvent) => zoomHandler.call(canvas, evt, onZoom);
+    const cb = (evt: WheelEvent) => {
+      if (state !== "selecting_packet_dest") {
+        zoomHandler.call(canvas, evt, onZoom);
+      }
+    };
     canvas.addEventListener("wheel", cb, { passive: false });
     return () => {
-      canvas.removeEventListener("wheel", zoomHandler);
+      canvas.removeEventListener("wheel", cb);
     };
-  }, [onZoom, zoomHandler]);
+  }, [state, onZoom, zoomHandler]);
 
   useLayoutEffect(() => {
     [
@@ -223,9 +225,10 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       ) {
         return;
       }
+      const { x, y } = gridRect[row][column];
       const { inArea, canPlaceRouter, cursor } = areaTree.current.handleHover(
-        column,
-        row
+        x,
+        y
       );
       if (inArea) {
         // Hover is inside an Area
@@ -242,8 +245,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         row,
         column,
         defaultAreaSize,
-        gridSizeX,
-        gridSizeY
+        gridRect
       );
       const potentialAreaRect = new Rect2D(
         potentialAreaPosition.low,
@@ -273,8 +275,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       componentPickerVisible,
       routerMenuVisible,
       defaultAreaSize,
-      gridSizeX,
-      gridSizeY,
       cellSize,
     ]
   );
@@ -333,7 +333,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       areaTree.current.root
     )) {
       const { routerLocations } = area;
-      for (let [, router] of routerLocations) {
+      for (let [, router] of routerLocations.inOrderTraversal(
+        routerLocations.root
+      )) {
         await router.turnOff(gridRect, context);
       }
     }
@@ -484,12 +486,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (e) => {
-      if (componentPickerVisible || routerMenuVisible) {
+      if (
+        componentPickerVisible ||
+        routerMenuVisible ||
+        state === "selecting_packet_dest"
+      ) {
         return;
       }
       onMouseRightDown(e, pan);
     },
-    [componentPickerVisible, routerMenuVisible, onMouseRightDown, pan]
+    [state, componentPickerVisible, routerMenuVisible, onMouseRightDown, pan]
   );
 
   const onMouseUp: MouseEventHandler<HTMLCanvasElement> = useCallback(
@@ -590,11 +596,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   );
 };
 
-const mapStateToProps = (state: IRootReducer) => {
-  const { cellSize } = state;
-  return { cellSize };
-};
-
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return {
     setLiveNeighborTable: bindActionCreators(setLiveNeighborTable, dispatch),
@@ -608,6 +609,6 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   };
 };
 
-const connector = connect(mapStateToProps, mapDispatchToProps);
+const connector = connect(undefined, mapDispatchToProps);
 
 export const AreaManager = connector(AreaManagerComponent);

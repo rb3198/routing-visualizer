@@ -1,13 +1,15 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Grid } from "../grid";
 import { GridCell } from "../../entities/geometry/grid_cell";
 import { AreaManager } from "../area_manager";
 import { Point2D } from "src/types/geometry";
 import { addVectors, subtractVectors } from "src/utils/geometry";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
+import { DEFAULT_AREA_SIZE } from "src/constants/sizing";
+import { getVisibleWorldBounds } from "src/utils/drawing";
 
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 5;
+const MIN_ZOOM = 0.7;
+const MAX_ZOOM = 1.3;
 
 export type Drag = {
   start: Point2D;
@@ -17,12 +19,78 @@ export type Drag = {
 };
 
 export const GridManager: React.FC = () => {
-  const [gridSize, setGridSize] = useState(30);
+  const [cellSize, setCellSize] = useState(30);
   const [grid, setGrid] = useState<GridCell[][]>([]);
   const zoomRef = useRef(1);
   const canvasOffsetRef = useRef<Point2D>([0, 0]);
   const dragRef = useRef<Drag>();
   const gridCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  useLayoutEffect(() => {
+    const { clientWidth } = document.documentElement;
+    let cellSize = 48; // Large desktops
+    if (clientWidth < 800) cellSize = 32; // Tablets and small screens
+    if (clientWidth < 1400) cellSize = 40; // Standard desktops
+    setCellSize(cellSize);
+    window.cellSize = cellSize;
+  }, []);
+
+  const expandGrid = useCallback(() => {
+    const canvas = gridCanvasRef.current;
+    if (!canvas) {
+      return grid;
+    }
+    const { width, height } = canvas.getBoundingClientRect();
+    const { startX, startY, endX, endY } = getVisibleWorldBounds(width, height);
+    if (!grid.length || !grid[0].length) {
+      return grid;
+    }
+    let gridMinX = grid[0][0].x;
+    let gridMaxX = grid[0][grid[0].length - 1].x + cellSize;
+    let gridMinY = grid[0][0].y;
+    let gridMaxY = grid[grid.length - 1][0].y + cellSize;
+    const newGrid = [...grid];
+    while (startX < gridMinX) {
+      // Add column to the left
+      newGrid.forEach((row) =>
+        row.unshift(new GridCell(row[0].x - cellSize, row[0].y, cellSize))
+      );
+      gridMinX -= cellSize;
+    }
+    while (gridMaxX < endX) {
+      // Add column to the right
+      newGrid.forEach((row) =>
+        row.push(
+          new GridCell(row[row.length - 1].x + cellSize, row[0].y, cellSize)
+        )
+      );
+      gridMaxX += cellSize;
+    }
+    const firstRow = newGrid[0];
+    while (gridMaxY < endY) {
+      // Add row to the bottom
+      const pushNewRow = (gridMaxY: number) => {
+        newGrid.push(
+          new Array(firstRow.length)
+            .fill("")
+            .map((_, idx) => new GridCell(firstRow[idx].x, gridMaxY, cellSize))
+        );
+      };
+      pushNewRow(gridMaxY);
+      gridMaxY += cellSize;
+    }
+    if (startY < gridMinY) {
+      newGrid.unshift(
+        new Array(firstRow.length)
+          .fill("")
+          .map(
+            (_, idx) =>
+              new GridCell(firstRow[idx].x, firstRow[0].y - cellSize, cellSize)
+          )
+      );
+    }
+    return newGrid;
+  }, [cellSize, grid]);
 
   const drawGrid = useCallback(() => {
     const canvas = gridCanvasRef.current;
@@ -32,12 +100,22 @@ export const GridManager: React.FC = () => {
     }
     const { width, height } = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, width, height);
-    for (const row of grid) {
+    const newGrid = expandGrid();
+    const { startX, startY, endX, endY } = getVisibleWorldBounds(width, height);
+    for (const row of newGrid) {
       for (const cell of row) {
+        const { x, y, size } = cell;
+        if (startX > x + size || endX < x - size) {
+          continue;
+        }
+        if (startY > y + size || endY < y - size) {
+          continue;
+        }
         cell.drawEmpty(ctx);
       }
     }
-  }, [grid]);
+    setGrid(newGrid);
+  }, [expandGrid]);
 
   //#region Ref setters
   const setZoom = useCallback(
@@ -144,12 +222,12 @@ export const GridManager: React.FC = () => {
     <>
       <Grid
         setGrid={setGrid}
-        gridSize={gridSize}
+        cellSize={cellSize}
         gridCanvasRef={gridCanvasRef}
       />
       <AreaManager
         gridRect={grid}
-        defaultAreaSize={Math.ceil(gridSize / 5)}
+        defaultAreaSize={DEFAULT_AREA_SIZE}
         zoomHandler={zoomHandler}
         onMouseRightDown={onMouseRightDown}
         onMouseRightMove={onMouseRightMove}

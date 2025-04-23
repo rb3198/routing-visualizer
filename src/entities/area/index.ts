@@ -7,7 +7,13 @@ import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
 import { RouterPowerState } from "../router/enum/RouterPowerState";
-import { beforeDraw, postDraw } from "src/utils/drawing";
+import {
+  beforeDraw,
+  getCellSize,
+  getVisibleWorldBounds,
+  postDraw,
+} from "src/utils/drawing";
+import { KDTree } from "ts-data-structures-collection/trees";
 
 export class OSPFArea {
   /**
@@ -19,7 +25,7 @@ export class OSPFArea {
   /**
    * A set of all locations of routers stored in the OSPF Area, stored as `<x coordinate>_<y_coordinate>`
    */
-  routerLocations: Map<string, Router>;
+  routerLocations: KDTree<Router>;
 
   /**
    * ID to identify the OSPF Area.
@@ -68,23 +74,19 @@ export class OSPFArea {
     const { simulationConfig } = store.getState();
     const { helloInterval, rxmtInterval, MaxAge } = simulationConfig;
     this.ospfConfig = new OSPFConfig(id, helloInterval, rxmtInterval, MaxAge);
-    this.routerLocations = new Map();
+    this.routerLocations = new KDTree(2);
   }
 
-  getRouterLocationKey = (row: number, col: number) => `${row}_${col}`;
-
   placeRouter = (
-    row: number,
-    col: number,
+    cell: GridCell,
     nGlobalRouters: number,
     simulationPlaying?: boolean
   ) => {
-    const key = this.getRouterLocationKey(row, col);
     const { simulationConfig } = store.getState();
     const { gracefulShutdown } = simulationConfig;
+    const routerLow = [cell.x, cell.y] as Point2D;
     const router = new Router(
-      key,
-      [col, row],
+      routerLow,
       new IPv4Address(
         nGlobalRouters + 1,
         nGlobalRouters + 1,
@@ -96,7 +98,7 @@ export class OSPFArea {
       simulationPlaying ? RouterPowerState.On : RouterPowerState.Shutdown, // new router is turned on if the simulation is playing
       gracefulShutdown
     );
-    this.routerLocations.set(key, router);
+    this.routerLocations.insert(router.boundingBox.centroid, router);
     return router;
   };
 
@@ -111,28 +113,32 @@ export class OSPFArea {
     areaLayerCtx: CanvasRenderingContext2D,
     compLayerCtx: CanvasRenderingContext2D,
     strokeStyle: string,
-    fillStyle: string,
-    gridRect: GridCell[][]
+    fillStyle: string
   ) => {
-    const { cellSize } = store.getState();
+    const cellSize = getCellSize();
     const { low, high } = this.boundingBox;
+    const { areaLayer } = window;
+    if (!areaLayer) {
+      return;
+    }
+    const { width, height } = areaLayer.getBoundingClientRect();
+    const { startX, startY, endX, endY } = getVisibleWorldBounds(width, height);
+    const visibleRect = new Rect2D([startX, startY], [endX, endY]);
     const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
+    if ([p1, p2, p3, p4].every((p) => !visibleRect.isWithinBounds(p))) {
+      return;
+    }
     beforeDraw(areaLayerCtx);
-    areaLayerCtx.clearRect(
-      low[0] * cellSize,
-      low[1] * cellSize,
-      (high[0] - low[0]) * cellSize,
-      (high[1] - low[1]) * cellSize
-    );
+    areaLayerCtx.clearRect(low[0], low[1], high[0] - low[0], high[1] - low[1]);
     areaLayerCtx.beginPath();
     areaLayerCtx.strokeStyle = strokeStyle;
     areaLayerCtx.fillStyle = fillStyle;
     areaLayerCtx.setLineDash([3, 3]);
-    areaLayerCtx.moveTo(p1[0] * cellSize, p1[1] * cellSize);
-    areaLayerCtx.lineTo(p2[0] * cellSize, p2[1] * cellSize);
-    areaLayerCtx.lineTo(p3[0] * cellSize, p3[1] * cellSize);
-    areaLayerCtx.lineTo(p4[0] * cellSize, p4[1] * cellSize);
-    areaLayerCtx.lineTo(p1[0] * cellSize, p1[1] * cellSize);
+    areaLayerCtx.moveTo(p1[0], p1[1]);
+    areaLayerCtx.lineTo(p2[0], p2[1]);
+    areaLayerCtx.lineTo(p3[0], p3[1]);
+    areaLayerCtx.lineTo(p4[0], p4[1]);
+    areaLayerCtx.lineTo(p1[0], p1[1]);
     areaLayerCtx.stroke();
     areaLayerCtx.fill();
     areaLayerCtx.closePath();
@@ -144,21 +150,23 @@ export class OSPFArea {
     areaLayerCtx.fillStyle = strokeStyle;
     areaLayerCtx.fillText(
       this.name,
-      low[0] * cellSize + textHeight / 4,
-      low[1] * cellSize + (5 * textHeight) / 4,
+      low[0] + textHeight / 4,
+      low[1] + (5 * textHeight) / 4,
       cellSize - 5
     );
-    for (let [loc, router] of this.routerLocations.entries()) {
-      const [row, col] = loc.split("_").map((l) => parseInt(l));
-      gridRect[row][col] &&
-        gridRect[row][col].drawRouter(compLayerCtx, router.id.ip, router.power);
+    for (let [, router] of this.routerLocations.inOrderTraversal(
+      this.routerLocations.root
+    )) {
+      router.draw(compLayerCtx);
     }
     postDraw(areaLayerCtx);
   };
 
   setRxmtInterval = (rxmtInterval: number) => {
-    this.routerLocations.forEach((router) => {
-      router.ospf.config.rxmtInterval = rxmtInterval;
-    });
+    this.routerLocations
+      .inOrderTraversal(this.routerLocations.root)
+      .forEach(([, router]) => {
+        router.ospf.config.rxmtInterval = rxmtInterval;
+      });
   };
 }
