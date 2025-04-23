@@ -7,7 +7,12 @@ import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
 import { RouterPowerState } from "../router/enum/RouterPowerState";
-import { beforeDraw, getCellSize, postDraw } from "src/utils/drawing";
+import {
+  beforeDraw,
+  getCellSize,
+  getVisibleWorldBounds,
+  postDraw,
+} from "src/utils/drawing";
 import { KDTree } from "ts-data-structures-collection/trees";
 
 export class OSPFArea {
@@ -112,7 +117,17 @@ export class OSPFArea {
   ) => {
     const cellSize = getCellSize();
     const { low, high } = this.boundingBox;
+    const { areaLayer } = window;
+    if (!areaLayer) {
+      return;
+    }
+    const { width, height } = areaLayer.getBoundingClientRect();
+    const { startX, startY, endX, endY } = getVisibleWorldBounds(width, height);
+    const visibleRect = new Rect2D([startX, startY], [endX, endY]);
     const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
+    if ([p1, p2, p3, p4].every((p) => !visibleRect.isWithinBounds(p))) {
+      return;
+    }
     beforeDraw(areaLayerCtx);
     areaLayerCtx.clearRect(low[0], low[1], high[0] - low[0], high[1] - low[1]);
     areaLayerCtx.beginPath();

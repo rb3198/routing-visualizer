@@ -233,8 +233,7 @@ const getConnectionOptions = (selectedRouter: Router, areaTree: AreaTree) => {
 const drawAreasWithRouters = (
   areaTree: AreaTree,
   areaLayer: HTMLCanvasElement,
-  compLayer: HTMLCanvasElement,
-  gridRect: GridCell[][]
+  compLayer: HTMLCanvasElement
 ) => {
   const areaCtx = areaLayer.getContext("2d");
   const compCtx = compLayer.getContext("2d");
@@ -249,7 +248,6 @@ const drawAreasWithRouters = (
 
 const redrawNetwork = (
   areaTree: AreaTree,
-  gridRect: GridCell[][],
   linkInterfaceMap: Map<string, IPLinkInterface>
 ) => {
   const {
@@ -268,7 +266,7 @@ const redrawNetwork = (
   ].forEach((canvas) => clearCanvas(canvas));
   areaLayer &&
     compLayer &&
-    drawAreasWithRouters(areaTree, areaLayer, compLayer, gridRect);
+    drawAreasWithRouters(areaTree, areaLayer, compLayer);
   if (routerConnectionLayer) {
     const { width, height } = routerConnectionLayer.getBoundingClientRect();
     const ctx = routerConnectionLayer.getContext("2d");
@@ -575,7 +573,7 @@ export const interactiveStateReducer: Reducer<
   }
   if (type === "zoomed" || type === "panned") {
     const { areaTree, linkInterfaceMap } = action;
-    redrawNetwork(areaTree, gridRect, linkInterfaceMap);
+    redrawNetwork(areaTree, linkInterfaceMap);
     return type === "zoomed"
       ? state
       : {

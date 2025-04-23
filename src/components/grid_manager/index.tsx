@@ -6,22 +6,10 @@ import { Point2D } from "src/types/geometry";
 import { addVectors, subtractVectors } from "src/utils/geometry";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
 import { DEFAULT_AREA_SIZE } from "src/constants/sizing";
+import { getVisibleWorldBounds } from "src/utils/drawing";
 
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 5;
-
-const getVisibleWorldBounds = (
-  canvasWidth: number,
-  canvasHeight: number,
-  offset: Point2D
-) => {
-  const [x, y] = offset;
-  const startX = -x;
-  const startY = -y;
-  const endX = startX + canvasWidth;
-  const endY = startY + canvasHeight;
-  return { startX, endX, startY, endY };
-};
+const MIN_ZOOM = 0.7;
+const MAX_ZOOM = 1.3;
 
 export type Drag = {
   start: Point2D;
@@ -50,45 +38,46 @@ export const GridManager: React.FC = () => {
   const expandGrid = useCallback(() => {
     const canvas = gridCanvasRef.current;
     if (!canvas) {
-      return;
+      return grid;
     }
-    const offset = canvasOffsetRef.current;
     const { width, height } = canvas.getBoundingClientRect();
-    const { startX, startY, endX, endY } = getVisibleWorldBounds(
-      width,
-      height,
-      offset
-    );
+    const { startX, startY, endX, endY } = getVisibleWorldBounds(width, height);
     if (!grid.length || !grid[0].length) {
-      return;
+      return grid;
     }
-    const gridMinX = grid[0][0].x;
-    const gridMaxX = grid[0][grid[0].length - 1].x + cellSize;
-    const gridMinY = grid[0][0].y;
-    const gridMaxY = grid[grid.length - 1][0].y + cellSize;
+    let gridMinX = grid[0][0].x;
+    let gridMaxX = grid[0][grid[0].length - 1].x + cellSize;
+    let gridMinY = grid[0][0].y;
+    let gridMaxY = grid[grid.length - 1][0].y + cellSize;
     const newGrid = [...grid];
-    if (startX < gridMinX) {
+    while (startX < gridMinX) {
       // Add column to the left
       newGrid.forEach((row) =>
         row.unshift(new GridCell(row[0].x - cellSize, row[0].y, cellSize))
       );
+      gridMinX -= cellSize;
     }
-    if (gridMaxX < endX) {
+    while (gridMaxX < endX) {
       // Add column to the right
       newGrid.forEach((row) =>
         row.push(
           new GridCell(row[row.length - 1].x + cellSize, row[0].y, cellSize)
         )
       );
+      gridMaxX += cellSize;
     }
     const firstRow = newGrid[0];
-    if (gridMaxY < endY) {
+    while (gridMaxY < endY) {
       // Add row to the bottom
-      newGrid.push(
-        new Array(firstRow.length)
-          .fill("")
-          .map((_, idx) => new GridCell(firstRow[idx].x, gridMaxY, cellSize))
-      );
+      const pushNewRow = (gridMaxY: number) => {
+        newGrid.push(
+          new Array(firstRow.length)
+            .fill("")
+            .map((_, idx) => new GridCell(firstRow[idx].x, gridMaxY, cellSize))
+        );
+      };
+      pushNewRow(gridMaxY);
+      gridMaxY += cellSize;
     }
     if (startY < gridMinY) {
       newGrid.unshift(
@@ -100,10 +89,7 @@ export const GridManager: React.FC = () => {
           )
       );
     }
-    setGrid(newGrid);
-    return (
-      newGrid.length !== grid.length || newGrid[0].length !== grid[0].length
-    );
+    return newGrid;
   }, [cellSize, grid]);
 
   const drawGrid = useCallback(() => {
@@ -114,13 +100,22 @@ export const GridManager: React.FC = () => {
     }
     const { width, height } = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, width, height);
-    expandGrid();
-    for (const row of grid) {
+    const newGrid = expandGrid();
+    const { startX, startY, endX, endY } = getVisibleWorldBounds(width, height);
+    for (const row of newGrid) {
       for (const cell of row) {
+        const { x, y, size } = cell;
+        if (startX > x + size || endX < x - size) {
+          continue;
+        }
+        if (startY > y + size || endY < y - size) {
+          continue;
+        }
         cell.drawEmpty(ctx);
       }
     }
-  }, [grid, expandGrid]);
+    setGrid(newGrid);
+  }, [expandGrid]);
 
   //#region Ref setters
   const setZoom = useCallback(

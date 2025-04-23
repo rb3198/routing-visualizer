@@ -197,3 +197,16 @@ export const drawRouterButtons = function (
   context.moveTo(x + 0.4 * size, y + 0.7 * size);
   context.arc(x + 0.4 * size, y + 0.7 * size, r, 0, 2 * Math.PI);
 };
+
+export const getVisibleWorldBounds = (
+  canvasWidth: number,
+  canvasHeight: number
+) => {
+  const { zoom = 1, canvasOffset: offset = [0, 0] } = window;
+  const [x, y] = offset;
+  const startX = -x;
+  const startY = -y;
+  const endX = startX + canvasWidth * zoom;
+  const endY = startY + canvasHeight * zoom;
+  return { startX, endX, startY, endY };
+};
