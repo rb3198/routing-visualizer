@@ -88,3 +88,27 @@ export const vmax = (units: number) => {
   const { innerWidth, innerHeight } = window;
   return (units * Math.max(innerWidth, innerHeight)) / 100;
 };
+
+/**
+ * Vector subtraction of `p1` from `p2`
+ * @param p1
+ * @param p2
+ * @returns
+ */
+export const subtractVectors = (p1: Point2D, p2: Point2D): Point2D => {
+  const [p1x, p1y] = p1;
+  const [p2x, p2y] = p2;
+  return [p2x - p1x, p2y - p1y];
+};
+
+/**
+ * Vector addition of `p1` and `p2`
+ * @param p1
+ * @param p2
+ * @returns
+ */
+export const addVectors = (p1: Point2D, p2: Point2D): Point2D => {
+  const [p1x, p1y] = p1;
+  const [p2x, p2y] = p2;
+  return [p1x + p2x, p2y + p1y];
+};

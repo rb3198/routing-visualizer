@@ -1,5 +1,5 @@
 import { Point2D, RectDim } from "../../types/geometry";
-import { getSlopeAngleDist2D } from "../../utils/drawing";
+import { beforeDraw, getSlopeAngleDist2D, postDraw } from "../../utils/drawing";
 import {
   getAllRectPointsFromCentroid,
   getTravelDirection,
@@ -8,7 +8,7 @@ import {
 export const packetAnimationUtils = {
   getEndpointCoords: function (cellSize: number, location: Point2D): Point2D {
     const [x, y] = location;
-    return [x * cellSize + cellSize / 2, y * cellSize + cellSize / 2];
+    return [x + cellSize / 2, y + cellSize / 2];
   },
   getCheckpointCoords: function (
     cellSize: number,
@@ -19,21 +19,21 @@ export const packetAnimationUtils = {
     const [destX, destY] = dest;
     let cp1: Point2D, cp2: Point2D;
     if (destX === orX) {
-      const x = cellSize * (orX + 1 / 2);
+      const x = orX + cellSize / 2;
       if (destY > orY) {
-        cp1 = [x, cellSize * (orY + 1)];
-        cp2 = [x, cellSize * destY];
+        cp1 = [x, orY + cellSize];
+        cp2 = [x, destY];
       } else {
-        cp1 = [x, cellSize * orY];
-        cp2 = [x, cellSize * (destY + 1)];
+        cp1 = [x, orY];
+        cp2 = [x, destY + cellSize];
       }
     } else {
       if (destX > orX) {
-        cp1 = [cellSize * (orX + 1), cellSize * (orY + 1 / 2)];
-        cp2 = [cellSize * destX, cellSize * (destY + 1 / 2)];
+        cp1 = [orX + cellSize, orY + cellSize / 2];
+        cp2 = [destX, destY + cellSize / 2];
       } else {
-        cp1 = [cellSize * orX, cellSize * (orY + 1 / 2)];
-        cp2 = [cellSize * (destX + 1), cellSize * (destY + 1 / 2)];
+        cp1 = [orX, orY + cellSize / 2];
+        cp2 = [destX + cellSize, destY + cellSize / 2];
       }
     }
     return { cp1, cp2 };
@@ -71,13 +71,13 @@ export const packetAnimationUtils = {
       return [x, y];
     }
     const { p1: low } = getAllRectPointsFromCentroid([x, y], rectW, rectH);
-    context.save();
+    beforeDraw(context);
     context.fillStyle = color;
     context.beginPath();
     context.rect(...low, rectW, rectH);
     context.fill();
     context.closePath();
-    context.restore();
+    postDraw(context);
     return [x, y];
   },
 };

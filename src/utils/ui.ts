@@ -18,7 +18,7 @@ export const debounce = (func: Function, wait: number) => {
 export const onCanvasLayout = (canvas: HTMLCanvasElement) => {
   const { documentElement } = document;
   const { clientHeight, clientWidth } = documentElement;
-  canvas.height = 0.92 * clientHeight;
+  canvas.height = 0.88 * clientHeight;
   canvas.width = clientWidth;
 };
 
@@ -30,8 +30,11 @@ export const mapCoordsToGridCell = (
   canvas: HTMLCanvasElement
 ) => {
   const { x: canvasX, y: canvasY } = canvas.getBoundingClientRect();
-  const offsetX = clientX - canvasX;
-  const offsetY = clientY - canvasY;
+  const { zoom = 1, canvasOffset = [0, 0] } = window;
+  const gridOriginX = gridRect[0][0].x;
+  const gridOriginY = gridRect[0][0].y;
+  const offsetX = (clientX - canvasX) * zoom - canvasOffset[0] - gridOriginX;
+  const offsetY = (clientY - canvasY) * zoom - canvasOffset[1] - gridOriginY;
   const column = Math.floor(offsetX / cellSize);
   const row = Math.floor(offsetY / cellSize);
   if (row >= gridRect.length || row < 0) {

@@ -1,5 +1,4 @@
 import {
-  CellSizeAction,
   EventLogAction,
   ModalAction,
   NotificationTooltipAction,
@@ -35,15 +34,6 @@ export const emitEvent = (event: NetworkEvent): EventLogAction => {
 export const clearEventLog = (): EventLogAction => {
   return {
     type: "CLEAR_ALL_LOGS",
-  };
-};
-
-export const setCellSize: ActionCreator<CellSizeAction> = (
-  cellSize: number
-) => {
-  return {
-    type: "SET_CELL_SIZE",
-    cellSize,
   };
 };
 

@@ -16,6 +16,8 @@ import { Router } from "src/entities/router";
 import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
+import { clearCanvas, getCellSize } from "src/utils/drawing";
+import { IPLinkInterface } from "src/entities/ip/link_interface";
 
 export const defaultPickerState: DefaultComponentPickerState = {
   visible: false,
@@ -78,21 +80,17 @@ const placeArea = (
   gridRect: GridCell[][],
   areaTree: AreaTree,
   areaLayer: HTMLCanvasElement,
+  compLayer: HTMLCanvasElement,
   iconLayer: HTMLCanvasElement
 ) => {
   const [col, row] = cell;
-  const areaLayerContext = areaLayer.getContext("2d");
-  const iconLayerContext = iconLayer.getContext("2d");
-  if (!areaLayerContext) {
+  const areaCtx = areaLayer.getContext("2d");
+  const iconCtx = iconLayer.getContext("2d");
+  const compCtx = compLayer.getContext("2d");
+  if (!areaCtx || !compCtx) {
     return;
   }
-  const arBounds = getAreaPosition(
-    row,
-    col,
-    areaSize,
-    gridRect[0]?.length ?? 0,
-    gridRect.length
-  );
+  const arBounds = getAreaPosition(row, col, areaSize, gridRect);
   if (!arBounds) {
     return;
   }
@@ -106,9 +104,9 @@ const placeArea = (
     return;
   } catch (ex) {
     const areaFillColor = Colors.accent + "55";
-    area.draw(areaLayerContext, Colors.accent, areaFillColor, gridRect);
+    area.draw(areaCtx, compCtx, Colors.accent, areaFillColor);
     areaTree.insert(areaCentroid, area);
-    iconLayerContext && gridRect[row][col].drawEmpty(iconLayerContext);
+    iconCtx && gridRect[row][col].drawEmpty(iconCtx);
   }
 };
 
@@ -120,25 +118,37 @@ const placeRouter = (
   simulationPlaying: boolean
 ) => {
   const [col, row] = cell;
-  const [, nearestArea] = areaTree.searchClosest([col, row]);
-  const { routerLocations, getRouterLocationKey, placeRouter } = nearestArea;
-  const routerKey = getRouterLocationKey(row, col);
-  if (routerLocations.has(routerKey)) {
-    return;
-  }
+  const rect = gridRect[row][col];
+  const { x, y } = rect;
+  const point = [x, y] as Point2D;
+  const [, nearestArea] = areaTree.searchClosest(point);
+  const { routerLocations, placeRouter } = nearestArea;
   const context = componentLayer.getContext("2d");
   if (!context) {
     return;
   }
-  let nGlobalRouters = 0;
-  areaTree
-    .inOrderTraversal(areaTree.root)
-    .forEach(([, area]) =>
-      area.routerLocations.forEach(() => nGlobalRouters++)
-    );
-  const rect = gridRect[row][col];
-  const router = placeRouter(row, col, nGlobalRouters, simulationPlaying);
-  rect.drawRouter(context, router.id.ip, router.power);
+  const place = () => {
+    let nGlobalRouters = 0;
+    areaTree
+      .inOrderTraversal(areaTree.root)
+      .forEach(
+        ([, area]) =>
+          (nGlobalRouters += area.routerLocations.inOrderTraversal(
+            area.routerLocations.root
+          ).length)
+      );
+    const router = placeRouter(rect, nGlobalRouters, simulationPlaying);
+    router.draw(context);
+  };
+  try {
+    const [, nearestRouter] = routerLocations.searchClosest(point);
+    if (nearestRouter.boundingBox.isWithinBounds(point)) {
+      return;
+    }
+    place();
+  } catch (error) {
+    place();
+  }
 };
 
 const highlightDestinationRouters = (
@@ -151,20 +161,21 @@ const highlightDestinationRouters = (
   const context = overlayLayer.getContext("2d");
   areaTree.inOrderTraversal(areaTree.root).forEach(([, area]) => {
     const { routerLocations } = area;
-    routerLocations.forEach((_, key) => {
-      const [row, col] = key.split("_").map((k) => parseInt(k));
-      if (
-        row === sourceRouter.location[1] &&
-        col === sourceRouter.location[0]
-      ) {
-        return;
-      }
-      allRouterLocations.add(key);
-    });
+    routerLocations
+      .inOrderTraversal(routerLocations.root)
+      .forEach(([, router]) => {
+        const { location } = router;
+        const [x, y] = location;
+        if (x === sourceRouter.location[0] && y === sourceRouter.location[1]) {
+          return;
+        }
+        allRouterLocations.add(`${x}_${y}`);
+      });
   });
   for (let row = 0; row < gridRect.length; row++) {
     for (let col = 0; col < gridRect[0].length; col++) {
-      if (allRouterLocations.has(`${row}_${col}`)) {
+      const { x, y } = gridRect[row][col];
+      if (allRouterLocations.has(`${x}_${y}`)) {
         continue;
       }
       context && gridRect[row][col].drawOverlay(context);
@@ -179,7 +190,7 @@ const clearOverlay = (overlayLayer: HTMLCanvasElement) => {
 };
 
 const getConnectionOptions = (selectedRouter: Router, areaTree: AreaTree) => {
-  const { ipInterfaces, key: selectedRouterKey } = selectedRouter;
+  const { ipInterfaces, id: selectedRouterId } = selectedRouter;
   const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces.keys()));
   const connectionOptions = areaTree
     .inOrderTraversal(areaTree.root)
@@ -193,16 +204,18 @@ const getConnectionOptions = (selectedRouter: Router, areaTree: AreaTree) => {
         return !area.ospfConfig.connectedToBackbone;
       }
       if (connectedToBackbone) {
-        return area.id !== BACKBONE_AREA_ID && area.routerLocations.size > 0;
+        return area.id !== BACKBONE_AREA_ID && !!area.routerLocations.root;
       }
-      return area.routerLocations.size > 0;
+      return !!area.routerLocations.root;
     })
     .map((area) => {
       const { routerLocations, id, name } = area;
       return {
         id,
         name,
-        connectionOptions: [...routerLocations].filter(([loc, router]) => {
+        connectionOptions: [
+          ...routerLocations.inOrderTraversal(routerLocations.root),
+        ].filter(([, router]) => {
           // If the same interfaces exist on the router, it means that they're connected already.
           const isConnectedToRouter = selectedRouterIpInterfaces.some(
             (interfaceId) =>
@@ -210,11 +223,60 @@ const getConnectionOptions = (selectedRouter: Router, areaTree: AreaTree) => {
                 .get(interfaceId)!
                 .ipInterface.getOppositeRouter(selectedRouter) === router
           );
-          return loc !== selectedRouterKey && !isConnectedToRouter;
+          return !router.id.equals(selectedRouterId) && !isConnectedToRouter;
         }),
       };
     })
     .filter(({ connectionOptions }) => connectionOptions.length > 0);
+};
+
+const drawAreasWithRouters = (
+  areaTree: AreaTree,
+  areaLayer: HTMLCanvasElement,
+  compLayer: HTMLCanvasElement
+) => {
+  const areaCtx = areaLayer.getContext("2d");
+  const compCtx = compLayer.getContext("2d");
+  if (!areaCtx || !compCtx) {
+    return;
+  }
+  areaTree.inOrderTraversal(areaTree.root).forEach(([, area]) => {
+    const areaFillColor = Colors.accent + "55";
+    area.draw(areaCtx, compCtx, Colors.accent, areaFillColor);
+  });
+};
+
+const redrawNetwork = (
+  areaTree: AreaTree,
+  linkInterfaceMap: Map<string, IPLinkInterface>
+) => {
+  const {
+    routerConnectionLayer,
+    gridComponentLayer: compLayer,
+    areaLayer,
+    iconLayer,
+    elementLayer,
+  } = window;
+  [
+    areaLayer,
+    compLayer,
+    iconLayer,
+    routerConnectionLayer,
+    elementLayer,
+  ].forEach((canvas) => clearCanvas(canvas));
+  areaLayer &&
+    compLayer &&
+    drawAreasWithRouters(areaTree, areaLayer, compLayer);
+  if (routerConnectionLayer) {
+    const { width, height } = routerConnectionLayer.getBoundingClientRect();
+    const ctx = routerConnectionLayer.getContext("2d");
+    ctx?.clearRect(0, 0, width, height);
+    linkInterfaceMap.forEach((link) => {
+      const { routers: routerMap } = link;
+      const routers = Array.from(routerMap.values());
+      link.draw(routers[0], routers[1]);
+    });
+  }
 };
 
 export const interactiveStateReducer: Reducer<
@@ -244,10 +306,20 @@ export const interactiveStateReducer: Reducer<
       return state;
     }
     const { option: componentType } = prevComponentPicker;
+
     componentType === "area" &&
       areaLayer &&
+      compLayer &&
       iconLayer &&
-      placeArea(cell, areaSize, gridRect, areaTree, areaLayer, iconLayer);
+      placeArea(
+        cell,
+        areaSize,
+        gridRect,
+        areaTree,
+        areaLayer,
+        compLayer,
+        iconLayer
+      );
     componentType === "router" &&
       compLayer &&
       placeRouter(
@@ -275,7 +347,6 @@ export const interactiveStateReducer: Reducer<
       cell: cell ?? [-1, -1],
       componentPicker: defaultPickerState,
       routerMenu: defaultRouterMenuState,
-      // cursor: TODO
     };
   }
   if (type === "send_packet") {
@@ -312,7 +383,9 @@ export const interactiveStateReducer: Reducer<
     setTimeout(() =>
       areaTree.inOrderTraversal(areaTree.root).forEach(([, ar]) => {
         const { routerLocations } = ar;
-        for (const router of routerLocations.values()) {
+        for (const [, router] of routerLocations.inOrderTraversal(
+          routerLocations.root
+        )) {
           router.turnOn(gridRect, context);
         }
       })
@@ -343,11 +416,13 @@ export const interactiveStateReducer: Reducer<
     if (prevInteractionState !== "hovering") {
       return state;
     }
-    if (prevCell) {
-      // clear the cell
-      managePreviousHover(prevCell, cell, gridRect, iconLayer);
-    }
-    draw && drawAddIcon(gridRect, cell, iconLayer);
+    window.requestAnimationFrame(() => {
+      if (prevCell) {
+        // clear the cell
+        managePreviousHover(prevCell, cell, gridRect, iconLayer);
+      }
+      draw && drawAddIcon(gridRect, cell, iconLayer);
+    });
     return {
       ...state,
       cell,
@@ -382,44 +457,48 @@ export const interactiveStateReducer: Reducer<
   if (type === "click") {
     const { cell, iconLayer, areaTree, overlayLayer } = action;
     const [column, row] = cell;
-
+    const rect = gridRect[row][column];
+    const cellSize = getCellSize();
+    const point = [rect.x + cellSize / 2, rect.y + cellSize / 2];
     switch (prevInteractionState) {
       case "hovering":
         if (state.cursor !== "pointer") {
           return state;
         }
         if (areaTree.root) {
-          const [, nearestArea] = areaTree.searchClosest(cell);
-          const { routerLocations, boundingBox, getRouterLocationKey } =
-            nearestArea;
-          if (boundingBox.isWithinBounds(cell)) {
-            const routerLoc = getRouterLocationKey(row, column);
-            const router = routerLocations.get(routerLoc);
-            if (router) {
-              // If sending packet dispatch send packet (write in diff case) else open router menu
-              const connectionOptions = getConnectionOptions(router, areaTree);
-              return {
-                ...state,
-                state: "router_interaction",
-                cell,
-                componentPicker: defaultPickerState,
-                selectedRouter: router,
-                routerMenu: { visible: true, connectionOptions },
-                cursor: "pointer",
-              };
-            } else {
-              return {
-                ...state,
-                state: "picking_component",
-                routerMenu: defaultRouterMenuState,
-                selectedRouter: router,
-                cell,
-                componentPicker: {
-                  option: "router",
-                  visible: true,
-                },
-              };
-            }
+          const [, nearestArea] = areaTree.searchClosest(point);
+          const { routerLocations, boundingBox } = nearestArea;
+          if (boundingBox.isWithinBounds(point)) {
+            try {
+              const [, nearestRouter] = routerLocations.searchClosest(point);
+              if (nearestRouter.boundingBox.isWithinBounds(point)) {
+                // If sending packet dispatch send packet (write in diff case) else open router menu
+                const connectionOptions = getConnectionOptions(
+                  nearestRouter,
+                  areaTree
+                );
+                return {
+                  ...state,
+                  state: "router_interaction",
+                  cell,
+                  componentPicker: defaultPickerState,
+                  selectedRouter: nearestRouter,
+                  routerMenu: { visible: true, connectionOptions },
+                  cursor: "pointer",
+                };
+              }
+            } catch (error) {}
+            return {
+              ...state,
+              state: "picking_component",
+              routerMenu: defaultRouterMenuState,
+              selectedRouter: undefined,
+              cell,
+              componentPicker: {
+                option: "router",
+                visible: true,
+              },
+            };
           }
         }
         return {
@@ -462,31 +541,45 @@ export const interactiveStateReducer: Reducer<
           clearOverlay(overlayLayer);
           return hoveringState;
         }
-        const [, nearestArea] = areaTree.searchClosest(cell);
-        const { routerLocations, boundingBox, getRouterLocationKey } =
-          nearestArea;
-        if (!boundingBox.isWithinBounds(cell)) {
+        const [, nearestArea] = areaTree.searchClosest(point);
+        const { routerLocations, boundingBox } = nearestArea;
+        if (!boundingBox.isWithinBounds(point)) {
           clearOverlay(overlayLayer);
           return hoveringState;
         }
-        const routerLoc = getRouterLocationKey(row, column);
-        const router = routerLocations.get(routerLoc);
-        if (
-          !router ||
-          router.location.join("") === prevSelectedRouter.location.join("")
-        ) {
+        const clear = () => {
           clearOverlay(overlayLayer);
           return hoveringState;
-        }
-        const connectionOptions = Array.from(router.ipInterfaces.keys());
-        return {
-          ...state,
-          connectionOptions,
-          destinationRouter: router,
         };
+        try {
+          const [, router] = routerLocations.search(point);
+          if (
+            router.location.join("_") === prevSelectedRouter.location.join("_")
+          ) {
+            return clear();
+          }
+          const connectionOptions = Array.from(router.ipInterfaces.keys());
+          return {
+            ...state,
+            connectionOptions,
+            destinationRouter: router,
+          };
+        } catch (error) {
+          return clear();
+        }
       default:
         return state;
     }
+  }
+  if (type === "zoomed" || type === "panned") {
+    const { areaTree, linkInterfaceMap } = action;
+    redrawNetwork(areaTree, linkInterfaceMap);
+    return type === "zoomed"
+      ? state
+      : {
+          ...state,
+          cursor: "grabbing",
+        };
   }
   return state;
 };
