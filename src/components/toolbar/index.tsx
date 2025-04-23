@@ -76,10 +76,12 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     areaTree.current
       .inOrderTraversal(areaTree.current.root)
       .forEach(([, area]) =>
-        area.routerLocations.forEach((router) => {
-          router.ospf.config.helloInterval = helloInterval;
-          router.ospf.config.deadInterval = deadInterval;
-        })
+        area.routerLocations
+          .inOrderTraversal(area.routerLocations.root)
+          .forEach(([, router]) => {
+            router.ospf.config.helloInterval = helloInterval;
+            router.ospf.config.deadInterval = deadInterval;
+          })
       );
   }, [areaTree, helloInterval, deadInterval]);
 
@@ -87,10 +89,12 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     areaTree.current
       .inOrderTraversal(areaTree.current.root)
       .forEach(([, area]) =>
-        area.routerLocations.forEach((router) => {
-          router.ospf.config.MaxAge = MaxAge;
-          router.ospf.config.LsRefreshTime = LsRefreshTime;
-        })
+        area.routerLocations
+          .inOrderTraversal(area.routerLocations.root)
+          .forEach(([, router]) => {
+            router.ospf.config.MaxAge = MaxAge;
+            router.ospf.config.LsRefreshTime = LsRefreshTime;
+          })
       );
   }, [areaTree, MaxAge, LsRefreshTime]);
 
@@ -213,9 +217,11 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         areaTree.current
           .inOrderTraversal(areaTree.current.root)
           .forEach(([, area]) =>
-            area.routerLocations.forEach((router) => {
-              router.gracefulShutdown = checked;
-            })
+            area.routerLocations
+              .inOrderTraversal(area.routerLocations.root)
+              .forEach(([, router]) => {
+                router.gracefulShutdown = checked;
+              })
           );
         setGlobalGracefulShutdown(checked);
       },

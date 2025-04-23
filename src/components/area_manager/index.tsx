@@ -223,9 +223,10 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       ) {
         return;
       }
+      const { x, y } = gridRect[row][column];
       const { inArea, canPlaceRouter, cursor } = areaTree.current.handleHover(
-        column,
-        row
+        x,
+        y
       );
       if (inArea) {
         // Hover is inside an Area
@@ -332,7 +333,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       areaTree.current.root
     )) {
       const { routerLocations } = area;
-      for (let [, router] of routerLocations) {
+      for (let [, router] of routerLocations.inOrderTraversal(
+        routerLocations.root
+      )) {
         await router.turnOff(gridRect, context);
       }
     }

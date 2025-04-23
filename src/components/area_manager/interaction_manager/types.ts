@@ -15,7 +15,7 @@ export type ComponentPickerState = PickerState & {
 export type RouterMenuState = PickerState & {
   connectionOptions: {
     name: string;
-    connectionOptions: [string, Router][];
+    connectionOptions: [number[], Router][];
   }[];
 };
 

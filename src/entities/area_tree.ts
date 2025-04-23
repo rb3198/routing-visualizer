@@ -1,6 +1,7 @@
 import { KDTree } from "ts-data-structures-collection/trees";
 import { OSPFArea } from "./area";
 import { Rect2D } from "./geometry/Rect2D";
+import { getCellSize } from "src/utils/drawing";
 
 export class AreaTree extends KDTree<OSPFArea> {
   constructor() {
@@ -37,23 +38,32 @@ export class AreaTree extends KDTree<OSPFArea> {
     if (!this.root) {
       return { inArea: false, canPlaceRouter: false, cursor: "pointer" };
     }
+    const cellSize = getCellSize();
     const [, nearestArea] = this.searchClosest([x, y]);
-    const { boundingBox, labelCell, getRouterLocationKey } = nearestArea;
+    const { boundingBox, labelCell, routerLocations } = nearestArea;
     if (!boundingBox.isWithinBounds([x, y])) {
       return { inArea: false, canPlaceRouter: false, cursor: "pointer" };
     }
-    const possibleRouterLocation = getRouterLocationKey(y, x);
-    const isLabelCell = labelCell[0] === x && labelCell[1] === y;
-    if (
-      nearestArea.routerLocations.has(possibleRouterLocation) ||
-      isLabelCell
-    ) {
-      return {
-        inArea: true,
-        canPlaceRouter: false,
-        cursor: isLabelCell ? "initial" : "pointer",
-      };
+    const isLabelCell =
+      x >= labelCell[0] &&
+      x < labelCell[0] + cellSize &&
+      y >= labelCell[1] &&
+      y < labelCell[1] + cellSize;
+    if (isLabelCell) {
+      return { inArea: true, canPlaceRouter: false, cursor: "initial" };
     }
-    return { inArea: true, canPlaceRouter: true, cursor: "pointer" };
+    try {
+      const [, nearestRouter] = routerLocations.searchClosest([x, y]);
+      if (nearestRouter.boundingBox.isWithinBounds([x, y])) {
+        return {
+          inArea: true,
+          canPlaceRouter: false,
+          cursor: "pointer",
+        };
+      }
+      return { inArea: true, canPlaceRouter: true, cursor: "pointer" };
+    } catch (error) {
+      return { inArea: true, canPlaceRouter: true, cursor: "pointer" };
+    }
   };
 }

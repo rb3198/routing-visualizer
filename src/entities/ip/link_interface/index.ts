@@ -50,7 +50,7 @@ export class IPLinkInterface {
     const [aX, aY] = locA;
     const { location: locB } = routerB;
     const [bX, bY] = locB;
-    const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2);
+    const distance = Math.sqrt((bX - aX) ** 2 + (bY - aY) ** 2) / getCellSize();
     this.cost = parseFloat(distance.toFixed(1));
   }
 

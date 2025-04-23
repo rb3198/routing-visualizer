@@ -8,6 +8,7 @@ import { Router } from "../router";
 import { store } from "../../store";
 import { RouterPowerState } from "../router/enum/RouterPowerState";
 import { beforeDraw, getCellSize, postDraw } from "src/utils/drawing";
+import { KDTree } from "ts-data-structures-collection/trees";
 
 export class OSPFArea {
   /**
@@ -19,7 +20,7 @@ export class OSPFArea {
   /**
    * A set of all locations of routers stored in the OSPF Area, stored as `<x coordinate>_<y_coordinate>`
    */
-  routerLocations: Map<string, Router>;
+  routerLocations: KDTree<Router>;
 
   /**
    * ID to identify the OSPF Area.
@@ -68,23 +69,19 @@ export class OSPFArea {
     const { simulationConfig } = store.getState();
     const { helloInterval, rxmtInterval, MaxAge } = simulationConfig;
     this.ospfConfig = new OSPFConfig(id, helloInterval, rxmtInterval, MaxAge);
-    this.routerLocations = new Map();
+    this.routerLocations = new KDTree(2);
   }
 
-  getRouterLocationKey = (row: number, col: number) => `${row}_${col}`;
-
   placeRouter = (
-    row: number,
-    col: number,
+    cell: GridCell,
     nGlobalRouters: number,
     simulationPlaying?: boolean
   ) => {
-    const key = this.getRouterLocationKey(row, col);
     const { simulationConfig } = store.getState();
     const { gracefulShutdown } = simulationConfig;
+    const routerLow = [cell.x, cell.y] as Point2D;
     const router = new Router(
-      key,
-      [col, row],
+      routerLow,
       new IPv4Address(
         nGlobalRouters + 1,
         nGlobalRouters + 1,
@@ -96,7 +93,7 @@ export class OSPFArea {
       simulationPlaying ? RouterPowerState.On : RouterPowerState.Shutdown, // new router is turned on if the simulation is playing
       gracefulShutdown
     );
-    this.routerLocations.set(key, router);
+    this.routerLocations.insert(router.boundingBox.centroid, router);
     return router;
   };
 
@@ -142,17 +139,19 @@ export class OSPFArea {
       low[1] + (5 * textHeight) / 4,
       cellSize - 5
     );
-    // for (let [loc, router] of this.routerLocations.entries()) {
-    //   const [row, col] = loc.split("_").map((l) => parseInt(l));
-    //   gridRect[row][col] &&
-    //     gridRect[row][col].drawRouter(compLayerCtx, router.id.ip, router.power);
-    // }
+    for (let [, router] of this.routerLocations.inOrderTraversal(
+      this.routerLocations.root
+    )) {
+      router.draw(compLayerCtx);
+    }
     postDraw(areaLayerCtx);
   };
 
   setRxmtInterval = (rxmtInterval: number) => {
-    this.routerLocations.forEach((router) => {
-      router.ospf.config.rxmtInterval = rxmtInterval;
-    });
+    this.routerLocations
+      .inOrderTraversal(this.routerLocations.root)
+      .forEach(([, router]) => {
+        router.ospf.config.rxmtInterval = rxmtInterval;
+      });
   };
 }
