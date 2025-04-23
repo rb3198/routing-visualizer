@@ -242,8 +242,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         row,
         column,
         defaultAreaSize,
-        gridSizeX,
-        gridSizeY
+        gridRect
       );
       const potentialAreaRect = new Rect2D(
         potentialAreaPosition.low,

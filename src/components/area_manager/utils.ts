@@ -1,32 +1,36 @@
+import { GridCell } from "src/entities/geometry/grid_cell";
 import { Point2D } from "../../types/geometry";
+import { getCellSize } from "src/utils/drawing";
 
 /**
  * Gets the potential Area rect bounds based on click position.
  * @param row
  * @param column
  * @param defaultAreaSize
- * @param gridSizeX
- * @param gridSizeY
+ * @param gridRect
  * @returns
  */
 export const getAreaPosition = (
   row: number,
   column: number,
-  defaultAreaSize: number,
-  gridSizeX: number,
-  gridSizeY: number
+  areaSize: number,
+  gridRect: GridCell[][]
 ): { low: Point2D; high: Point2D } => {
+  const gridSizeX = gridRect[0]?.length ?? 0;
+  const gridSizeY = gridRect.length;
+  const cellSize = getCellSize();
   let horizontal: "left" | "right" = "right",
     vertical: "bottom" | "top" = "bottom";
-  if (column + defaultAreaSize > gridSizeX) {
+  if (column + areaSize > gridSizeX) {
     horizontal = "left";
   }
-  if (row + defaultAreaSize > gridSizeY) {
+  if (row + areaSize > gridSizeY) {
     vertical = "top";
   }
-  const lowX = horizontal === "right" ? column : column - defaultAreaSize + 1;
-  const lowY = vertical === "bottom" ? row : row - defaultAreaSize;
-  const highX = horizontal === "right" ? column + defaultAreaSize : column + 1;
-  const highY = vertical === "bottom" ? row + defaultAreaSize : row;
-  return { low: [lowX, lowY], high: [highX, highY] };
+  const lowCol = horizontal === "right" ? column : column - areaSize + 1;
+  const lowRow = vertical === "bottom" ? row : row - areaSize + 1;
+  const lowCell = gridRect[lowRow][lowCol];
+  const low = [lowCell.x, lowCell.y] as Point2D;
+  const high = low.map((x) => x + areaSize * cellSize) as Point2D;
+  return { low, high };
 };

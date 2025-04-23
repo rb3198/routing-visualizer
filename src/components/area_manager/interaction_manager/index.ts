@@ -90,13 +90,7 @@ const placeArea = (
   if (!areaCtx || !compCtx) {
     return;
   }
-  const arBounds = getAreaPosition(
-    row,
-    col,
-    areaSize,
-    gridRect[0]?.length ?? 0,
-    gridRect.length
-  );
+  const arBounds = getAreaPosition(row, col, areaSize, gridRect);
   if (!arBounds) {
     return;
   }
@@ -110,7 +104,7 @@ const placeArea = (
     return;
   } catch (ex) {
     const areaFillColor = Colors.accent + "55";
-    area.draw(areaCtx, compCtx, Colors.accent, areaFillColor, gridRect);
+    area.draw(areaCtx, compCtx, Colors.accent, areaFillColor);
     areaTree.insert(areaCentroid, area);
     iconCtx && gridRect[row][col].drawEmpty(iconCtx);
   }
@@ -234,7 +228,7 @@ const drawAreasWithRouters = (
   }
   areaTree.inOrderTraversal(areaTree.root).forEach(([, area]) => {
     const areaFillColor = Colors.accent + "55";
-    area.draw(areaCtx, compCtx, Colors.accent, areaFillColor, gridRect);
+    area.draw(areaCtx, compCtx, Colors.accent, areaFillColor);
   });
 };
 

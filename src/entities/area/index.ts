@@ -7,7 +7,7 @@ import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
 import { RouterPowerState } from "../router/enum/RouterPowerState";
-import { beforeDraw, postDraw } from "src/utils/drawing";
+import { beforeDraw, getCellSize, postDraw } from "src/utils/drawing";
 
 export class OSPFArea {
   /**
@@ -111,28 +111,22 @@ export class OSPFArea {
     areaLayerCtx: CanvasRenderingContext2D,
     compLayerCtx: CanvasRenderingContext2D,
     strokeStyle: string,
-    fillStyle: string,
-    gridRect: GridCell[][]
+    fillStyle: string
   ) => {
-    const { cellSize } = store.getState();
+    const cellSize = getCellSize();
     const { low, high } = this.boundingBox;
     const { p1, p2, p3, p4 } = getAllRectPoints(low, high);
     beforeDraw(areaLayerCtx);
-    areaLayerCtx.clearRect(
-      low[0] * cellSize,
-      low[1] * cellSize,
-      (high[0] - low[0]) * cellSize,
-      (high[1] - low[1]) * cellSize
-    );
+    areaLayerCtx.clearRect(low[0], low[1], high[0] - low[0], high[1] - low[1]);
     areaLayerCtx.beginPath();
     areaLayerCtx.strokeStyle = strokeStyle;
     areaLayerCtx.fillStyle = fillStyle;
     areaLayerCtx.setLineDash([3, 3]);
-    areaLayerCtx.moveTo(p1[0] * cellSize, p1[1] * cellSize);
-    areaLayerCtx.lineTo(p2[0] * cellSize, p2[1] * cellSize);
-    areaLayerCtx.lineTo(p3[0] * cellSize, p3[1] * cellSize);
-    areaLayerCtx.lineTo(p4[0] * cellSize, p4[1] * cellSize);
-    areaLayerCtx.lineTo(p1[0] * cellSize, p1[1] * cellSize);
+    areaLayerCtx.moveTo(p1[0], p1[1]);
+    areaLayerCtx.lineTo(p2[0], p2[1]);
+    areaLayerCtx.lineTo(p3[0], p3[1]);
+    areaLayerCtx.lineTo(p4[0], p4[1]);
+    areaLayerCtx.lineTo(p1[0], p1[1]);
     areaLayerCtx.stroke();
     areaLayerCtx.fill();
     areaLayerCtx.closePath();
@@ -144,15 +138,15 @@ export class OSPFArea {
     areaLayerCtx.fillStyle = strokeStyle;
     areaLayerCtx.fillText(
       this.name,
-      low[0] * cellSize + textHeight / 4,
-      low[1] * cellSize + (5 * textHeight) / 4,
+      low[0] + textHeight / 4,
+      low[1] + (5 * textHeight) / 4,
       cellSize - 5
     );
-    for (let [loc, router] of this.routerLocations.entries()) {
-      const [row, col] = loc.split("_").map((l) => parseInt(l));
-      gridRect[row][col] &&
-        gridRect[row][col].drawRouter(compLayerCtx, router.id.ip, router.power);
-    }
+    // for (let [loc, router] of this.routerLocations.entries()) {
+    //   const [row, col] = loc.split("_").map((l) => parseInt(l));
+    //   gridRect[row][col] &&
+    //     gridRect[row][col].drawRouter(compLayerCtx, router.id.ip, router.power);
+    // }
     postDraw(areaLayerCtx);
   };
 
