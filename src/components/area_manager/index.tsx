@@ -83,8 +83,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     interactiveStateReducer,
     defaultState
   );
-  const gridSizeX = (gridRect.length && gridRect[0].length) || 0;
-  const gridSizeY = gridRect.length || 0;
 
   const {
     componentPicker,
@@ -123,12 +121,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     if (!canvas) {
       return;
     }
-    const cb = (evt: WheelEvent) => zoomHandler.call(canvas, evt, onZoom);
+    const cb = (evt: WheelEvent) => {
+      if (state !== "selecting_packet_dest") {
+        zoomHandler.call(canvas, evt, onZoom);
+      }
+    };
     canvas.addEventListener("wheel", cb, { passive: false });
     return () => {
       canvas.removeEventListener("wheel", cb);
     };
-  }, [onZoom, zoomHandler]);
+  }, [state, onZoom, zoomHandler]);
 
   useLayoutEffect(() => {
     [
@@ -273,8 +275,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       componentPickerVisible,
       routerMenuVisible,
       defaultAreaSize,
-      gridSizeX,
-      gridSizeY,
       cellSize,
     ]
   );
@@ -486,12 +486,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (e) => {
-      if (componentPickerVisible || routerMenuVisible) {
+      if (
+        componentPickerVisible ||
+        routerMenuVisible ||
+        state === "selecting_packet_dest"
+      ) {
         return;
       }
       onMouseRightDown(e, pan);
     },
-    [componentPickerVisible, routerMenuVisible, onMouseRightDown, pan]
+    [state, componentPickerVisible, routerMenuVisible, onMouseRightDown, pan]
   );
 
   const onMouseUp: MouseEventHandler<HTMLCanvasElement> = useCallback(
