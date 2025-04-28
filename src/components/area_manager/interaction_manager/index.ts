@@ -390,7 +390,7 @@ export const interactiveStateReducer: Reducer<
         for (const [, router] of routerLocations.inOrderTraversal(
           routerLocations.root
         )) {
-          router.turnOn(gridRect, context);
+          router.turnOn(context);
         }
       })
     );

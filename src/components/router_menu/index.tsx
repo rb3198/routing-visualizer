@@ -82,12 +82,12 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       const { turnOff, turnOn } = selectedRouter;
       switch (routerPower) {
         case RouterPowerState.Shutdown:
-          turnOn(gridRect, context);
+          turnOn(context);
           setRouterPower(RouterPowerState.On);
           break;
         case RouterPowerState.On:
           setRouterPower(RouterPowerState.ShuttingDown);
-          await turnOff(gridRect, context);
+          await turnOff(context);
           setRouterPower(RouterPowerState.Shutdown);
           break;
         default:
@@ -134,7 +134,6 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       </div>
     );
   }, [
-    gridRect,
     selectedRouter,
     gracefulShutdown,
     routerPower,

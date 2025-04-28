@@ -337,7 +337,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       for (let [, router] of routerLocations.inOrderTraversal(
         routerLocations.root
       )) {
-        await router.turnOff(gridRect, context);
+        await router.turnOff(context);
       }
     }
     openNotificationTooltip(
@@ -348,7 +348,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       type: "stop",
     });
     clearEventLog();
-  }, [gridRect, openNotificationTooltip, clearEventLog]);
+  }, [openNotificationTooltip, clearEventLog]);
 
   //#region Router Menu Methods
   const connectRouters = useCallback((routerA: Router, routerB: Router) => {
