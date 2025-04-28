@@ -9,7 +9,7 @@
     z-index: 10;
     box-shadow: 0px 0px 10px 2px #aaa;
     border-radius: .75vmax;
-    padding: .75vmax;
+    padding: 0 .75vmax;
     font-size: 1vmax;
 }
 
@@ -17,6 +17,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 5vh;
 }
 
 #main p, #main svg {

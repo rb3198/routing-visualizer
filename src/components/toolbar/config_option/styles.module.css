@@ -92,7 +92,7 @@
 }
 
 .reset_button {
-    padding: .618rem;
+    padding: .309rem;
     background-color: transparent;
     border-radius: 3px;
     color: #324ca8;
@@ -100,6 +100,7 @@
     cursor: pointer;
     text-transform: uppercase;
     font-weight: bold;
+    font-size: .764rem;
 }
 
 .reset_button[data-disabled="true"] {
@@ -119,4 +120,24 @@
 
 .tooltip code {
     background-color: #484848;
+}
+
+@media screen and (max-width: 800px) {
+    .reset_button {
+        font-size: .764rem;
+        padding: .309rem;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .slider_container {
+        width: 110px;
+    }
+    .label {
+        font-size: .618rem;
+    }
+    .reset_button {
+        font-size: .618rem;
+        padding: .309rem;
+    }
 }

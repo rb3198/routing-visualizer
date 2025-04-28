@@ -161,18 +161,30 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     );
   }, [playing, startSimulation, stopSimulation]);
 
-  const ExpandConfig = useMemo(() => {
+  const LoadConfig = useMemo(() => {
+    return <p className={styles.config_button}>Load</p>;
+  }, []);
+
+  const SaveConfig = useMemo(() => {
+    return <p className={styles.config_button}>Save Current</p>;
+  }, []);
+
+  const ConfigButtons = useMemo(() => {
     return (
-      <div id={styles.expand_collapse_container}>
-        {expanded ? "Close " : "Open "}
-        Configuration
-        <MdKeyboardArrowUp
-          id={styles.expand_collapse_arrow}
-          data-expanded={expanded}
-        />
+      <div id={styles.config_buttons_container}>
+        Configuration:
+        {SaveConfig}
+        {LoadConfig}
+        <div id={styles.expand_collapse_container}>
+          <p>{expanded ? "Close " : "Edit "}</p>
+          <MdKeyboardArrowUp
+            id={styles.expand_collapse_arrow}
+            data-expanded={expanded}
+          />
+        </div>
       </div>
     );
-  }, [expanded]);
+  }, [expanded, LoadConfig, SaveConfig]);
 
   const toggleExpanded = useCallback(
     () =>
@@ -192,21 +204,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       return;
     }
     const configContent = configContentRef.current;
-    const { height, width } = configContent.getBoundingClientRect();
+    const { height } = configContent.getBoundingClientRect();
     contentHeight.current = height;
-    configContainerRef.current.style.width = `${width}px`;
-    const resizeListener = function (this: HTMLDivElement) {
-      const { height, width } = this.getBoundingClientRect();
-      if (configContainerRef.current) {
-        contentHeight.current = height;
-        configContainerRef.current.style.height = `${height}px`;
-        configContainerRef.current.style.width = `${width}px`;
-      }
-    };
-    configContent.addEventListener("resize", resizeListener);
-    return () => {
-      configContent.removeEventListener("resize", resizeListener);
-    };
   }, []);
 
   const onGracefulToggle: React.ChangeEventHandler<HTMLInputElement> =
@@ -394,7 +393,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       {ConfigTools}
       <div id={styles.controls_container} onClick={toggleExpanded}>
         {SimulationControls}
-        {ExpandConfig}
+        {ConfigButtons}
       </div>
     </div>
   );

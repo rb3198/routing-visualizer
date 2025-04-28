@@ -10,16 +10,14 @@
     z-index: 100;
 }
 
-#header-title {
+#header_title {
     color: white;
     display: flex;
     align-items: center;
-    font-size: 1vmax;
 }
 
-#header-title svg {
+#header_title svg {
     margin-right: 12px;
-    width: 2vmax;
 }
 
 nav {
@@ -35,7 +33,7 @@ nav ul li {
     font-weight: bold;
     height: 100%;
     padding: 0 1.5vmax;
-    font-size: .75vmax;
+    font-size: .764rem;
     cursor: pointer;
     display: flex;
     align-items: center;
