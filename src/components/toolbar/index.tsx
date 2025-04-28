@@ -29,8 +29,10 @@ interface IToolbarProps {
   startSimulation: () => boolean;
   pauseSimulation: () => any;
   stopSimulation: () => any;
+  onConfigSave: () => any;
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
+  showSave?: boolean;
   playing?: boolean;
 }
 
@@ -47,12 +49,14 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     MaxAge,
     LsRefreshTime,
     areaTree,
+    showSave,
     startSimulation,
     stopSimulation,
     setPropagationDelay,
     setMaxAge,
     setGlobalGracefulShutdown,
     showTooltip,
+    onConfigSave,
     setHelloInterval,
   } = props;
 
@@ -166,8 +170,18 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
   }, []);
 
   const SaveConfig = useMemo(() => {
-    return <p className={styles.config_button}>Save Current</p>;
-  }, []);
+    const onSave: MouseEventHandler = (e) => {
+      e.stopPropagation();
+      onConfigSave();
+    };
+    return showSave ? (
+      <p className={styles.config_button} onClick={onSave}>
+        Save Current
+      </p>
+    ) : (
+      <></>
+    );
+  }, [showSave, onConfigSave]);
 
   const ConfigButtons = useMemo(() => {
     return (

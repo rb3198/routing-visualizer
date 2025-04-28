@@ -37,6 +37,7 @@ export const defaultState: InteractiveState = {
   cell: [-1, -1],
   gridRect: [],
   cursor: "initial",
+  showSave: false,
 };
 
 export const drawAddIcon = (
@@ -291,6 +292,7 @@ export const interactiveStateReducer: Reducer<
     componentPicker: prevComponentPicker,
     cell: prevCell,
     gridRect,
+    showSave: prevShowSave,
   } = state;
   if (type === "set_grid") {
     const { gridRect: newGridRect } = action;
@@ -332,6 +334,7 @@ export const interactiveStateReducer: Reducer<
     return {
       ...state,
       state: "hovering",
+      showSave: true,
       selectedRouter: undefined,
       cell: cell ?? [-1, -1],
       componentPicker: defaultPickerState,
@@ -339,9 +342,10 @@ export const interactiveStateReducer: Reducer<
     };
   }
   if (type === "router_interaction_completed") {
-    const { cell } = action;
+    const { cell, showSave } = action;
     return {
       ...state,
+      showSave: showSave ?? prevShowSave,
       state: "hovering",
       selectedRouter: undefined,
       cell: cell ?? [-1, -1],
@@ -443,7 +447,8 @@ export const interactiveStateReducer: Reducer<
       // @ts-ignore TODO: Convert to ICMP packet
       "Hello"
     );
-    return {
+    const newState: InteractiveState = {
+      showSave: prevShowSave,
       selectedRouter: undefined,
       state: "hovering",
       cell: [-1, -1],
@@ -453,6 +458,7 @@ export const interactiveStateReducer: Reducer<
       gridRect,
       simulationStatus: prevStatus,
     };
+    return newState;
   }
   if (type === "click") {
     const { cell, iconLayer, areaTree, overlayLayer } = action;
@@ -535,6 +541,7 @@ export const interactiveStateReducer: Reducer<
           cell,
           cursor: "initial",
           gridRect,
+          showSave: prevShowSave,
           simulationStatus: prevStatus,
         };
         if (!areaTree.root) {
@@ -580,6 +587,12 @@ export const interactiveStateReducer: Reducer<
           ...state,
           cursor: "grabbing",
         };
+  }
+  if (type === "config_saved") {
+    return {
+      ...state,
+      showSave: false,
+    };
   }
   return state;
 };

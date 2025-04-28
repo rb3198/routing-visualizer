@@ -32,6 +32,7 @@ export type InteractiveState = {
   gridRect: GridCell[][];
   cursor: "initial" | "pointer" | "grabbing";
   cell: Point2D;
+  showSave: boolean;
 } & (
   | {
       simulationStatus: "playing" | "paused" | "stopped";
@@ -95,6 +96,7 @@ export type InteractiveAction =
   | {
       type: "router_interaction_completed";
       cell?: Point2D;
+      showSave?: boolean;
     }
   | {
       type: "send_packet";
@@ -122,4 +124,7 @@ export type InteractiveAction =
       iconLayer: HTMLCanvasElement;
       overlayLayer: HTMLCanvasElement;
       areaTree: AreaTree;
+    }
+  | {
+      type: "config_saved";
     };

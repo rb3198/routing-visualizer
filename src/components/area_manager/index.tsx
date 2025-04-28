@@ -92,6 +92,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     selectedRouter,
     simulationStatus,
     state,
+    showSave,
   } = interactiveState;
 
   const { visible: componentPickerVisible, option: componentPickerType } =
@@ -356,7 +357,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     const link = new IPLinkInterface(linkId, 192, linkNo, [routerA, routerB]);
     linkInterfaceMap.current.set(linkId, link);
     link.draw(routerA, routerB);
-    dispatch({ type: "router_interaction_completed" });
+    dispatch({ type: "router_interaction_completed", showSave: true });
   }, []);
 
   const openNeighborTableSnapshot = useCallback(
@@ -509,6 +510,13 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     },
     [handleClick, onMouseRightUp]
   );
+
+  const onConfigSave = useCallback(() => {
+    dispatch({
+      type: "config_saved",
+    });
+  }, []);
+
   return (
     <>
       <canvas
@@ -589,7 +597,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         pauseSimulation={pauseSimulation}
         stopSimulation={stopSimulation}
         showTooltip={openNotificationTooltip}
+        onConfigSave={onConfigSave}
         areaTree={areaTree}
+        showSave={showSave}
       />
       <PacketLegend />
     </>
