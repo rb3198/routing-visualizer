@@ -24,6 +24,10 @@ import {
 } from "src/action_creators";
 import { AreaTree } from "src/entities/area_tree";
 import { DEFAULT_HELLO_INTERVAL } from "src/entities/ospf/constants";
+import { IPLinkInterface } from "src/entities/ip/link_interface";
+import { ConfigFile } from "src/entities/config";
+import { getCellSize } from "src/utils/drawing";
+import { downloadJson } from "src/utils/common";
 
 interface IToolbarProps {
   startSimulation: () => boolean;
@@ -32,6 +36,7 @@ interface IToolbarProps {
   onConfigSave: () => any;
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
+  linkInterfaceMap: MutableRefObject<Map<string, IPLinkInterface>>;
   showSave?: boolean;
   playing?: boolean;
 }
@@ -49,14 +54,15 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     MaxAge,
     LsRefreshTime,
     areaTree,
+    linkInterfaceMap,
     showSave,
+    onConfigSave,
     startSimulation,
     stopSimulation,
     setPropagationDelay,
     setMaxAge,
     setGlobalGracefulShutdown,
     showTooltip,
-    onConfigSave,
     setHelloInterval,
   } = props;
 
@@ -172,6 +178,21 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
   const SaveConfig = useMemo(() => {
     const onSave: MouseEventHandler = (e) => {
       e.stopPropagation();
+      const config = new ConfigFile(
+        getCellSize(),
+        {
+          helloInterval,
+          deadInterval,
+          gracefulShutdown: globalGracefulShutdown,
+          LsRefreshTime,
+          MaxAge,
+          propagationDelay,
+          rxmtInterval,
+        },
+        areaTree.current,
+        linkInterfaceMap.current
+      );
+      downloadJson(config, "network_visualizer_config.json");
       onConfigSave();
     };
     return showSave ? (
@@ -181,7 +202,19 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     ) : (
       <></>
     );
-  }, [showSave, onConfigSave]);
+  }, [
+    showSave,
+    helloInterval,
+    deadInterval,
+    globalGracefulShutdown,
+    LsRefreshTime,
+    MaxAge,
+    propagationDelay,
+    rxmtInterval,
+    linkInterfaceMap,
+    areaTree,
+    onConfigSave,
+  ]);
 
   const ConfigButtons = useMemo(() => {
     return (

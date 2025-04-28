@@ -599,6 +599,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         showTooltip={openNotificationTooltip}
         onConfigSave={onConfigSave}
         areaTree={areaTree}
+        linkInterfaceMap={linkInterfaceMap}
         showSave={showSave}
       />
       <PacketLegend />
