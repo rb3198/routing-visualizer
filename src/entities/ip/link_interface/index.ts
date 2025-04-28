@@ -38,13 +38,13 @@ export class IPLinkInterface {
   constructor(
     id: string,
     ipMsb: number,
-    b3Init: number,
+    b2: number,
     routers: [Router, Router]
   ) {
     this.id = id;
-    this.baseIp = new IPv4Address(ipMsb, 0, b3Init, 0, 24);
+    this.baseIp = new IPv4Address(ipMsb, 0, b2, 0, 24);
     this.routers = new TwoWayMap();
-    this.assignIps(routers, b3Init);
+    this.assignIps(routers, b2);
     const [routerA, routerB] = routers;
     const { location: locA } = routerA;
     const [aX, aY] = locA;

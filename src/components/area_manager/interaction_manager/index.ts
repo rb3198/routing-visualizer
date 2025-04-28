@@ -138,7 +138,7 @@ const placeRouter = (
             area.routerLocations.root
           ).length)
       );
-    const router = placeRouter(rect, nGlobalRouters, simulationPlaying);
+    const router = placeRouter(point, nGlobalRouters, simulationPlaying);
     router.draw(context);
   };
   try {

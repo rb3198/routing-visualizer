@@ -2,7 +2,6 @@ import { Point2D } from "../../types/geometry";
 import { IPv4Address } from "../ip/ipv4_address";
 import { getAllRectPoints } from "../../utils/geometry";
 import { Rect2D } from "../geometry/Rect2D";
-import { GridCell } from "../geometry/grid_cell";
 import { OSPFConfig } from "../ospf/config";
 import { Router } from "../router";
 import { store } from "../../store";
@@ -78,13 +77,12 @@ export class OSPFArea {
   }
 
   placeRouter = (
-    cell: GridCell,
+    routerLow: Point2D,
     nGlobalRouters: number,
     simulationPlaying?: boolean
   ) => {
     const { simulationConfig } = store.getState();
     const { gracefulShutdown } = simulationConfig;
-    const routerLow = [cell.x, cell.y] as Point2D;
     const router = new Router(
       routerLow,
       new IPv4Address(
