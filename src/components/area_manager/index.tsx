@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
@@ -34,6 +35,7 @@ import { defaultState, interactiveStateReducer } from "./interaction_manager";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
+import { ConfigLoader } from "./config_loader";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -53,6 +55,7 @@ type ReduxProps = ConnectedProps<typeof connector>;
 export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   props
 ) => {
+  //#region Props & State
   const {
     gridRect,
     defaultAreaSize,
@@ -77,6 +80,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
   const routerMenuRef = useRef<HTMLDivElement>(null);
+  const [loadPopupOpen, setLoadPopupOpen] = useState(false);
   const [interactiveState, dispatch] = useReducer(
     interactiveStateReducer,
     defaultState
@@ -96,6 +100,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const { visible: componentPickerVisible, option: componentPickerType } =
     componentPicker;
   const { visible: routerMenuVisible } = routerMenu;
+  //#endregion
+
+  //#region Load popup interaction
+  const openLoadPopup = useCallback(() => {
+    setLoadPopupOpen(true);
+  }, []);
+  const onLoadPopupClose = useCallback(() => {
+    setLoadPopupOpen(false);
+  }, []);
+  //#endregion
 
   const onZoom = useCallback(
     () =>
@@ -593,11 +607,17 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         stopSimulation={stopSimulation}
         showTooltip={openNotificationTooltip}
         onConfigSave={onConfigSave}
+        openLoadPopup={openLoadPopup}
         areaTree={areaTree}
         linkInterfaceMap={linkInterfaceMap}
         showSave={showSave}
       />
       <PacketLegend />
+      <ConfigLoader
+        active={loadPopupOpen}
+        showWarning={showSave}
+        onClose={onLoadPopupClose}
+      />
     </>
   );
 };

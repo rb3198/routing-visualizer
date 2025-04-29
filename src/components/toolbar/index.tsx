@@ -34,6 +34,7 @@ interface IToolbarProps {
   pauseSimulation: () => any;
   stopSimulation: () => any;
   onConfigSave: () => any;
+  openLoadPopup: () => any;
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
   linkInterfaceMap: MutableRefObject<Map<string, IPLinkInterface>>;
@@ -64,6 +65,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     setGlobalGracefulShutdown,
     showTooltip,
     setHelloInterval,
+    openLoadPopup,
   } = props;
 
   const [expanded, setExpanded] = useState(false);
@@ -172,8 +174,16 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
   }, [playing, startSimulation, stopSimulation]);
 
   const LoadConfig = useMemo(() => {
-    return <p className={styles.config_button}>Load</p>;
-  }, []);
+    const onClick: MouseEventHandler = (e) => {
+      e.stopPropagation();
+      openLoadPopup();
+    };
+    return (
+      <p className={styles.config_button} onClick={onClick}>
+        Load
+      </p>
+    );
+  }, [openLoadPopup]);
 
   const SaveConfig = useMemo(() => {
     const onSave: MouseEventHandler = (e) => {
