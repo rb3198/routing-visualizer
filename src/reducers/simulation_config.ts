@@ -43,6 +43,8 @@ export const simulationConfig: Reducer<OSPFGlobals, SimulationConfigAction> = (
         gracefulShutdown: value,
       };
       break;
+    case "SET_SIMULATION_CONFIG":
+      return { ...value };
     default:
       newState = state;
       break;
