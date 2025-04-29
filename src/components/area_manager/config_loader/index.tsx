@@ -1,32 +1,90 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  ChangeEventHandler,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styles from "./styles.module.css";
 import { CgClose } from "react-icons/cg";
 import { IoWarning } from "react-icons/io5";
-import { MdSource } from "react-icons/md";
+import { MdError, MdSource } from "react-icons/md";
+import { ConfigFile } from "src/entities/config";
 
 type ConfigLoaderProps = {
   active?: boolean;
   showWarning?: boolean;
   onClose: () => any;
+  loadConfig: (config: ConfigFile) => any;
 };
 
 export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   //#region States & Props
-  const { active, showWarning, onClose } = props;
+  const { active, showWarning, onClose, loadConfig } = props;
   const [screen, setScreen] = useState<"selector" | "presets">("selector");
   const [error, setError] = useState("");
+  const fileRef = useRef<File>();
 
   //#endregion
 
-  //#region Callbacks & memos
+  //#region Callbacks
+  const closeLoader = useCallback(() => {
+    setError("");
+    fileRef.current = undefined;
+    setScreen("selector");
+    onClose();
+  }, [onClose]);
+
+  const validateFile = useCallback((file: File) => {
+    const { name } = file;
+    if (!name.endsWith("json")) {
+      setError("Invalid File Format. Config files are JSON based.");
+      return false;
+    }
+    // TODO: Add JSON-schema based validation
+    setError("");
+    return true;
+  }, []);
+
+  const chooseFile: ChangeEventHandler<HTMLInputElement> = useCallback(
+    async (evt) => {
+      const { files } = evt.target;
+      if (!files || !files.length) {
+        return;
+      }
+      const file = files[0];
+      fileRef.current = file;
+      if (!validateFile(file)) {
+        evt.target.value = "";
+        return;
+      }
+      evt.target.value = "";
+      const jsonString = await file.text();
+      const config = JSON.parse(jsonString) as ConfigFile;
+      loadConfig(config);
+      closeLoader();
+    },
+    [validateFile, loadConfig, closeLoader]
+  );
+  //#endregion
+
+  //#region Sub-components
   const SelectorScreen = useMemo(() => {
     return (
       <>
-        <div className={styles.option}>Choose a Config File</div>
+        <div className={styles.option}>
+          Choose a Config File
+          <input
+            type="file"
+            onChange={chooseFile}
+            id={styles.file_input}
+            accept=".json"
+          />
+        </div>
         <div className={styles.option}>Choose from a Preset</div>
       </>
     );
-  }, []);
+  }, [chooseFile]);
 
   const PresetsScreen = useMemo(() => {
     return <></>;
@@ -49,6 +107,14 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
     );
   }, [showWarning]);
 
+  const Error = useMemo(() => {
+    return (
+      <div id={styles.error} data-visible={!!error}>
+        <MdError /> {error}
+      </div>
+    );
+  }, [error]);
+
   const Content = useMemo(() => {
     let Component = SelectorScreen;
     let title = "Choose a Source";
@@ -63,13 +129,14 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
             <MdSource />
             {title}
           </h2>
-          <CgClose onClick={onClose} id={styles.close} />
+          <CgClose onClick={closeLoader} id={styles.close} />
         </div>
         {Warning}
         {Component}
+        {Error}
       </div>
     );
-  }, [screen, PresetsScreen, SelectorScreen, Warning, onClose]);
+  }, [screen, PresetsScreen, SelectorScreen, Warning, Error, closeLoader]);
   //#endregion
 
   if (!active) {
@@ -77,7 +144,7 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   }
   return (
     <div id={styles.container}>
-      <div id={styles.backdrop} onClick={onClose} />
+      <div id={styles.backdrop} onClick={closeLoader} />
       {Content}
     </div>
   );

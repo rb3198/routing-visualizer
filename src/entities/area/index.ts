@@ -76,6 +76,12 @@ export class OSPFArea {
     this.routerLocations = new KDTree(2);
   }
 
+  addRouterToTree = (router: Router) => {
+    const { boundingBox } = router;
+    const { centroid } = boundingBox;
+    this.routerLocations.insert(centroid, router);
+  };
+
   placeRouter = (
     routerLow: Point2D,
     nGlobalRouters: number,
@@ -96,7 +102,7 @@ export class OSPFArea {
       simulationPlaying ? RouterPowerState.On : RouterPowerState.Shutdown, // new router is turned on if the simulation is playing
       gracefulShutdown
     );
-    this.routerLocations.insert(router.boundingBox.centroid, router);
+    this.addRouterToTree(router);
     return router;
   };
 

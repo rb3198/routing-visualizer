@@ -50,6 +50,9 @@ export class ConfigFile {
   }
 
   private getAreasFromTree = (tree: AreaTree): AreaConstructor[] => {
+    if (!tree.root) {
+      return [];
+    }
     tree.reBalanceTree();
     const areas: AreaConstructor[] = [];
     const queue = [tree.root];

@@ -85,21 +85,46 @@
     justify-content: center;
     align-items: center;
     width: 12.5rem;
-    margin-top: .764rem;
+    margin-bottom: .764rem;
     background-color: #324ca8;
     color: white;
     padding: .618rem 0;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
+    position: relative;
 }
 
 .option:hover {
     background-color: #324ca8cc;
 }
 
-:nth-child(1 of .option) {
-    margin-top: 0 !important
+#file_input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+#error {
+    display: flex;
+    align-items: center;
+    color: #a83232;
+    font-size: .764rem;
+    font-weight: 600;
+    visibility: hidden;
+}
+
+#error[data-visible="true"] {
+    visibility: visible;
+}
+
+#error svg {
+    font-size: 1.309rem;
+    margin-right: 4px;
 }
 
 @media screen and (max-width: 1200px) {

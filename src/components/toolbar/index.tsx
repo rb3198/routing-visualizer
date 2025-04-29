@@ -38,7 +38,6 @@ interface IToolbarProps {
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
   linkInterfaceMap: MutableRefObject<Map<string, IPLinkInterface>>;
-  showSave?: boolean;
   playing?: boolean;
 }
 
@@ -56,7 +55,6 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     LsRefreshTime,
     areaTree,
     linkInterfaceMap,
-    showSave,
     onConfigSave,
     startSimulation,
     stopSimulation,
@@ -176,14 +174,27 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
   const LoadConfig = useMemo(() => {
     const onClick: MouseEventHandler = (e) => {
       e.stopPropagation();
+      if (playing) {
+        showTooltip &&
+          showTooltip(
+            `Cannot load a new configuration when the simulation is playing.
+            Please STOP the simulation before loading a new config.`
+          );
+        return;
+      }
       openLoadPopup();
     };
     return (
-      <p className={styles.config_button} onClick={onClick}>
+      <p
+        className={styles.config_button}
+        onClick={onClick}
+        aria-disabled={!!playing}
+        data-disabled={!!playing}
+      >
         Load
       </p>
     );
-  }, [openLoadPopup]);
+  }, [playing, showTooltip, openLoadPopup]);
 
   const SaveConfig = useMemo(() => {
     const onSave: MouseEventHandler = (e) => {
@@ -205,15 +216,12 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       downloadJson(config, "network_visualizer_config.json");
       onConfigSave();
     };
-    return showSave ? (
+    return (
       <p className={styles.config_button} onClick={onSave}>
         Save Current
       </p>
-    ) : (
-      <></>
     );
   }, [
-    showSave,
     helloInterval,
     deadInterval,
     globalGracefulShutdown,

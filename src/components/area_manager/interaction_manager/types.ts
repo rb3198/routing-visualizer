@@ -1,4 +1,6 @@
+import { MutableRefObject } from "react";
 import { AreaTree } from "src/entities/area_tree";
+import { ConfigFile } from "src/entities/config";
 import { GridCell } from "src/entities/geometry/grid_cell";
 import { IPLinkInterface } from "src/entities/ip/link_interface";
 import { Router } from "src/entities/router";
@@ -32,7 +34,7 @@ export type InteractiveState = {
   gridRect: GridCell[][];
   cursor: "initial" | "pointer" | "grabbing";
   cell: Point2D;
-  showSave: boolean;
+  warnConfigLoad: boolean;
 } & (
   | {
       simulationStatus: "playing" | "paused" | "stopped";
@@ -96,7 +98,7 @@ export type InteractiveAction =
   | {
       type: "router_interaction_completed";
       cell?: Point2D;
-      showSave?: boolean;
+      warnConfigLoad?: boolean;
     }
   | {
       type: "send_packet";
@@ -126,5 +128,14 @@ export type InteractiveAction =
       areaTree: AreaTree;
     }
   | {
+      type: "config_changed";
+    }
+  | {
       type: "config_saved";
+    }
+  | {
+      type: "load_config";
+      config: ConfigFile;
+      areaTreeRef: MutableRefObject<AreaTree>;
+      linkInterfaceMapRef: MutableRefObject<Map<string, IPLinkInterface>>;
     };

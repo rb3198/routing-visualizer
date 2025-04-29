@@ -32,6 +32,10 @@
     background-color: #324ca8cc;
 }
 
+.config_button[data-disabled="true"] {
+    background-color: #ccc;
+    cursor: default;
+}
 #config_container {
     max-height: 0;
     z-index: 1;

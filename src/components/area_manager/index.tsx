@@ -29,6 +29,7 @@ import {
   openNotificationTooltip,
   openRoutingTable,
   setLiveNeighborTable,
+  setSimulationConfig,
 } from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
 import { defaultState, interactiveStateReducer } from "./interaction_manager";
@@ -36,6 +37,7 @@ import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
 import { ConfigLoader } from "./config_loader";
+import { ConfigFile } from "src/entities/config";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -68,6 +70,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightDown,
     onMouseRightMove,
     onMouseRightUp,
+    setSimulationConfig,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -94,7 +97,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     selectedRouter,
     simulationStatus,
     state,
-    showSave,
+    warnConfigLoad,
   } = interactiveState;
 
   const { visible: componentPickerVisible, option: componentPickerType } =
@@ -367,7 +370,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     const link = new IPLinkInterface(linkId, 192, linkNo, [routerA, routerB]);
     linkInterfaceMap.current.set(linkId, link);
     link.draw(routerA, routerB);
-    dispatch({ type: "router_interaction_completed", showSave: true });
+    dispatch({ type: "router_interaction_completed", warnConfigLoad: true });
   }, []);
 
   const openNeighborTableSnapshot = useCallback(
@@ -526,6 +529,27 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     });
   }, []);
 
+  const onConfigChange = useCallback(() => {
+    dispatch({
+      type: "config_changed",
+    });
+  }, []);
+
+  const loadConfig = useCallback(
+    (config: ConfigFile) => {
+      const { simConfig } = config;
+      clearEventLog();
+      setSimulationConfig(simConfig);
+      dispatch({
+        type: "load_config",
+        config,
+        areaTreeRef: areaTree,
+        linkInterfaceMapRef: linkInterfaceMap,
+      });
+    },
+    [clearEventLog, setSimulationConfig]
+  );
+
   return (
     <>
       <canvas
@@ -610,13 +634,13 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         openLoadPopup={openLoadPopup}
         areaTree={areaTree}
         linkInterfaceMap={linkInterfaceMap}
-        showSave={showSave}
       />
       <PacketLegend />
       <ConfigLoader
         active={loadPopupOpen}
-        showWarning={showSave}
+        showWarning={warnConfigLoad}
         onClose={onLoadPopupClose}
+        loadConfig={loadConfig}
       />
     </>
   );
@@ -632,6 +656,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       dispatch
     ),
     clearEventLog: bindActionCreators(clearEventLog, dispatch),
+    setSimulationConfig: bindActionCreators(setSimulationConfig, dispatch),
   };
 };
 
