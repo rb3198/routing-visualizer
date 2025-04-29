@@ -34,7 +34,6 @@ import { defaultState, interactiveStateReducer } from "./interaction_manager";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
-import { getCellSize } from "src/utils/drawing";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -67,7 +66,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightMove,
     onMouseRightUp,
   } = props;
-  const cellSize = getCellSize();
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
@@ -212,7 +210,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         return;
       }
       const { row, column } = mapCoordsToGridCell(
-        cellSize,
         clientX,
         clientY,
         gridRect,
@@ -276,7 +273,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       componentPickerVisible,
       routerMenuVisible,
       defaultAreaSize,
-      cellSize,
     ]
   );
 
@@ -465,7 +461,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       }
       const { clientX, clientY } = e;
       const { row, column } = mapCoordsToGridCell(
-        cellSize,
         clientX,
         clientY,
         gridRect,
@@ -482,7 +477,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         overlayLayer: overlayLayerRef.current,
       });
     },
-    [cellSize, gridRect]
+    [gridRect]
   );
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
