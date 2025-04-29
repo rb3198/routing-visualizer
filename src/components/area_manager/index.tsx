@@ -46,10 +46,11 @@ interface AreaManagerProps {
     this: HTMLCanvasElement,
     evt: WheelEvent,
     callback?: () => unknown
-  ) => any;
+  ) => unknown;
   onMouseRightDown: MouseRightEventHandler;
   onMouseRightMove: MouseRightEventHandler;
   onMouseRightUp: MouseRightEventHandler;
+  onConfigLoad: (config: ConfigFile) => unknown;
 }
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -71,6 +72,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightMove,
     onMouseRightUp,
     setSimulationConfig,
+    onConfigLoad,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -540,6 +542,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       const { simConfig } = config;
       clearEventLog();
       setSimulationConfig(simConfig);
+      onConfigLoad(config);
       dispatch({
         type: "load_config",
         config,
@@ -547,7 +550,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         linkInterfaceMapRef: linkInterfaceMap,
       });
     },
-    [clearEventLog, setSimulationConfig]
+    [clearEventLog, onConfigLoad, setSimulationConfig]
   );
 
   return (
@@ -631,6 +634,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         stopSimulation={stopSimulation}
         showTooltip={openNotificationTooltip}
         onConfigSave={onConfigSave}
+        onConfigChange={onConfigChange}
         openLoadPopup={openLoadPopup}
         areaTree={areaTree}
         linkInterfaceMap={linkInterfaceMap}

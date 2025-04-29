@@ -34,6 +34,7 @@ interface IToolbarProps {
   pauseSimulation: () => any;
   stopSimulation: () => any;
   onConfigSave: () => any;
+  onConfigChange: () => any;
   openLoadPopup: () => any;
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
@@ -64,6 +65,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     showTooltip,
     setHelloInterval,
     openLoadPopup,
+    onConfigChange,
   } = props;
 
   const [expanded, setExpanded] = useState(false);
@@ -91,22 +93,11 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
           .forEach(([, router]) => {
             router.ospf.config.helloInterval = helloInterval;
             router.ospf.config.deadInterval = deadInterval;
-          })
-      );
-  }, [areaTree, helloInterval, deadInterval]);
-
-  useEffect(() => {
-    areaTree.current
-      .inOrderTraversal(areaTree.current.root)
-      .forEach(([, area]) =>
-        area.routerLocations
-          .inOrderTraversal(area.routerLocations.root)
-          .forEach(([, router]) => {
             router.ospf.config.MaxAge = MaxAge;
             router.ospf.config.LsRefreshTime = LsRefreshTime;
           })
       );
-  }, [areaTree, MaxAge, LsRefreshTime]);
+  }, [areaTree, helloInterval, MaxAge, LsRefreshTime, deadInterval]);
 
   const onPropDelayChange: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
@@ -114,8 +105,9 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         const { target } = e;
         const { value } = target;
         setPropagationDelay(parseFloat(value) * 1000);
+        onConfigChange();
       },
-      [setPropagationDelay]
+      [setPropagationDelay, onConfigChange]
     );
 
   const onHelloIntervalChange: React.ChangeEventHandler<HTMLInputElement> =
@@ -124,8 +116,9 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         const { target } = e;
         const { value } = target;
         setHelloInterval(parseFloat(value) * 1000);
+        onConfigChange();
       },
-      [setHelloInterval]
+      [setHelloInterval, onConfigChange]
     );
 
   const onMaxAgeChange: React.ChangeEventHandler<HTMLInputElement> =
@@ -134,14 +127,15 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         const { target } = e;
         const { value } = target;
         setMaxAge(parseFloat(value) * 60);
+        onConfigChange();
       },
-      [setMaxAge]
+      [setMaxAge, onConfigChange]
     );
 
-  const resetPropDelay = useCallback(
-    () => setPropagationDelay(DEFAULT_PROPAGATION_DELAY),
-    [setPropagationDelay]
-  );
+  const resetPropDelay = useCallback(() => {
+    setPropagationDelay(DEFAULT_PROPAGATION_DELAY);
+    onConfigChange();
+  }, [setPropagationDelay, onConfigChange]);
 
   const SimulationControls = useMemo(() => {
     const pauseImplemented = false;
