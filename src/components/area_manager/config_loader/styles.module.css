@@ -116,14 +116,23 @@
     font-size: .764rem;
     font-weight: 600;
     visibility: hidden;
+    list-style-position: inside;
 }
 
 #error[data-visible="true"] {
     visibility: visible;
 }
 
+#error ol li span {
+    background-color: #ccc;
+    font-family: "Courier New";
+    font-weight: normal;
+    word-break: break-word;
+}
+
 #error svg {
     font-size: 1.309rem;
+    width: 3rem;
     margin-right: 4px;
 }
 

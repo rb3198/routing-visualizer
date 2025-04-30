@@ -9,7 +9,10 @@ import styles from "./styles.module.css";
 import { CgClose } from "react-icons/cg";
 import { IoWarning } from "react-icons/io5";
 import { MdError, MdSource } from "react-icons/md";
-import { ConfigFile } from "src/entities/config";
+import { ConfigFile, ConfigFileJsonSchema } from "src/entities/config";
+import Ajv from "ajv/dist/2020";
+
+const ajv = new Ajv();
 
 type ConfigLoaderProps = {
   active?: boolean;
@@ -35,15 +38,36 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
     onClose();
   }, [onClose]);
 
-  const validateFile = useCallback((file: File) => {
+  const validateFile = useCallback(async (file: File) => {
     const { name } = file;
     if (!name.endsWith("json")) {
       setError("Invalid File Format. Config files are JSON based.");
       return false;
     }
-    // TODO: Add JSON-schema based validation
-    setError("");
-    return true;
+    const validateConfig = ajv.compile(ConfigFileJsonSchema);
+    const text = await file.text();
+    try {
+      const json = JSON.parse(text);
+      const valid = validateConfig(json);
+      if (!valid) {
+        const { errors } = validateConfig;
+        let errorMessage = "Invalid config file provided.";
+        if (errors) {
+          errorMessage += "<ol>";
+          errors.forEach(({ instancePath, message }) => {
+            errorMessage += `<li><span>${instancePath}</span> ${message}</li>`;
+          });
+          errorMessage += "</ol>";
+        }
+        setError(errorMessage);
+        return false;
+      }
+      setError("");
+      return true;
+    } catch (error) {
+      setError("File contains invalid JSON.");
+      return false;
+    }
   }, []);
 
   const chooseFile: ChangeEventHandler<HTMLInputElement> = useCallback(
@@ -54,7 +78,7 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
       }
       const file = files[0];
       fileRef.current = file;
-      if (!validateFile(file)) {
+      if (!(await validateFile(file))) {
         evt.target.value = "";
         return;
       }
@@ -110,7 +134,7 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   const Error = useMemo(() => {
     return (
       <div id={styles.error} data-visible={!!error}>
-        <MdError /> {error}
+        <MdError /> <div dangerouslySetInnerHTML={{ __html: error }} />
       </div>
     );
   }, [error]);
