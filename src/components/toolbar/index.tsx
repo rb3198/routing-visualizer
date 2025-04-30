@@ -207,7 +207,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         areaTree.current,
         linkInterfaceMap.current
       );
-      downloadJson(config, "network_visualizer_config.json");
+      downloadJson(config, "network_visualizer.config.json");
       onConfigSave();
     };
     return (
