@@ -24,13 +24,21 @@ import {
 } from "src/action_creators";
 import { AreaTree } from "src/entities/area_tree";
 import { DEFAULT_HELLO_INTERVAL } from "src/entities/ospf/constants";
+import { IPLinkInterface } from "src/entities/ip/link_interface";
+import { ConfigFile } from "src/entities/config";
+import { getCellSize } from "src/utils/drawing";
+import { downloadJson } from "src/utils/common";
 
 interface IToolbarProps {
   startSimulation: () => boolean;
   pauseSimulation: () => any;
   stopSimulation: () => any;
+  onConfigSave: () => any;
+  onConfigChange: () => any;
+  openLoadPopup: () => any;
   showTooltip?: (message: string) => any;
   areaTree: MutableRefObject<AreaTree>;
+  linkInterfaceMap: MutableRefObject<Map<string, IPLinkInterface>>;
   playing?: boolean;
 }
 
@@ -47,6 +55,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     MaxAge,
     LsRefreshTime,
     areaTree,
+    linkInterfaceMap,
+    onConfigSave,
     startSimulation,
     stopSimulation,
     setPropagationDelay,
@@ -54,6 +64,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     setGlobalGracefulShutdown,
     showTooltip,
     setHelloInterval,
+    openLoadPopup,
+    onConfigChange,
   } = props;
 
   const [expanded, setExpanded] = useState(false);
@@ -81,22 +93,11 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
           .forEach(([, router]) => {
             router.ospf.config.helloInterval = helloInterval;
             router.ospf.config.deadInterval = deadInterval;
-          })
-      );
-  }, [areaTree, helloInterval, deadInterval]);
-
-  useEffect(() => {
-    areaTree.current
-      .inOrderTraversal(areaTree.current.root)
-      .forEach(([, area]) =>
-        area.routerLocations
-          .inOrderTraversal(area.routerLocations.root)
-          .forEach(([, router]) => {
             router.ospf.config.MaxAge = MaxAge;
             router.ospf.config.LsRefreshTime = LsRefreshTime;
           })
       );
-  }, [areaTree, MaxAge, LsRefreshTime]);
+  }, [areaTree, helloInterval, MaxAge, LsRefreshTime, deadInterval]);
 
   const onPropDelayChange: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
@@ -104,8 +105,9 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         const { target } = e;
         const { value } = target;
         setPropagationDelay(parseFloat(value) * 1000);
+        onConfigChange();
       },
-      [setPropagationDelay]
+      [setPropagationDelay, onConfigChange]
     );
 
   const onHelloIntervalChange: React.ChangeEventHandler<HTMLInputElement> =
@@ -114,8 +116,9 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         const { target } = e;
         const { value } = target;
         setHelloInterval(parseFloat(value) * 1000);
+        onConfigChange();
       },
-      [setHelloInterval]
+      [setHelloInterval, onConfigChange]
     );
 
   const onMaxAgeChange: React.ChangeEventHandler<HTMLInputElement> =
@@ -124,14 +127,15 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         const { target } = e;
         const { value } = target;
         setMaxAge(parseFloat(value) * 60);
+        onConfigChange();
       },
-      [setMaxAge]
+      [setMaxAge, onConfigChange]
     );
 
-  const resetPropDelay = useCallback(
-    () => setPropagationDelay(DEFAULT_PROPAGATION_DELAY),
-    [setPropagationDelay]
-  );
+  const resetPropDelay = useCallback(() => {
+    setPropagationDelay(DEFAULT_PROPAGATION_DELAY);
+    onConfigChange();
+  }, [setPropagationDelay, onConfigChange]);
 
   const SimulationControls = useMemo(() => {
     const pauseImplemented = false;
@@ -161,18 +165,85 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     );
   }, [playing, startSimulation, stopSimulation]);
 
-  const ExpandConfig = useMemo(() => {
+  const LoadConfig = useMemo(() => {
+    const onClick: MouseEventHandler = (e) => {
+      e.stopPropagation();
+      if (playing) {
+        showTooltip &&
+          showTooltip(
+            `Cannot load a new configuration when the simulation is playing.
+            Please STOP the simulation before loading a new config.`
+          );
+        return;
+      }
+      openLoadPopup();
+    };
     return (
-      <div id={styles.expand_collapse_container}>
-        {expanded ? "Close " : "Open "}
-        Configuration
-        <MdKeyboardArrowUp
-          id={styles.expand_collapse_arrow}
-          data-expanded={expanded}
-        />
+      <p
+        className={styles.config_button}
+        onClick={onClick}
+        aria-disabled={!!playing}
+        data-disabled={!!playing}
+      >
+        Load
+      </p>
+    );
+  }, [playing, showTooltip, openLoadPopup]);
+
+  const SaveConfig = useMemo(() => {
+    const onSave: MouseEventHandler = (e) => {
+      e.stopPropagation();
+      const config = new ConfigFile(
+        getCellSize(),
+        {
+          helloInterval,
+          deadInterval,
+          gracefulShutdown: globalGracefulShutdown,
+          LsRefreshTime,
+          MaxAge,
+          propagationDelay,
+          rxmtInterval,
+        },
+        areaTree.current,
+        linkInterfaceMap.current
+      );
+      downloadJson(config, "network_visualizer_config.json");
+      onConfigSave();
+    };
+    return (
+      <p className={styles.config_button} onClick={onSave}>
+        Save Current
+      </p>
+    );
+  }, [
+    helloInterval,
+    deadInterval,
+    globalGracefulShutdown,
+    LsRefreshTime,
+    MaxAge,
+    propagationDelay,
+    rxmtInterval,
+    linkInterfaceMap,
+    areaTree,
+    onConfigSave,
+  ]);
+
+  const ConfigButtons = useMemo(() => {
+    return (
+      <div id={styles.config_buttons_container}>
+        Configuration:
+        {SaveConfig}
+        {LoadConfig}
+        <div id={styles.expand_collapse_container}>
+          <p>{expanded ? "Close " : "Edit "}</p>
+          <MdKeyboardArrowUp
+            id={styles.expand_collapse_arrow}
+            data-expanded={expanded}
+          />
+        </div>
       </div>
     );
-  }, [expanded]);
+  }, [expanded, LoadConfig, SaveConfig]);
 
   const toggleExpanded = useCallback(
     () =>
@@ -192,21 +263,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       return;
     }
     const configContent = configContentRef.current;
-    const { height, width } = configContent.getBoundingClientRect();
+    const { height } = configContent.getBoundingClientRect();
     contentHeight.current = height;
-    configContainerRef.current.style.width = `${width}px`;
-    const resizeListener = function (this: HTMLDivElement) {
-      const { height, width } = this.getBoundingClientRect();
-      if (configContainerRef.current) {
-        contentHeight.current = height;
-        configContainerRef.current.style.height = `${height}px`;
-        configContainerRef.current.style.width = `${width}px`;
-      }
-    };
-    configContent.addEventListener("resize", resizeListener);
-    return () => {
-      configContent.removeEventListener("resize", resizeListener);
-    };
   }, []);
 
   const onGracefulToggle: React.ChangeEventHandler<HTMLInputElement> =
@@ -394,7 +452,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
       {ConfigTools}
       <div id={styles.controls_container} onClick={toggleExpanded}>
         {SimulationControls}
-        {ExpandConfig}
+        {ConfigButtons}
       </div>
     </div>
   );

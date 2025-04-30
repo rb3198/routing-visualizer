@@ -7,8 +7,8 @@ export const HeaderIcon: React.FC<IconProps> = ({ color, classes }) => {
       xmlns="http://www.w3.org/2000/svg"
       version="1.1"
       viewBox="0 0 65 65"
-      height={40}
-      width={40}
+      height="2rem"
+      width="2rem"
       className={classes || ""}
     >
       <g>

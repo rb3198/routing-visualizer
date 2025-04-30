@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from "react";
 import styles from "./styles.module.css";
 import { GridCell } from "../../entities/geometry/grid_cell";
@@ -28,13 +29,15 @@ import {
   openNotificationTooltip,
   openRoutingTable,
   setLiveNeighborTable,
+  setSimulationConfig,
 } from "src/action_creators";
 import { PacketLegend } from "../packet_legend";
 import { defaultState, interactiveStateReducer } from "./interaction_manager";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
-import { getCellSize } from "src/utils/drawing";
+import { ConfigLoader } from "./config_loader";
+import { ConfigFile } from "src/entities/config";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -43,10 +46,11 @@ interface AreaManagerProps {
     this: HTMLCanvasElement,
     evt: WheelEvent,
     callback?: () => unknown
-  ) => any;
+  ) => unknown;
   onMouseRightDown: MouseRightEventHandler;
   onMouseRightMove: MouseRightEventHandler;
   onMouseRightUp: MouseRightEventHandler;
+  onConfigLoad: (config: ConfigFile) => unknown;
 }
 
 type ReduxProps = ConnectedProps<typeof connector>;
@@ -54,6 +58,7 @@ type ReduxProps = ConnectedProps<typeof connector>;
 export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   props
 ) => {
+  //#region Props & State
   const {
     gridRect,
     defaultAreaSize,
@@ -66,8 +71,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightDown,
     onMouseRightMove,
     onMouseRightUp,
+    setSimulationConfig,
+    onConfigLoad,
   } = props;
-  const cellSize = getCellSize();
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
   const iconLayerRef = useRef<HTMLCanvasElement>(null);
@@ -79,6 +85,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
   const routerMenuRef = useRef<HTMLDivElement>(null);
+  const [loadPopupOpen, setLoadPopupOpen] = useState(false);
   const [interactiveState, dispatch] = useReducer(
     interactiveStateReducer,
     defaultState
@@ -92,11 +99,22 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     selectedRouter,
     simulationStatus,
     state,
+    warnConfigLoad,
   } = interactiveState;
 
   const { visible: componentPickerVisible, option: componentPickerType } =
     componentPicker;
   const { visible: routerMenuVisible } = routerMenu;
+  //#endregion
+
+  //#region Load popup interaction
+  const openLoadPopup = useCallback(() => {
+    setLoadPopupOpen(true);
+  }, []);
+  const onLoadPopupClose = useCallback(() => {
+    setLoadPopupOpen(false);
+  }, []);
+  //#endregion
 
   const onZoom = useCallback(
     () =>
@@ -211,7 +229,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         return;
       }
       const { row, column } = mapCoordsToGridCell(
-        cellSize,
         clientX,
         clientY,
         gridRect,
@@ -275,7 +292,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       componentPickerVisible,
       routerMenuVisible,
       defaultAreaSize,
-      cellSize,
     ]
   );
 
@@ -336,7 +352,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       for (let [, router] of routerLocations.inOrderTraversal(
         routerLocations.root
       )) {
-        await router.turnOff(gridRect, context);
+        await router.turnOff(context);
       }
     }
     openNotificationTooltip(
@@ -347,7 +363,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       type: "stop",
     });
     clearEventLog();
-  }, [gridRect, openNotificationTooltip, clearEventLog]);
+  }, [openNotificationTooltip, clearEventLog]);
 
   //#region Router Menu Methods
   const connectRouters = useCallback((routerA: Router, routerB: Router) => {
@@ -356,7 +372,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     const link = new IPLinkInterface(linkId, 192, linkNo, [routerA, routerB]);
     linkInterfaceMap.current.set(linkId, link);
     link.draw(routerA, routerB);
-    dispatch({ type: "router_interaction_completed" });
+    dispatch({ type: "router_interaction_completed", warnConfigLoad: true });
   }, []);
 
   const openNeighborTableSnapshot = useCallback(
@@ -464,7 +480,6 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       }
       const { clientX, clientY } = e;
       const { row, column } = mapCoordsToGridCell(
-        cellSize,
         clientX,
         clientY,
         gridRect,
@@ -481,7 +496,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         overlayLayer: overlayLayerRef.current,
       });
     },
-    [cellSize, gridRect]
+    [gridRect]
   );
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
@@ -509,6 +524,35 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     },
     [handleClick, onMouseRightUp]
   );
+
+  const onConfigSave = useCallback(() => {
+    dispatch({
+      type: "config_saved",
+    });
+  }, []);
+
+  const onConfigChange = useCallback(() => {
+    dispatch({
+      type: "config_changed",
+    });
+  }, []);
+
+  const loadConfig = useCallback(
+    (config: ConfigFile) => {
+      const { simConfig } = config;
+      clearEventLog();
+      setSimulationConfig(simConfig);
+      onConfigLoad(config);
+      dispatch({
+        type: "load_config",
+        config,
+        areaTreeRef: areaTree,
+        linkInterfaceMapRef: linkInterfaceMap,
+      });
+    },
+    [clearEventLog, onConfigLoad, setSimulationConfig]
+  );
+
   return (
     <>
       <canvas
@@ -589,9 +633,19 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         pauseSimulation={pauseSimulation}
         stopSimulation={stopSimulation}
         showTooltip={openNotificationTooltip}
+        onConfigSave={onConfigSave}
+        onConfigChange={onConfigChange}
+        openLoadPopup={openLoadPopup}
         areaTree={areaTree}
+        linkInterfaceMap={linkInterfaceMap}
       />
       <PacketLegend />
+      <ConfigLoader
+        active={loadPopupOpen}
+        showWarning={warnConfigLoad}
+        onClose={onLoadPopupClose}
+        loadConfig={loadConfig}
+      />
     </>
   );
 };
@@ -606,6 +660,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       dispatch
     ),
     clearEventLog: bindActionCreators(clearEventLog, dispatch),
+    setSimulationConfig: bindActionCreators(setSimulationConfig, dispatch),
   };
 };
 

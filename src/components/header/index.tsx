@@ -17,8 +17,8 @@ export const Header: React.FC<HeaderProps> = (props) => {
   const onHowToUseClick = () => openTutorial(TutorialScreen.VisualizerTutorial);
 
   return (
-    <header id={styles["header"]}>
-      <div id={styles["header-title"]}>
+    <header id={styles.header}>
+      <div id={styles.header_title}>
         <HeaderIcon color="white" />
         <h2>OSPF Visualizer</h2>
       </div>
@@ -28,10 +28,6 @@ export const Header: React.FC<HeaderProps> = (props) => {
           <li onClick={onAboutOspfClick}>About OSPF</li>
           {/* Open a modal showing a step by step tutorial */}
           <li onClick={onHowToUseClick}>How to Use</li>
-          {/* Open a modal showing a list of presets */}
-          <li>Presets</li>
-          {/* Open a modal giving the option to load a json file describing the setup */}
-          <li>Load a Config</li>
         </ul>
       </nav>
     </header>

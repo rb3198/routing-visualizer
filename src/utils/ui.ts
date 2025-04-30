@@ -2,6 +2,7 @@ import { LSAHeader } from "src/entities/ospf/lsa";
 import { GridCell } from "../entities/geometry/grid_cell";
 import { LSRequest } from "src/entities/ospf/packets/ls_request";
 import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
+import { getCellSize } from "./drawing";
 
 export const debounce = (func: Function, wait: number) => {
   let timeout: number | undefined;
@@ -23,7 +24,6 @@ export const onCanvasLayout = (canvas: HTMLCanvasElement) => {
 };
 
 export const mapCoordsToGridCell = (
-  cellSize: number,
   clientX: number,
   clientY: number,
   gridRect: GridCell[][],
@@ -31,6 +31,7 @@ export const mapCoordsToGridCell = (
 ) => {
   const { x: canvasX, y: canvasY } = canvas.getBoundingClientRect();
   const { zoom = 1, canvasOffset = [0, 0] } = window;
+  const cellSize = getCellSize();
   const gridOriginX = gridRect[0][0].x;
   const gridOriginY = gridRect[0][0].y;
   const offsetX = (clientX - canvasX) * zoom - canvasOffset[0] - gridOriginX;
