@@ -1,0 +1,64 @@
+{
+  "simConfig": {
+    "helloInterval": 10000,
+    "deadInterval": 40000,
+    "gracefulShutdown": false,
+    "LsRefreshTime": 1800,
+    "MaxAge": 3600,
+    "propagationDelay": 1500,
+    "rxmtInterval": 4000
+  },
+  "cellSize": 48,
+  "areas": [
+    {
+      "low": [768, 288],
+      "high": [1104, 624],
+      "id": 0,
+      "ipBytes": [192, 1, 0, 0, 16],
+      "routers": [
+        {
+          "ipBytes": [1, 1, 1, 1, 32],
+          "low": [768, 432],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        },
+        {
+          "ipBytes": [2, 2, 2, 2, 32],
+          "low": [1056, 432],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "li_1",
+      "ipBytes": [192, 1, 1, 0, 24],
+      "routers": [
+        [768, 432],
+        [1056, 432]
+      ]
+    }
+  ],
+  "zoom": 1,
+  "canvasOffset": [0, 0]
+}
