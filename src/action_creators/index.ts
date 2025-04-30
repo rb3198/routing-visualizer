@@ -16,6 +16,7 @@ import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { RoutingTable } from "src/entities/ospf/table_rows/routing_table_row";
 import { NetworkEvent } from "src/entities/network_event";
 import { MaxAge } from "src/entities/ospf/lsa/constants";
+import { OSPFGlobals } from "src/entities/ospf/config/ospf_globals";
 
 export type VizArgs = {
   color: string;
@@ -124,6 +125,14 @@ export const setGlobalGracefulShutdown = (
     value: graceful,
   };
 };
+
+export const setSimulationConfig = (
+  config: OSPFGlobals
+): SimulationConfigAction => ({
+  type: "SET_SIMULATION_CONFIG",
+  value: config,
+});
+
 export const openNotificationTooltip = (
   message: string,
   duration?: number

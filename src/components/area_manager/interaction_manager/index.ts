@@ -18,6 +18,8 @@ import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { IPProtocolNumber } from "src/entities/ip/enum/ip_protocol_number";
 import { clearCanvas, getCellSize } from "src/utils/drawing";
 import { IPLinkInterface } from "src/entities/ip/link_interface";
+import { ConfigFile } from "src/entities/config";
+import { RouterPowerState } from "src/entities/router/enum/RouterPowerState";
 
 export const defaultPickerState: DefaultComponentPickerState = {
   visible: false,
@@ -37,7 +39,7 @@ export const defaultState: InteractiveState = {
   cell: [-1, -1],
   gridRect: [],
   cursor: "initial",
-  showSave: false,
+  warnConfigLoad: false,
 };
 
 export const drawAddIcon = (
@@ -280,6 +282,47 @@ const redrawNetwork = (
   }
 };
 
+const getStateFromConfig = (
+  areaTree: AreaTree,
+  linkInterfaceMap: Map<string, IPLinkInterface>,
+  config: ConfigFile
+) => {
+  const getLocKey = (loc: Point2D) => `${loc[0]}_${loc[1]}`;
+  const { areas, links } = config;
+  const allRouters: Record<string, Router> = {};
+  for (let areaConstructor of areas) {
+    const { low, high, id, ipBytes, routers } = areaConstructor;
+    const area = new OSPFArea(low, high, id, new IPv4Address(...ipBytes));
+    const { boundingBox } = area;
+    const { centroid } = boundingBox;
+    areaTree.insert(centroid, area);
+    for (let routerConstructor of routers) {
+      const { gracefulShutdown, ipBytes, low, ospfConfig } = routerConstructor;
+      const router = new Router(
+        low,
+        new IPv4Address(...ipBytes),
+        ospfConfig,
+        RouterPowerState.Shutdown,
+        gracefulShutdown
+      );
+      allRouters[getLocKey(low)] = router;
+      area.addRouterToTree(router);
+    }
+  }
+  for (let linkConstructor of links) {
+    const { id, ipBytes, routers: routerLocs } = linkConstructor;
+    const routers = routerLocs.map((low) => allRouters[getLocKey(low)]) as [
+      Router,
+      Router
+    ];
+    if (routers.length !== 2 || routers.some((r) => !r)) {
+      continue;
+    }
+    const link = new IPLinkInterface(id, ipBytes[0], ipBytes[2], routers);
+    linkInterfaceMap.set(id, link);
+  }
+};
+
 export const interactiveStateReducer: Reducer<
   InteractiveState,
   InteractiveAction
@@ -292,7 +335,7 @@ export const interactiveStateReducer: Reducer<
     componentPicker: prevComponentPicker,
     cell: prevCell,
     gridRect,
-    showSave: prevShowSave,
+    warnConfigLoad: prevWarnConfigLoad,
   } = state;
   if (type === "set_grid") {
     const { gridRect: newGridRect } = action;
@@ -334,7 +377,7 @@ export const interactiveStateReducer: Reducer<
     return {
       ...state,
       state: "hovering",
-      showSave: true,
+      warnConfigLoad: true,
       selectedRouter: undefined,
       cell: cell ?? [-1, -1],
       componentPicker: defaultPickerState,
@@ -342,10 +385,10 @@ export const interactiveStateReducer: Reducer<
     };
   }
   if (type === "router_interaction_completed") {
-    const { cell, showSave } = action;
+    const { cell, warnConfigLoad } = action;
     return {
       ...state,
-      showSave: showSave ?? prevShowSave,
+      warnConfigLoad: warnConfigLoad ?? prevWarnConfigLoad,
       state: "hovering",
       selectedRouter: undefined,
       cell: cell ?? [-1, -1],
@@ -448,7 +491,7 @@ export const interactiveStateReducer: Reducer<
       "Hello"
     );
     const newState: InteractiveState = {
-      showSave: prevShowSave,
+      warnConfigLoad: prevWarnConfigLoad,
       selectedRouter: undefined,
       state: "hovering",
       cell: [-1, -1],
@@ -541,7 +584,7 @@ export const interactiveStateReducer: Reducer<
           cell,
           cursor: "initial",
           gridRect,
-          showSave: prevShowSave,
+          warnConfigLoad: prevWarnConfigLoad,
           simulationStatus: prevStatus,
         };
         if (!areaTree.root) {
@@ -588,10 +631,34 @@ export const interactiveStateReducer: Reducer<
           cursor: "grabbing",
         };
   }
+  if (type === "config_changed") {
+    return {
+      ...state,
+      warnConfigLoad: true,
+    };
+  }
   if (type === "config_saved") {
     return {
       ...state,
-      showSave: false,
+      warnConfigLoad: false,
+    };
+  }
+  if (type === "load_config") {
+    const { areaTreeRef, linkInterfaceMapRef, config } = action;
+    // Reset state
+    areaTreeRef.current = new AreaTree();
+    linkInterfaceMapRef.current.clear();
+    // Get state from config
+    getStateFromConfig(
+      areaTreeRef.current,
+      linkInterfaceMapRef.current,
+      config
+    );
+    // redraw network
+    redrawNetwork(areaTreeRef.current, linkInterfaceMapRef.current);
+    return {
+      ...state,
+      warnConfigLoad: false,
     };
   }
   return state;

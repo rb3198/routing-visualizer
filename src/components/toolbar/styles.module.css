@@ -25,9 +25,17 @@
     color: #fff;
     padding: .318rem;
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: 3px;
 }
 
+.config_button:hover {
+    background-color: #324ca8cc;
+}
+
+.config_button[data-disabled="true"] {
+    background-color: #ccc;
+    cursor: default;
+}
 #config_container {
     max-height: 0;
     z-index: 1;

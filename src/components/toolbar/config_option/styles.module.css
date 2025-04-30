@@ -103,6 +103,11 @@
     font-size: .764rem;
 }
 
+.reset_button:hover {
+    background-color: #324ca8;
+    color: white;
+}
+
 .reset_button[data-disabled="true"] {
     border-color: #aaa;
     color: #aaa;
