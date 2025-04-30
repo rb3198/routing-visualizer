@@ -46,6 +46,8 @@ const getValue = (
     case "linkStateOrigin":
       const { linkStateOrigin } = row;
       return linkStateOrigin ? renderLSAHeader(linkStateOrigin?.header) : "";
+    case "cost":
+      return row.cost.toFixed(2);
     default:
       return typeof row[key] === "undefined" ? "Not Set" : `${row[key]}`;
   }
