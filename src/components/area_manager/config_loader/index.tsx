@@ -11,6 +11,9 @@ import { IoWarning } from "react-icons/io5";
 import { MdError, MdSource } from "react-icons/md";
 import { ConfigFile, ConfigFileJsonSchema } from "src/entities/config";
 import Ajv from "ajv/dist/2020";
+import { ConfigPreset } from "src/types/preset";
+import { italicBold } from "src/components/welcome_tutorial/screens/common";
+import { AiOutlineQuestionCircle } from "react-icons/ai";
 
 const ajv = new Ajv();
 
@@ -21,6 +24,99 @@ type ConfigLoaderProps = {
   loadConfig: (config: ConfigFile) => any;
 };
 
+const presets: ConfigPreset[] = [
+  {
+    title: "Two Router Network",
+    desc: "A simple network with a single area containing two routers.",
+    filePath:
+      process.env.PUBLIC_URL + "sim_configs/two-router_single.config.json",
+    imgSrc: "",
+    greatFor: [],
+    thingsToExpect: [],
+    thingsToTry: [],
+  },
+  {
+    title: "Triangle Network",
+    desc: "Three routers fully connected in a triangle within a single area",
+    filePath:
+      process.env.PUBLIC_URL + "sim_configs/triangle-intra_single.config.json",
+    imgSrc: "",
+    greatFor: [],
+    thingsToExpect: [],
+    thingsToTry: [],
+  },
+  {
+    title: "Star Network (Single Area)",
+    desc: "One central router connected to 4 outer routers which don't connect to each other.",
+    filePath:
+      process.env.PUBLIC_URL + "sim_configs/star-intra_single.config.json",
+    imgSrc: "",
+    greatFor: [],
+    thingsToExpect: [
+      "When the hub goes down, the entire network gets disbanded and doesn't work.",
+    ],
+    thingsToTry: [],
+  },
+  {
+    title: "Star Network (Multiple Areas)",
+    desc: `
+    A network of multiple areas, in which each area contains a star network with a single point of failure.
+    <ul>
+      <li>The hub of each area acts as the <i>Area Border Router</i>.</li>
+      <li>The central area (Backbone Area 0) contains multiple Area Border Routers, each connected to a single network.</li>
+    </ul>
+    `,
+    filePath:
+      process.env.PUBLIC_URL +
+      "sim_configs/mesh-intra_single-star-inter_multiple.config.json",
+    imgSrc: "",
+    greatFor: [],
+    thingsToExpect: [
+      "When the hub of an area goes down, the entire area collapses.",
+      "When the Area Border Routers of the backbone network go down, the area that they connect to becomes unreachable to all other areas.",
+    ],
+    thingsToTry: [],
+  },
+  {
+    title: "Mesh Areas, Single Connections",
+    desc: `Each router in an area is connected to every other router in the area.
+    Inter-area connections are <b>single-link</b> though, with there being only a single
+    ${italicBold("Area Border Router")} per area.`,
+    filePath:
+      process.env.PUBLIC_URL +
+      "sim_configs/mesh-intra_single-star-inter_multiple.config.json",
+    imgSrc: "",
+    greatFor: [],
+    thingsToExpect: [
+      `Failure of a single router inside an area does ${italicBold(
+        "not"
+      )} result in the entire area collapsing.`,
+      `However, failure of an Area Border Router isolates the area from other areas
+      and disables inter-area communication from that area.`,
+    ],
+    thingsToTry: [],
+  },
+  {
+    title: "Mesh Areas, Multiple Connections",
+    desc: `Each router in an area is connected to every other router in the area.
+    Inter-area connections are also <b>multi-link</b>,
+    with there being multiple ${italicBold("Area Border Router")}s per area.`,
+    filePath:
+      process.env.PUBLIC_URL +
+      "sim_configs/mesh-intra_multi-star-inter_multiple.config.json",
+    imgSrc: "",
+    thingsToExpect: [
+      `Failure of a single router inside an area does ${italicBold(
+        "not"
+      )} result in the entire area collapsing.`,
+      `Failure of a single Area Border Router does not disrupt the inter-area communications from that area`,
+      `Other ABRs pick up the routing responsibilities in case of failure of an ABR.`,
+      `Inter-area communication goes on till every Area Border Router in the area goes down.`,
+    ],
+    greatFor: [],
+    thingsToTry: [],
+  },
+];
 export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   //#region States & Props
   const { active, showWarning, onClose, loadConfig } = props;
@@ -93,26 +189,36 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   //#endregion
 
   //#region Sub-components
-  const SelectorScreen = useMemo(() => {
-    return (
-      <>
-        <div className={styles.option}>
-          Choose a Config File
-          <input
-            type="file"
-            onChange={chooseFile}
-            id={styles.file_input}
-            accept=".json"
-          />
-        </div>
-        <div className={styles.option}>Choose from a Preset</div>
-      </>
-    );
-  }, [chooseFile]);
 
   const PresetsScreen = useMemo(() => {
-    return <></>;
-  }, []);
+    return (
+      <>
+        {presets.map(({ title, filePath }) => {
+          const loadFile = async () => {
+            const data = await fetch(filePath);
+            const config = await data.json();
+            loadConfig(config);
+            closeLoader();
+          };
+          return (
+            <div className={styles.preset_option_container} key={title}>
+              <div
+                className={styles.option}
+                data-preset="true"
+                onClick={loadFile}
+              >
+                {title}
+              </div>
+              <AiOutlineQuestionCircle
+                className={styles.question}
+                title="View Description"
+              />
+            </div>
+          );
+        })}
+      </>
+    );
+  }, [loadConfig, closeLoader]);
 
   const Warning = useMemo(() => {
     return showWarning ? (
@@ -132,12 +238,36 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   }, [showWarning]);
 
   const Error = useMemo(() => {
+    if (!error) {
+      return null;
+    }
     return (
-      <div id={styles.error} data-visible={!!error}>
+      <div id={styles.error}>
         <MdError /> <div dangerouslySetInnerHTML={{ __html: error }} />
       </div>
     );
   }, [error]);
+
+  const SelectorScreen = useMemo(() => {
+    const onPresetClick = () => setScreen("presets");
+    return (
+      <>
+        <div className={styles.option}>
+          Choose a Config File
+          <input
+            type="file"
+            onChange={chooseFile}
+            id={styles.file_input}
+            accept=".json"
+          />
+        </div>
+        <div className={styles.option} onClick={onPresetClick}>
+          Choose from a Preset
+        </div>
+        {Error}
+      </>
+    );
+  }, [Error, chooseFile]);
 
   const Content = useMemo(() => {
     let Component = SelectorScreen;
@@ -147,7 +277,7 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
       title = "Choose Preset";
     }
     return (
-      <div id={styles.content}>
+      <div id={styles.content} data-screen={screen}>
         <div id={styles.header}>
           <h2>
             <MdSource />
@@ -157,10 +287,9 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
         </div>
         {Warning}
         {Component}
-        {Error}
       </div>
     );
-  }, [screen, PresetsScreen, SelectorScreen, Warning, Error, closeLoader]);
+  }, [screen, PresetsScreen, SelectorScreen, Warning, closeLoader]);
   //#endregion
 
   if (!active) {
