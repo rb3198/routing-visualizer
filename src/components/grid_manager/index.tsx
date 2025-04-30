@@ -5,12 +5,9 @@ import { AreaManager } from "../area_manager";
 import { Point2D } from "src/types/geometry";
 import { addVectors, subtractVectors } from "src/utils/geometry";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
-import { DEFAULT_AREA_SIZE } from "src/constants/sizing";
+import { DEFAULT_AREA_SIZE, MAX_ZOOM, MIN_ZOOM } from "src/constants/sizing";
 import { getCellSize, getVisibleWorldBounds } from "src/utils/drawing";
 import { ConfigFile } from "src/entities/config";
-
-const MIN_ZOOM = 0.7;
-const MAX_ZOOM = 1.3;
 
 export type Drag = {
   start: Point2D;
