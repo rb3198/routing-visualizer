@@ -9,3 +9,5 @@ export const italicBold = (text: string) => (
     <b>{text}</b>
   </i>
 );
+
+export const italicBoldString = (str: string) => `<b><i>${str}</i></b>`;

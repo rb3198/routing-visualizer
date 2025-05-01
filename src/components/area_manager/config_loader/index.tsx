@@ -12,8 +12,11 @@ import { MdError, MdSource } from "react-icons/md";
 import { ConfigFile, ConfigFileJsonSchema } from "src/entities/config";
 import Ajv from "ajv/dist/2020";
 import { ConfigPreset } from "src/types/preset";
-import { italicBold } from "src/components/welcome_tutorial/screens/common";
+import { italicBoldString } from "src/components/welcome_tutorial/screens/common";
 import { AiOutlineQuestionCircle } from "react-icons/ai";
+import { BiChevronLeft } from "react-icons/bi";
+import { IoMdCheckmark } from "react-icons/io";
+import { Emoji } from "src/constants/emojis";
 
 const ajv = new Ajv();
 
@@ -30,27 +33,27 @@ const presets: ConfigPreset[] = [
     desc: "A simple network with a single area containing two routers.",
     filePath:
       process.env.PUBLIC_URL + "sim_configs/two-router_single.config.json",
-    imgSrc: "",
+    imgSrc: process.env.PUBLIC_URL + "sim_configs/images/two-router_single.png",
     greatFor: [],
     thingsToExpect: [],
     thingsToTry: [],
   },
   {
     title: "Triangle Network",
-    desc: "Three routers fully connected in a triangle within a single area",
+    desc: "Three routers fully connected in a triangle within a single area.",
     filePath:
       process.env.PUBLIC_URL + "sim_configs/triangle-intra_single.config.json",
-    imgSrc: "",
+    imgSrc: process.env.PUBLIC_URL + "sim_configs/images/triangle_single.png",
     greatFor: [],
     thingsToExpect: [],
     thingsToTry: [],
   },
   {
     title: "Star Network (Single Area)",
-    desc: "One central router connected to 4 outer routers which don't connect to each other.",
+    desc: "A single network in which a central router is connected to 4 other routers which don't connect to each other.",
     filePath:
       process.env.PUBLIC_URL + "sim_configs/star-intra_single.config.json",
-    imgSrc: "",
+    imgSrc: process.env.PUBLIC_URL + "sim_configs/images/star-intra_single.png",
     greatFor: [],
     thingsToExpect: [
       "When the hub goes down, the entire network gets disbanded and doesn't work.",
@@ -68,8 +71,10 @@ const presets: ConfigPreset[] = [
     `,
     filePath:
       process.env.PUBLIC_URL +
-      "sim_configs/mesh-intra_single-star-inter_multiple.config.json",
-    imgSrc: "",
+      "sim_configs/star-intra_single-star-inter_multiple.config.json",
+    imgSrc:
+      process.env.PUBLIC_URL +
+      "sim_configs/images/star-intra_single-star-inter_multiple.png",
     greatFor: [],
     thingsToExpect: [
       "When the hub of an area goes down, the entire area collapses.",
@@ -81,14 +86,16 @@ const presets: ConfigPreset[] = [
     title: "Mesh Areas, Single Connections",
     desc: `Each router in an area is connected to every other router in the area.
     Inter-area connections are <b>single-link</b> though, with there being only a single
-    ${italicBold("Area Border Router")} per area.`,
+    ${italicBoldString("Area Border Router")} per area.`,
     filePath:
       process.env.PUBLIC_URL +
       "sim_configs/mesh-intra_single-star-inter_multiple.config.json",
-    imgSrc: "",
+    imgSrc:
+      process.env.PUBLIC_URL +
+      "sim_configs/images/mesh-intra_single-star-inter_multiple.png",
     greatFor: [],
     thingsToExpect: [
-      `Failure of a single router inside an area does ${italicBold(
+      `Failure of a single router inside an area does ${italicBoldString(
         "not"
       )} result in the entire area collapsing.`,
       `However, failure of an Area Border Router isolates the area from other areas
@@ -100,13 +107,17 @@ const presets: ConfigPreset[] = [
     title: "Mesh Areas, Multiple Connections",
     desc: `Each router in an area is connected to every other router in the area.
     Inter-area connections are also <b>multi-link</b>,
-    with there being multiple ${italicBold("Area Border Router")}s per area.`,
+    with there being multiple ${italicBoldString(
+      "Area Border Router"
+    )}s per area.`,
     filePath:
       process.env.PUBLIC_URL +
       "sim_configs/mesh-intra_multi-star-inter_multiple.config.json",
-    imgSrc: "",
+    imgSrc:
+      process.env.PUBLIC_URL +
+      "sim_configs/images/mesh-intra_multi-star-inter_multiple.png",
     thingsToExpect: [
-      `Failure of a single router inside an area does ${italicBold(
+      `Failure of a single router inside an area does ${italicBoldString(
         "not"
       )} result in the entire area collapsing.`,
       `Failure of a single Area Border Router does not disrupt the inter-area communications from that area`,
@@ -120,8 +131,11 @@ const presets: ConfigPreset[] = [
 export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   //#region States & Props
   const { active, showWarning, onClose, loadConfig } = props;
-  const [screen, setScreen] = useState<"selector" | "presets">("selector");
+  const [screen, setScreen] = useState<
+    "selector" | "presets" | "preset_detail"
+  >("selector");
   const [error, setError] = useState("");
+  const [activePreset, setActivePreset] = useState<ConfigPreset | null>(null);
   const fileRef = useRef<File>();
 
   //#endregion
@@ -186,6 +200,21 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
     },
     [validateFile, loadConfig, closeLoader]
   );
+
+  const goToPresetSelection = useCallback(() => {
+    setActivePreset(null);
+    setScreen("presets");
+  }, []);
+
+  const loadFile = useCallback(
+    async (filePath: string) => {
+      const data = await fetch(filePath);
+      const config = await data.json();
+      loadConfig(config);
+      closeLoader();
+    },
+    [loadConfig, closeLoader]
+  );
   //#endregion
 
   //#region Sub-components
@@ -193,32 +222,35 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   const PresetsScreen = useMemo(() => {
     return (
       <>
-        {presets.map(({ title, filePath }) => {
-          const loadFile = async () => {
-            const data = await fetch(filePath);
-            const config = await data.json();
-            loadConfig(config);
-            closeLoader();
+        {presets.map((preset) => {
+          const { title, filePath } = preset;
+          const onClick = () => {
+            loadFile(filePath);
+          };
+          const openPresetDesc = () => {
+            setScreen("preset_detail");
+            setActivePreset(preset);
           };
           return (
             <div className={styles.preset_option_container} key={title}>
               <div
                 className={styles.option}
                 data-preset="true"
-                onClick={loadFile}
+                onClick={onClick}
               >
                 {title}
               </div>
               <AiOutlineQuestionCircle
                 className={styles.question}
                 title="View Description"
+                onClick={openPresetDesc}
               />
             </div>
           );
         })}
       </>
     );
-  }, [loadConfig, closeLoader]);
+  }, [loadFile]);
 
   const Warning = useMemo(() => {
     return showWarning ? (
@@ -276,11 +308,21 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
       Component = PresetsScreen;
       title = "Choose Preset";
     }
+    if (screen === "preset_detail" && activePreset) {
+      Component = (
+        <PresetDescription
+          preset={activePreset}
+          onBack={goToPresetSelection}
+          loadFile={loadFile}
+        />
+      );
+      title = activePreset.title;
+    }
     return (
       <div id={styles.content} data-screen={screen}>
         <div id={styles.header}>
           <h2>
-            <MdSource />
+            {screen !== "preset_detail" && <MdSource />}
             {title}
           </h2>
           <CgClose onClick={closeLoader} id={styles.close} />
@@ -289,7 +331,16 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
         {Component}
       </div>
     );
-  }, [screen, PresetsScreen, SelectorScreen, Warning, closeLoader]);
+  }, [
+    screen,
+    activePreset,
+    PresetsScreen,
+    SelectorScreen,
+    Warning,
+    closeLoader,
+    goToPresetSelection,
+    loadFile,
+  ]);
   //#endregion
 
   if (!active) {
@@ -299,6 +350,79 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
     <div id={styles.container}>
       <div id={styles.backdrop} onClick={closeLoader} />
       {Content}
+    </div>
+  );
+};
+
+type PresetDescriptionProps = {
+  preset: ConfigPreset;
+  onBack: () => unknown;
+  loadFile: (filePath: string) => unknown;
+};
+
+const PresetDescription: React.FC<PresetDescriptionProps> = ({
+  preset,
+  onBack,
+  loadFile,
+}) => {
+  const {
+    title,
+    filePath,
+    desc,
+    thingsToExpect,
+    imgSrc,
+    greatFor,
+    thingsToTry,
+  } = preset;
+  const onSelect = () => {
+    loadFile(filePath);
+  };
+  const imgAlt = `Example ${title} Network`;
+  return (
+    <div id={styles.preset_desc_container}>
+      <section className={styles.preset_desc_section}>
+        <div dangerouslySetInnerHTML={{ __html: desc }} />
+        <div id={styles.preset_desc_img}>
+          <img src={imgSrc} alt={imgAlt} title={imgAlt} />
+          <p>{imgAlt}</p>
+        </div>
+      </section>
+      <section className={styles.preset_desc_section}>
+        <h3 className={styles.detail_heading}>
+          {Emoji.Bullseye} Expected Behavior
+        </h3>
+        <ol>
+          {thingsToExpect.map((ex) => (
+            <li key={ex} dangerouslySetInnerHTML={{ __html: ex }} />
+          ))}
+        </ol>
+      </section>
+      <section className={styles.preset_desc_section}>
+        <h3 className={styles.detail_heading}>{Emoji.Electricity} Great For</h3>
+        <ol>
+          {greatFor.map((ex) => (
+            <li key={ex} dangerouslySetInnerHTML={{ __html: ex }} />
+          ))}
+        </ol>
+      </section>
+      <section className={styles.preset_desc_section}>
+        <h3 className={styles.detail_heading}>{Emoji.Wrench} Things To Try</h3>
+        <ol>
+          {thingsToTry.map((ex) => (
+            <li key={ex} dangerouslySetInnerHTML={{ __html: ex }} />
+          ))}
+        </ol>
+      </section>
+      <div id={styles.preset_desc_button_container}>
+        <button onClick={onBack} className={styles.nav_button}>
+          <BiChevronLeft />
+          Go Back
+        </button>
+        <button onClick={onSelect} className={styles.nav_button}>
+          <IoMdCheckmark />
+          Select This Preset
+        </button>
+      </div>
     </div>
   );
 };

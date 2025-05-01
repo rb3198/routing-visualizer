@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./styles.module.css";
 import commonStyles from "../../common_styles.module.css";
-import { italicBold, underlineBold } from "../../common";
+import { italicBold, italicBoldString, underlineBold } from "../../common";
 import { Layers } from "./layers";
 import { Emoji } from "src/constants/emojis";
 import { HomeNetwork } from "./home_network";
@@ -16,8 +16,6 @@ type HubData = {
   interactions: string;
   design: string;
 };
-
-const italicBoldString = (str: string) => `<b><i>${str}</i></b>`;
 
 const data: HubData[] = [
   {
