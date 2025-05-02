@@ -37,6 +37,8 @@ interface IToolbarProps {
   onConfigChange: () => any;
   openLoadPopup: () => any;
   showTooltip?: (message: string) => any;
+  onClear?: () => any;
+  showClear?: boolean;
   areaTree: MutableRefObject<AreaTree>;
   linkInterfaceMap: MutableRefObject<Map<string, IPLinkInterface>>;
   playing?: boolean;
@@ -56,6 +58,8 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     LsRefreshTime,
     areaTree,
     linkInterfaceMap,
+    showClear,
+    onClear,
     onConfigSave,
     startSimulation,
     stopSimulation,
@@ -228,10 +232,32 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
     onConfigSave,
   ]);
 
+  const ClearConfig = useMemo(() => {
+    if (!showClear) {
+      return null;
+    }
+    const onClick: MouseEventHandler = (e) => {
+      e.stopPropagation();
+      if (playing) {
+        showTooltip &&
+          showTooltip(`Cannot clear the grid when the simulation is playing.
+            Please STOP the simulation before clearing the grid.`);
+        return;
+      }
+      onClear && onClear();
+    };
+    return (
+      <p id={styles.clear} data-disabled={playing} onClick={onClick}>
+        Clear
+      </p>
+    );
+  }, [playing, showClear, onClear]);
+
   const ConfigButtons = useMemo(() => {
     return (
       <div id={styles.config_buttons_container}>
         Configuration:
+        {ClearConfig}
         {SaveConfig}
         {LoadConfig}
         <div id={styles.expand_collapse_container}>
@@ -243,7 +269,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         </div>
       </div>
     );
-  }, [expanded, LoadConfig, SaveConfig]);
+  }, [expanded, ClearConfig, LoadConfig, SaveConfig]);
 
   const toggleExpanded = useCallback(
     () =>

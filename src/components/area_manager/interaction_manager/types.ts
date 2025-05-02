@@ -138,4 +138,9 @@ export type InteractiveAction =
       config: ConfigFile;
       areaTreeRef: MutableRefObject<AreaTree>;
       linkInterfaceMapRef: MutableRefObject<Map<string, IPLinkInterface>>;
+    }
+  | {
+      type: "clear_grid";
+      areaTreeRef: MutableRefObject<AreaTree>;
+      linkInterfaceMapRef: MutableRefObject<Map<string, IPLinkInterface>>;
     };

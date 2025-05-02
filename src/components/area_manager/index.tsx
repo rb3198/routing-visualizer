@@ -553,6 +553,16 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     [clearEventLog, onConfigLoad, setSimulationConfig]
   );
 
+  const onClear = useCallback(() => {
+    dispatch({
+      type: "clear_grid",
+      areaTreeRef: areaTree,
+      linkInterfaceMapRef: linkInterfaceMap,
+    });
+  }, []);
+
+  const showClear = !!areaTree.current.root;
+
   return (
     <>
       <canvas
@@ -636,8 +646,10 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         onConfigSave={onConfigSave}
         onConfigChange={onConfigChange}
         openLoadPopup={openLoadPopup}
+        onClear={onClear}
         areaTree={areaTree}
         linkInterfaceMap={linkInterfaceMap}
+        showClear={showClear}
       />
       <PacketLegend />
       <ConfigLoader
