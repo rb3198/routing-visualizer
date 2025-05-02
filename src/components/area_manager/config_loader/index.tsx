@@ -34,9 +34,27 @@ const presets: ConfigPreset[] = [
     filePath:
       process.env.PUBLIC_URL + "sim_configs/two-router_single.config.json",
     imgSrc: process.env.PUBLIC_URL + "sim_configs/images/two-router_single.png",
-    greatFor: [],
-    thingsToExpect: [],
-    thingsToTry: [],
+    greatFor: [
+      `The OSPF ${italicBoldString("Adjacency formation")}.`,
+      `${italicBoldString("Simple links")} stored in the Link State Database.`,
+    ],
+    thingsToExpect: [
+      `Network ${italicBoldString(
+        "collapses"
+      )} if either of the two routers go down.`,
+      "Symmetric routing",
+    ],
+    thingsToTry: [
+      `${italicBoldString(
+        "Observe the Event Log"
+      )} to watch the Neighbor State Machine doing its magic.`,
+      `${italicBoldString(
+        "Shut down and restore"
+      )} a router to watch LSA origination and ${italicBoldString(
+        "re-convergence"
+      )}.`,
+      `Vary Hello/Dead intervals, MaxAge, etc. to see adjacency timeouts and restoration.`,
+    ],
   },
   {
     title: "Triangle Network",
@@ -44,9 +62,21 @@ const presets: ConfigPreset[] = [
     filePath:
       process.env.PUBLIC_URL + "sim_configs/triangle-intra_single.config.json",
     imgSrc: process.env.PUBLIC_URL + "sim_configs/images/triangle_single.png",
-    greatFor: [],
-    thingsToExpect: [],
-    thingsToTry: [],
+    greatFor: [
+      `<b>Alternate path selection:</b> how SPF picks lowest‑cost from multiple routes`,
+      `<b>Loop‑free guarantee:</b> even with cycles, SPF yields a tree.`,
+      `<b>Equal Cost Multi-Path (ECMP)</b> routing from router 1.1.1.1 to the network 192.1.2.0/24`,
+    ],
+    thingsToExpect: [
+      "Each router will have two neighbors.",
+      `Every router’s Link‑State Database will contain exactly three Type 1 Router LSAs (one from each router) 
+      and no Network LSAs—reflecting that all links are point‑to‑point and fully meshed.`,
+      `Any single link failure triggers a complete SPF recalculation on all three routers, producing a new loop‑free tree.`,
+    ],
+    thingsToTry: [
+      "Break a link to watch traffic re-routing.",
+      `Add more routers to one area and measure LS DB size or SPF runtime.`,
+    ],
   },
   {
     title: "Star Network (Single Area)",
@@ -54,11 +84,26 @@ const presets: ConfigPreset[] = [
     filePath:
       process.env.PUBLIC_URL + "sim_configs/star-intra_single.config.json",
     imgSrc: process.env.PUBLIC_URL + "sim_configs/images/star-intra_single.png",
-    greatFor: [],
+    greatFor: [
+      `How Star topology with a single hub backfires. You'll understand the need for ${italicBoldString(
+        "mesh links"
+      )}.`,
+      `Observing <b>LSA propagation via the hub.</b>`,
+      `<b>Topology distribution:</b> How all communication takes place via the hub.`,
+    ],
     thingsToExpect: [
+      "<b>Hub‑centric adjacency:</b> spokes only peer with the hub - Each spoke has exactly one neighbor - the hub.",
       "When the hub goes down, the entire network gets disbanded and doesn't work.",
     ],
-    thingsToTry: [],
+    thingsToTry: [
+      `${italicBoldString(
+        "Bring down the hub‑spoke link"
+      )} for one spoke and observe that spoke losing reachability to all others.`,
+      `Add a direct link between two spokes and compare path selection vs. via‑hub.`,
+      `${italicBoldString(
+        "Shut down the hub"
+      )} and watch the network <b><u>collapse</u></b>.`,
+    ],
   },
   {
     title: "Star Network (Multiple Areas)",
@@ -75,12 +120,29 @@ const presets: ConfigPreset[] = [
     imgSrc:
       process.env.PUBLIC_URL +
       "sim_configs/images/star-intra_single-star-inter_multiple.png",
-    greatFor: [],
+    greatFor: [
+      `How Star topology with a single hub backfires. You'll understand the need for redundant links.`,
+      `How Area Boundary Routers (ABRs) generate ${italicBoldString(
+        "Area Summary LSAs"
+      )}.`,
+      `How Area Border Routers advertise routes to other areas: 
+      They advertise the highest cost-route to the area (i.e., they advertise the worst case routing scenario).`,
+      `<b>ABR LS-DB roles:</b> Each ABR maintains separate LS DBs for its non‑backbone area and Area 0.`,
+      `<b>Inter‑area reachability:</b> How spokes in Area X reach spokes in Area Y via their ABRs and Area 0.`,
+    ],
     thingsToExpect: [
       "When the hub of an area goes down, the entire area collapses.",
-      "When the Area Border Routers of the backbone network go down, the area that they connect to becomes unreachable to all other areas.",
+      `When the Area Border Routers of the backbone network go down, 
+      the area that they connect to becomes unreachable to all other areas.`,
     ],
-    thingsToTry: [],
+    thingsToTry: [
+      `${italicBoldString(
+        "Shut down a hub"
+      )} and watch the area become ${italicBoldString("isolated")}.`,
+      `${italicBoldString(
+        "Shutdown the Area 0 hub"
+      )} and watch ${italicBoldString("every")} area become isolated `,
+    ],
   },
   {
     title: "Mesh Areas, Single Connections",
@@ -93,7 +155,10 @@ const presets: ConfigPreset[] = [
     imgSrc:
       process.env.PUBLIC_URL +
       "sim_configs/images/mesh-intra_single-star-inter_multiple.png",
-    greatFor: [],
+    greatFor: [
+      `<b>Intra‑area flooding:</b> full LSDB sync among all routers inside each mesh area.`,
+      `Intra-Area Network path adjustments on any router going down.`,
+    ],
     thingsToExpect: [
       `Failure of a single router inside an area does ${italicBoldString(
         "not"
@@ -101,7 +166,10 @@ const presets: ConfigPreset[] = [
       `However, failure of an Area Border Router isolates the area from other areas
       and disables inter-area communication from that area.`,
     ],
-    thingsToTry: [],
+    thingsToTry: [
+      `Turn off a random router inside an area and watch the paths get adjusted.`,
+      `Add more routers to one area and measure LS DB size or SPF runtime.`,
+    ],
   },
   {
     title: "Mesh Areas, Multiple Connections",
@@ -117,15 +185,27 @@ const presets: ConfigPreset[] = [
       process.env.PUBLIC_URL +
       "sim_configs/images/mesh-intra_multi-star-inter_multiple.png",
     thingsToExpect: [
-      `Failure of a single router inside an area does ${italicBoldString(
+      `${italicBoldString(
+        "Enhanced Intra Area Resiliency"
+      )}: Failure of a single router inside an area does ${italicBoldString(
         "not"
       )} result in the entire area collapsing.`,
-      `Failure of a single Area Border Router does not disrupt the inter-area communications from that area`,
+      `${italicBoldString(
+        "Enhanced Inter Area Resiliency"
+      )}: Failure of a single Area Border Router does not disrupt the inter-area communications from that area`,
       `Other ABRs pick up the routing responsibilities in case of failure of an ABR.`,
       `Inter-area communication goes on till every Area Border Router in the area goes down.`,
+      `${italicBoldString("Each ABR generates its own Type 3 LSA")} 
+      for each prefix—multiple summary LSAs flood into Area 0.`,
     ],
-    greatFor: [],
-    thingsToTry: [],
+    greatFor: [
+      `<b>ABR redundancy:</b> multiple sources of Type 3 LSAs for the same prefixes.`,
+      `<b>LSA preference rules:</b> How routers choose among multiple summary LSAs (cost + highest origin Router ID).`,
+    ],
+    thingsToTry: [
+      `Turn off any Area Border Router and watch the inter-area paths get adjusted!`,
+      `<b>Create additional links</b> to watch the network traffic patterns change.`,
+    ],
   },
 ];
 export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
@@ -398,7 +478,9 @@ const PresetDescription: React.FC<PresetDescriptionProps> = ({
         </ol>
       </section>
       <section className={styles.preset_desc_section}>
-        <h3 className={styles.detail_heading}>{Emoji.Electricity} Great For</h3>
+        <h3 className={styles.detail_heading}>
+          {Emoji.Bulb} Great For Learning
+        </h3>
         <ol>
           {greatFor.map((ex) => (
             <li key={ex} dangerouslySetInnerHTML={{ __html: ex }} />
