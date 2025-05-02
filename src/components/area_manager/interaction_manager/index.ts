@@ -661,5 +661,22 @@ export const interactiveStateReducer: Reducer<
       warnConfigLoad: false,
     };
   }
+  if (type === "clear_grid") {
+    const { areaTreeRef, linkInterfaceMapRef } = action;
+    areaTreeRef.current = new AreaTree();
+    linkInterfaceMapRef.current.clear();
+    redrawNetwork(areaTreeRef.current, linkInterfaceMapRef.current);
+    return {
+      state: "hovering",
+      selectedRouter: undefined,
+      routerMenu: defaultRouterMenuState,
+      componentPicker: defaultPickerState,
+      cell: [0, 0],
+      cursor: "initial",
+      gridRect,
+      warnConfigLoad: false,
+      simulationStatus: "stopped",
+    };
+  }
   return state;
 };

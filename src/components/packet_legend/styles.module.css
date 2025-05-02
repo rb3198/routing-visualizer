@@ -78,3 +78,9 @@
 .expand.opened {
     transform: rotate(180deg);
 }
+
+@media screen and (max-width: 600px) {
+    #main {
+        height: 4vh;
+    }
+}
