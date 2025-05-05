@@ -4,6 +4,8 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useEffect,
+  KeyboardEventHandler,
 } from "react";
 import styles from "./styles.module.css";
 import { CgClose } from "react-icons/cg";
@@ -216,10 +218,20 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   >("selector");
   const [error, setError] = useState("");
   const [activePreset, setActivePreset] = useState<ConfigPreset | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<File>();
 
   //#endregion
 
+  //#region Effects
+  useEffect(() => {
+    const { current } = containerRef;
+    current?.focus();
+    return () => {
+      current?.blur();
+    };
+  }, [active]);
+  //#endregion
   //#region Callbacks
   const closeLoader = useCallback(() => {
     setError("");
@@ -294,6 +306,13 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
       closeLoader();
     },
     [loadConfig, closeLoader]
+  );
+
+  const onKeyDown: KeyboardEventHandler = useCallback(
+    (e) => {
+      e.key === "Escape" && closeLoader();
+    },
+    [closeLoader]
   );
   //#endregion
 
@@ -427,7 +446,12 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
     return null;
   }
   return (
-    <div id={styles.container}>
+    <div
+      id={styles.container}
+      tabIndex={0}
+      ref={containerRef}
+      onKeyDown={onKeyDown}
+    >
       <div id={styles.backdrop} onClick={closeLoader} />
       {Content}
     </div>

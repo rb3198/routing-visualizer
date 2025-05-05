@@ -1,11 +1,17 @@
-import React, { PropsWithChildren, useCallback } from "react";
+import React, {
+  KeyboardEventHandler,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  RefObject,
+} from "react";
 import styles from "./styles.module.css";
 import { CgClose } from "react-icons/cg";
 
 type ModalProps = {
   title: string;
   visible?: boolean;
-  modalRef?: React.LegacyRef<HTMLDivElement>;
+  modalRef?: RefObject<HTMLDivElement>;
   classes?: string;
   close: () => any;
 };
@@ -19,6 +25,21 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = (props) => {
     },
     [close]
   );
+
+  const onKeyDown: KeyboardEventHandler = useCallback(
+    (e) => {
+      e.key === "Escape" && close();
+    },
+    [close]
+  );
+
+  useEffect(() => {
+    const { current } = modalRef || {};
+    visible && current?.focus();
+    return () => {
+      current?.blur();
+    };
+  }, [visible, modalRef]);
   return (
     <div
       id={styles.backdrop}
@@ -26,9 +47,11 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = (props) => {
       onClick={onBackdropClick}
     >
       <div
+        tabIndex={0}
         id={styles.container}
         className={`${classes || ""} ${visible ? styles.visible : ""}`}
         ref={modalRef}
+        onKeyDown={onKeyDown}
       >
         <div id={styles.title}>
           <h2>{title}</h2>
