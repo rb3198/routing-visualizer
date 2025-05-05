@@ -85,16 +85,12 @@ export const screenMap: Record<Screen, IScreen> = {
 };
 
 export const getExpertiseCards = (
-  setScreen: (
-    screen: TutorialScreen,
-    subScreenIdx: number,
-    writeToStorage?: boolean
-  ) => unknown,
-  writeToStorage?: boolean
+  setScreen: (screen: TutorialScreen, subScreenIdx?: number) => unknown
 ): ExpertiseCard[] => [
   {
     title: `${Emoji.Seedling} The Absolute Beginner`,
     prefix: "You are:",
+    screen: TutorialScreen.InternetIntro,
     description: [
       {
         text: "Just starting to explore networking concepts.",
@@ -105,17 +101,13 @@ export const getExpertiseCards = (
         text: `Ready to take the first step into the exciting world of networking! ${Emoji.Rocket}`,
       },
     ],
-    buttonLabel: `Start Your Networking Journey`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.InternetIntro,
-      0,
-      writeToStorage
-    ),
+    buttonLabel: `Start Your Journey`,
+    onClick: setScreen.bind(null, TutorialScreen.InternetIntro, 0),
   },
   {
     title: `${Emoji.Toolbox} The Network Amateur`,
     prefix: "You:",
+    screen: TutorialScreen.IPAddressing,
     description: [
       {
         text: "Know what is a computer network and how it is formed.",
@@ -136,16 +128,12 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Explore IP Addressing`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.IPAddressing,
-      0,
-      writeToStorage
-    ),
+    onClick: setScreen.bind(null, TutorialScreen.IPAddressing, 0),
   },
   {
     title: `${Emoji.SatelliteDish} The Intermediate`,
     prefix: "You:",
+    screen: TutorialScreen.OSPFIntro,
     description: [
       {
         text: "Are thorough in your understanding of the OSI model and its layered architecture.",
@@ -164,11 +152,12 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Dive Into OSPF`,
-    onClick: setScreen.bind(null, TutorialScreen.OSPFIntro, 0, writeToStorage),
+    onClick: setScreen.bind(null, TutorialScreen.OSPFIntro, 0),
   },
   {
     title: `${Emoji.Electricity} The Network Pro`,
     prefix: "You:",
+    screen: TutorialScreen.VisualizerTutorial,
     description: [
       {
         text: "Are very familiar with all the layers of the OSI Model.",
@@ -187,11 +176,6 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Start Visualizing OSPF`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.VisualizerTutorial,
-      0,
-      writeToStorage
-    ),
+    onClick: setScreen.bind(null, TutorialScreen.VisualizerTutorial, 0),
   },
 ];

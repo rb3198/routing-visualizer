@@ -1,3 +1,7 @@
+.modal {
+    height: 90vh;
+}
+
 #body {
     display: flex;
     flex-direction: column;
@@ -51,6 +55,9 @@
     width: 100%;
     padding: .618rem;
     color: #fff;
+    font-style: normal;
+    font-size: .764rem;
+    text-decoration: none;
     background-color: #324ca8;
     border: none;
     cursor: pointer;

@@ -1,39 +1,62 @@
-import React, { useCallback, useState } from "react";
+import React, { useEffect } from "react";
 import styles from "./styles.module.css";
-import { Modal } from "../modals";
 import {
   ScreenNameMap,
   SetScreenCallback,
   TutorialScreen,
 } from "src/types/tutorials/screen";
 import { screenMap } from "src/constants/tutorials";
-import { WelcomeScreen } from "./screens/welcome";
 import { Navigator } from "./navigator";
 import { BiChevronLeft, BiChevronRight } from "react-icons/bi";
+import { useNavigate, useSearchParams } from "react-router";
 
-type WelcomeScreenProps = {
-  screen: TutorialScreen;
-  subScreenIdx: number;
-  writeToStorage?: boolean;
+type NetworkTutorialProps = {
   setScreen: SetScreenCallback;
 };
 
-const WelcomeTutorial: React.FC<WelcomeScreenProps> = (props) => {
-  const { screen, subScreenIdx, writeToStorage, setScreen } = props;
-  const [navExpanded, setNavExpanded] = useState(true);
+const NetworkTutorial: React.FC<NetworkTutorialProps> = (props) => {
+  const { setScreen } = props;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const redirect = useNavigate();
+  const screen: TutorialScreen = parseInt(
+    searchParams.get("screen") ?? TutorialScreen.InternetIntro.toString()
+  );
+  const subScreenIdx: number = parseInt(
+    searchParams.get("subScreenIdx") ?? "0"
+  );
 
+  let skipRender =
+    screen <= TutorialScreen.Welcome ||
+    screen >= TutorialScreen.VisualizerTutorial;
+  skipRender ||= (() => {
+    const { subScreens } = screenMap[screen];
+    return !subScreens[subScreenIdx];
+  })();
+
+  useEffect(() => {
+    skipRender && redirect("/");
+  }, [skipRender, redirect]);
+  if (skipRender) {
+    return null;
+  }
   const { title, subScreens } = screenMap[screen];
 
-  const onModalClose = useCallback(() => {
-    setScreen(TutorialScreen.Complete, 0, writeToStorage);
-  }, [writeToStorage, setScreen]);
-
-  const visible = screen !== TutorialScreen.Complete;
-
-  const getControlsConfig = useCallback(() => {
-    if (screen === TutorialScreen.Welcome) {
-      return { visible: false, next: null, prev: null };
+  const navigate = (screen: TutorialScreen, subScreenIdx: number) => {
+    setScreen(screen, subScreenIdx);
+    if (
+      screen === TutorialScreen.Welcome ||
+      screen >= TutorialScreen.VisualizerTutorial
+    ) {
+      redirect("/");
+      return;
     }
+    const params = new URLSearchParams();
+    params.set("screen", screen.toString());
+    params.set("subScreenIdx", subScreenIdx.toString());
+    setSearchParams(params);
+  };
+
+  const getControlsConfig = () => {
     const nextScreen = (screen + 1) as TutorialScreen;
     const prevScreen = (screen - 1) as TutorialScreen;
     const { subScreens: prevSubScreens } = screenMap[prevScreen];
@@ -64,23 +87,19 @@ const WelcomeTutorial: React.FC<WelcomeScreenProps> = (props) => {
     ) as TutorialScreen;
     const navNextSubScr = navNext > screen ? 0 : subScreenIdx + 1;
     return {
-      visible: true,
       prev: {
         title: getPrevTitle(),
-        onClick: () => setScreen(navPrev, navPrevSubScr, writeToStorage),
+        onClick: () => navigate(navPrev, navPrevSubScr),
       },
       next: {
         title: getNextTitle(),
-        onClick: () => setScreen(navNext, navNextSubScr, writeToStorage),
+        onClick: () => navigate(navNext, navNextSubScr),
       },
     };
-  }, [screen, subScreens, subScreenIdx, writeToStorage, setScreen]);
+  };
 
   const renderControls = () => {
-    const { visible, next, prev } = getControlsConfig();
-    if (!visible) {
-      return null;
-    }
+    const { next, prev } = getControlsConfig();
     const { title: prevTitle, onClick: prevOnClick } = prev || {};
     const { title: nextTitle, onClick: nextOnClick } = next || {};
     return (
@@ -104,33 +123,22 @@ const WelcomeTutorial: React.FC<WelcomeScreenProps> = (props) => {
     }
     return title;
   };
-  return (
-    <Modal
-      title={getTitle()}
-      close={onModalClose}
-      visible={visible}
-      classes={styles.modal}
-    >
-      {screen === TutorialScreen.Welcome ? (
-        <WelcomeScreen setScreen={setScreen} writeToStorage={writeToStorage} />
-      ) : (
-        <div id={styles.body}>
-          <Navigator
-            selectedScreen={screen}
-            setSelectedScreen={setScreen}
-            expanded={navExpanded}
-            setExpanded={setNavExpanded}
-            selectedSubScreenIdx={subScreenIdx}
-            writeToStorage={writeToStorage}
-          />
-          <div id={styles.sub_screen_container} data-nav-expanded={navExpanded}>
-            {subScreens[subScreenIdx]?.screen}
-            {renderControls()}
-          </div>
-        </div>
-      )}
-    </Modal>
+
+  // TODO: Make an empty page
+  return skipRender ? null : (
+    <div id={styles.body}>
+      <Navigator
+        selectedScreen={screen}
+        setSelectedScreen={navigate}
+        selectedSubScreenIdx={subScreenIdx}
+      />
+      <div id={styles.sub_screen_container}>
+        <h2 id={styles.title}>{getTitle()}</h2>
+        {subScreens[subScreenIdx]?.screen}
+        {renderControls()}
+      </div>
+    </div>
   );
 };
 
-export default WelcomeTutorial;
+export default NetworkTutorial;
