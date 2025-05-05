@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import styles from "./styles.module.css";
 import {
   ScreenNameMap,
@@ -9,6 +9,7 @@ import { screenMap } from "src/constants/tutorials";
 import { Navigator } from "./navigator";
 import { BiChevronLeft, BiChevronRight } from "react-icons/bi";
 import { useNavigate, useSearchParams } from "react-router";
+import { PlaceHolder } from "./placeholder";
 
 type NetworkTutorialProps = {
   setScreen: SetScreenCallback;
@@ -33,11 +34,8 @@ const NetworkTutorial: React.FC<NetworkTutorialProps> = (props) => {
     return !subScreens[subScreenIdx];
   })();
 
-  useEffect(() => {
-    skipRender && redirect("/");
-  }, [skipRender, redirect]);
   if (skipRender) {
-    return null;
+    return <PlaceHolder type="404" />;
   }
   const { title, subScreens } = screenMap[screen];
 
@@ -124,8 +122,7 @@ const NetworkTutorial: React.FC<NetworkTutorialProps> = (props) => {
     return title;
   };
 
-  // TODO: Make an empty page
-  return skipRender ? null : (
+  return (
     <div id={styles.body}>
       <Navigator
         selectedScreen={screen}

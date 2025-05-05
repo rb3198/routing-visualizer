@@ -80,9 +80,11 @@ export class Router {
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
     const selfAddress = ipInterface.getSelfIpAddress(this) ?? "";
-    store.dispatch(
-      emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
-    );
+    setTimeout(() => {
+      store.dispatch(
+        emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
+      );
+    }, 500);
     if (this.power === PowerState.On) {
       // IF power is on send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);

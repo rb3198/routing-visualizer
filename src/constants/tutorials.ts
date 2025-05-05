@@ -9,7 +9,7 @@ import { CourierLocal } from "src/components/tutorials/screens/internet/courier_
 import { NetworkDefinition } from "src/components/tutorials/screens/internet/network_definition";
 import { ScalingUp } from "src/components/tutorials/screens/internet/scaling_up_courier";
 import { CoreDistEdge } from "src/components/tutorials/screens/internet/core_dist_edge";
-import { NetworkOfAs } from "src/components/tutorials/screens/internet/network_of_as";
+import { PlaceHolder } from "src/components/tutorials/placeholder";
 
 export const screenMap: Record<Screen, IScreen> = {
   [Screen.Welcome]: {
@@ -39,40 +39,81 @@ export const screenMap: Record<Screen, IScreen> = {
   },
   [Screen.IPAddressing]: {
     title: "IP Addressing",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "IP Addressing",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.Structure]: {
     title: "Architecture of the Internet",
+    // subScreens: [
+    //   {
+    //     title: "Autonomous Systems",
+    //     screen: NetworkOfAs({}),
+    //   },
+    // ],
     subScreens: [
       {
         title: "Autonomous Systems",
-        screen: NetworkOfAs({}),
+        screen: PlaceHolder({ type: "coming_soon" }),
       },
     ],
   },
   [Screen.OSIModel]: {
     title: "The OSI Model",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "The Layered Approach",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.UpperLayers]: {
     title: "Upper Layers of the OSI Model",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "The Application Layer",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.NetworkLayer]: {
     title: "The Network Layer",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "Responsibilities",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.NetworkTypesByTopology]: {
     title: "Types of Networks - By Topology",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "LANs, WANs, MANs",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.OSPFIntro]: {
     title: "Introduction to OSPF",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "What is OSPF?",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.OSPFDetail]: {
     title: "The OSPF Protocol",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "Adjacencies",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.VisualizerTutorial]: {
     title: "Visualizer Tutorial",

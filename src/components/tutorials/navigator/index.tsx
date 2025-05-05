@@ -83,7 +83,8 @@ export const Navigator: React.FC<NavigatorProps> = (props) => {
             (screen) =>
               !isNaN(parseInt(screen)) &&
               parseInt(screen) &&
-              (parseInt(screen) as TutorialScreen) !== TutorialScreen.Complete
+              (parseInt(screen) as TutorialScreen) <
+                TutorialScreen.VisualizerTutorial
           )
           .map((screen) => renderTopic(parseInt(screen) as TutorialScreen))}
       </div>
