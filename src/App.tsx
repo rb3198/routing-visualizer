@@ -14,6 +14,8 @@ import {
   TutorialScreenCache,
 } from "./types/welcome_tutorial/screen";
 import { useCallback, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router";
+import { AppRoutes } from "./constants/app_routes";
 
 const readTutScreenFromStorage = (): TutorialScreenCache => {
   const cache = localStorage.getItem(WELCOME_LAST_SCREEN_KEY);
@@ -65,24 +67,38 @@ function App() {
   );
   return (
     <div className={styles.App}>
-      <WelcomeTutorial
-        screen={tutScreen}
-        subScreenIdx={subScreenIdx}
-        setScreen={setTutorialConfig}
-        writeToStorage={writeToStorage}
-      />
       <Provider store={store}>
-        <Header openTutorial={openTutScreen} />
-        <div id="grid_container">
-          <GridManager />
-          <EventLog
-            showControlPanel
-            classes={styles.event_log}
-            showExpandToggle
-          />
-          <NotificationTooltip />
-          <EventModalManager />
-        </div>
+        <BrowserRouter>
+          <Header openTutorial={openTutScreen} />
+          <Routes>
+            <Route
+              path={AppRoutes.Index}
+              element={
+                <div id="grid_container">
+                  <GridManager />
+                  <EventLog
+                    showControlPanel
+                    classes={styles.event_log}
+                    showExpandToggle
+                  />
+                  <NotificationTooltip />
+                  <EventModalManager />
+                </div>
+              }
+            />
+            <Route
+              path={AppRoutes.Tutorials}
+              element={
+                <WelcomeTutorial
+                  screen={tutScreen}
+                  subScreenIdx={subScreenIdx}
+                  setScreen={setTutorialConfig}
+                  writeToStorage={writeToStorage}
+                />
+              }
+            />
+          </Routes>
+        </BrowserRouter>
         <Footer />
       </Provider>
     </div>
