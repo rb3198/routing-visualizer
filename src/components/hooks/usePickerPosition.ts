@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect } from "react";
 import { GridCell } from "src/entities/geometry/grid_cell";
 import { Point2D } from "src/types/geometry";
+import { getCellSize } from "src/utils/drawing";
 
 /**
  * Duration of the appear / disappear animation in milliseconds
@@ -61,32 +62,34 @@ const getPosition = (
   const { canvasOffset = [0, 0] } = window;
   const { height, width } = tooltipElement.getBoundingClientRect();
   const cell = gridRect[row][column];
+  const cellSize = getCellSize();
   const x = getCoord(cell.x, canvasOffset[0]);
   const y = getCoord(cell.y, canvasOffset[1]);
-  const canvasY = canvas.getBoundingClientRect().y;
+  const { y: canvasY, height: canvasHeight } = canvas.getBoundingClientRect();
   const horizontalPosition = x + width > canvas.clientWidth ? "left" : "right";
   const verticalPosition =
-    canvasY + y + height > document.documentElement.clientHeight
-      ? "top"
-      : "bottom";
+    canvasY + y + height > canvasY + canvasHeight ? "top" : "bottom";
   if (horizontalPosition === "right") {
     if (verticalPosition === "bottom") {
-      const { x, y } = gridRect[row + 1][column + 1];
       return {
-        left: getCoord(x, canvasOffset[0]),
-        top: getCoord(y, canvasOffset[1]) + canvasY,
+        left: getCoord(cell.x + cellSize, canvasOffset[0]),
+        top: getCoord(cell.y + cellSize, canvasOffset[1]) + canvasY,
       };
     }
-    const { x } = gridRect[row - 1][column + 1];
-    return { left: getCoord(x, canvasOffset[0]), top: y - height + canvasY };
+    return {
+      left: getCoord(cell.x + cellSize, canvasOffset[0]),
+      top: y - height + canvasY,
+    };
   }
   if (verticalPosition === "bottom") {
-    const { y } = gridRect[row + 1][column - 1];
-    return { left: x - width, top: canvasY + getCoord(y, canvasOffset[1]) };
+    return {
+      left: x - width,
+      top: canvasY + getCoord(cell.y + cellSize, canvasOffset[1]),
+    };
   }
   return {
     left: x - width,
-    top: getCoord(y, canvasOffset[1]) - height + canvasY,
+    top: getCoord(cell.y, canvasOffset[1]) - height + canvasY,
   };
 };
 
