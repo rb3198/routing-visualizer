@@ -3,7 +3,7 @@ import styles from "./styles.module.css";
 import { Point2D, RectPoints } from "src/types/geometry";
 import { Colors } from "src/constants/theme";
 import { Rect2D } from "src/entities/geometry/Rect2D";
-import { House, Office } from "src/types/welcome_tutorial/animation_entities";
+import { House, Office } from "src/types/tutorials/animation_entities";
 
 class NetworkElement {
   x: number;
@@ -519,10 +519,6 @@ const NetworkCanvas = function (canvas: HTMLCanvasElement) {
    * Horizontal Padding = 0.1 * width
    */
   let hPad = 0;
-  /**
-   * Vertical Padding = .1 * height;
-   */
-  let vPad = 0;
 
   // Animation properties
   let animationFrameId: number | null = null;
@@ -570,9 +566,8 @@ const NetworkCanvas = function (canvas: HTMLCanvasElement) {
   ];
 
   const setPadding = () => {
-    const { width, height } = clientRect;
+    const { width } = clientRect;
     hPad = width * 0.05;
-    vPad = height * 0.05;
   };
 
   const resizeElements = () => {

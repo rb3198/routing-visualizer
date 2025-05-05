@@ -1,15 +1,15 @@
-import { ExpertiseCard } from "src/types/welcome_tutorial/expertise_card";
+import { ExpertiseCard } from "src/types/tutorials/expertise_card";
 import {
   ITutorialScreen as IScreen,
   TutorialScreen as Screen,
   TutorialScreen,
-} from "src/types/welcome_tutorial/screen";
+} from "src/types/tutorials/screen";
 import { Emoji } from "./emojis";
-import { CourierLocal } from "src/components/welcome_tutorial/screens/internet/courier_local";
-import { NetworkDefinition } from "src/components/welcome_tutorial/screens/internet/network_definition";
-import { ScalingUp } from "src/components/welcome_tutorial/screens/internet/scaling_up_courier";
-import { CoreDistEdge } from "src/components/welcome_tutorial/screens/internet/core_dist_edge";
-import { NetworkOfAs } from "src/components/welcome_tutorial/screens/internet/network_of_as";
+import { CourierLocal } from "src/components/tutorials/screens/internet/courier_local";
+import { NetworkDefinition } from "src/components/tutorials/screens/internet/network_definition";
+import { ScalingUp } from "src/components/tutorials/screens/internet/scaling_up_courier";
+import { CoreDistEdge } from "src/components/tutorials/screens/internet/core_dist_edge";
+import { PlaceHolder } from "src/components/tutorials/placeholder";
 
 export const screenMap: Record<Screen, IScreen> = {
   [Screen.Welcome]: {
@@ -39,40 +39,81 @@ export const screenMap: Record<Screen, IScreen> = {
   },
   [Screen.IPAddressing]: {
     title: "IP Addressing",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "IP Addressing",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.Structure]: {
     title: "Architecture of the Internet",
+    // subScreens: [
+    //   {
+    //     title: "Autonomous Systems",
+    //     screen: NetworkOfAs({}),
+    //   },
+    // ],
     subScreens: [
       {
         title: "Autonomous Systems",
-        screen: NetworkOfAs({}),
+        screen: PlaceHolder({ type: "coming_soon" }),
       },
     ],
   },
   [Screen.OSIModel]: {
     title: "The OSI Model",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "The Layered Approach",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.UpperLayers]: {
     title: "Upper Layers of the OSI Model",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "The Application Layer",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.NetworkLayer]: {
     title: "The Network Layer",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "Responsibilities",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.NetworkTypesByTopology]: {
     title: "Types of Networks - By Topology",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "LANs, WANs, MANs",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.OSPFIntro]: {
     title: "Introduction to OSPF",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "What is OSPF?",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.OSPFDetail]: {
     title: "The OSPF Protocol",
-    subScreens: [],
+    subScreens: [
+      {
+        title: "Adjacencies",
+        screen: PlaceHolder({ type: "coming_soon" }),
+      },
+    ],
   },
   [Screen.VisualizerTutorial]: {
     title: "Visualizer Tutorial",
@@ -85,16 +126,12 @@ export const screenMap: Record<Screen, IScreen> = {
 };
 
 export const getExpertiseCards = (
-  setScreen: (
-    screen: TutorialScreen,
-    subScreenIdx: number,
-    writeToStorage?: boolean
-  ) => unknown,
-  writeToStorage?: boolean
+  setScreen: (screen: TutorialScreen, subScreenIdx?: number) => unknown
 ): ExpertiseCard[] => [
   {
     title: `${Emoji.Seedling} The Absolute Beginner`,
     prefix: "You are:",
+    screen: TutorialScreen.InternetIntro,
     description: [
       {
         text: "Just starting to explore networking concepts.",
@@ -105,17 +142,13 @@ export const getExpertiseCards = (
         text: `Ready to take the first step into the exciting world of networking! ${Emoji.Rocket}`,
       },
     ],
-    buttonLabel: `Start Your Networking Journey`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.InternetIntro,
-      0,
-      writeToStorage
-    ),
+    buttonLabel: `Start Your Journey`,
+    onClick: setScreen.bind(null, TutorialScreen.InternetIntro, 0),
   },
   {
     title: `${Emoji.Toolbox} The Network Amateur`,
     prefix: "You:",
+    screen: TutorialScreen.IPAddressing,
     description: [
       {
         text: "Know what is a computer network and how it is formed.",
@@ -136,16 +169,12 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Explore IP Addressing`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.IPAddressing,
-      0,
-      writeToStorage
-    ),
+    onClick: setScreen.bind(null, TutorialScreen.IPAddressing, 0),
   },
   {
     title: `${Emoji.SatelliteDish} The Intermediate`,
     prefix: "You:",
+    screen: TutorialScreen.OSPFIntro,
     description: [
       {
         text: "Are thorough in your understanding of the OSI model and its layered architecture.",
@@ -164,11 +193,12 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Dive Into OSPF`,
-    onClick: setScreen.bind(null, TutorialScreen.OSPFIntro, 0, writeToStorage),
+    onClick: setScreen.bind(null, TutorialScreen.OSPFIntro, 0),
   },
   {
     title: `${Emoji.Electricity} The Network Pro`,
     prefix: "You:",
+    screen: TutorialScreen.VisualizerTutorial,
     description: [
       {
         text: "Are very familiar with all the layers of the OSI Model.",
@@ -187,11 +217,6 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Start Visualizing OSPF`,
-    onClick: setScreen.bind(
-      null,
-      TutorialScreen.VisualizerTutorial,
-      0,
-      writeToStorage
-    ),
+    onClick: setScreen.bind(null, TutorialScreen.VisualizerTutorial, 0),
   },
 ];

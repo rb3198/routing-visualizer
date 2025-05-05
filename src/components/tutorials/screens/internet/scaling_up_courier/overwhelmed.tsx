@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import styles from "./styles.module.css";
 import { Point2D, RectPoints } from "src/types/geometry";
 import { Rect2D } from "src/entities/geometry/Rect2D";
-import { Office } from "src/types/welcome_tutorial/animation_entities";
+import { Office } from "src/types/tutorials/animation_entities";
 import { Colors } from "src/constants/theme";
 
 const Canvas = (canvas: HTMLCanvasElement) => {

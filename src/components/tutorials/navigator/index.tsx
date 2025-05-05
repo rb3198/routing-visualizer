@@ -1,52 +1,41 @@
 import { useState, useCallback, useEffect } from "react";
 import { BiChevronDown } from "react-icons/bi";
-import { screenMap } from "src/constants/welcome_tutorial";
+import { screenMap } from "src/constants/tutorials";
 import {
   SetScreenCallback,
   SubScreen,
   TutorialScreen,
-} from "src/types/welcome_tutorial/screen";
+} from "src/types/tutorials/screen";
 import styles from "./styles.module.css";
 
 interface NavigatorProps {
-  selectedScreen: Omit<TutorialScreen, "Welcome">;
+  selectedScreen: Omit<
+    TutorialScreen,
+    "Welcome" | "VisualizerTutorial" | "Complete"
+  >;
   setSelectedScreen: SetScreenCallback;
   selectedSubScreenIdx: number;
-  expanded: boolean;
   writeToStorage?: boolean;
-  setExpanded: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const Navigator: React.FC<NavigatorProps> = (props) => {
   const {
-    expanded,
     selectedScreen,
     writeToStorage,
     selectedSubScreenIdx,
     setSelectedScreen,
-    setExpanded,
   } = props;
   const [expandedScreen, setExpandedScreen] = useState<
     Omit<TutorialScreen, "Welcome"> | undefined
   >(selectedScreen);
-  const toggleExpanded = useCallback(
-    () => setExpanded((prev) => !prev),
-    [setExpanded]
-  );
 
   useEffect(() => {
     setExpandedScreen(selectedScreen);
   }, [selectedScreen]);
 
   const Header = (
-    <div id={styles.navigator_header} data-expanded={expanded}>
+    <div id={styles.navigator_header}>
       <h3>Contents</h3>
-    </div>
-  );
-
-  const ExpandCollapse = (
-    <div id={styles.nav_expand_collapse} onClick={toggleExpanded}>
-      {expanded ? "Hide" : "View"} All Topics
     </div>
   );
 
@@ -86,16 +75,16 @@ export const Navigator: React.FC<NavigatorProps> = (props) => {
   );
 
   return (
-    <nav id={styles.navigator} data-expanded={expanded}>
+    <nav id={styles.navigator}>
       {Header}
-      {ExpandCollapse}
-      <div id={styles.topic_container} data-expanded={expanded}>
+      <div id={styles.topic_container}>
         {Object.keys(TutorialScreen)
           .filter(
             (screen) =>
               !isNaN(parseInt(screen)) &&
               parseInt(screen) &&
-              (parseInt(screen) as TutorialScreen) !== TutorialScreen.Complete
+              (parseInt(screen) as TutorialScreen) <
+                TutorialScreen.VisualizerTutorial
           )
           .map((screen) => renderTopic(parseInt(screen) as TutorialScreen))}
       </div>

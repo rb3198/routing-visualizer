@@ -4,6 +4,8 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useEffect,
+  KeyboardEventHandler,
 } from "react";
 import styles from "./styles.module.css";
 import { CgClose } from "react-icons/cg";
@@ -12,7 +14,7 @@ import { MdError, MdSource } from "react-icons/md";
 import { ConfigFile, ConfigFileJsonSchema } from "src/entities/config";
 import Ajv from "ajv/dist/2020";
 import { ConfigPreset } from "src/types/preset";
-import { italicBoldString } from "src/components/welcome_tutorial/screens/common";
+import { italicBoldString } from "src/components/tutorials/screens/common";
 import { AiOutlineQuestionCircle } from "react-icons/ai";
 import { BiChevronLeft } from "react-icons/bi";
 import { IoMdCheckmark } from "react-icons/io";
@@ -216,10 +218,20 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
   >("selector");
   const [error, setError] = useState("");
   const [activePreset, setActivePreset] = useState<ConfigPreset | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<File>();
 
   //#endregion
 
+  //#region Effects
+  useEffect(() => {
+    const { current } = containerRef;
+    current?.focus();
+    return () => {
+      current?.blur();
+    };
+  }, [active]);
+  //#endregion
   //#region Callbacks
   const closeLoader = useCallback(() => {
     setError("");
@@ -294,6 +306,13 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
       closeLoader();
     },
     [loadConfig, closeLoader]
+  );
+
+  const onKeyDown: KeyboardEventHandler = useCallback(
+    (e) => {
+      e.key === "Escape" && closeLoader();
+    },
+    [closeLoader]
   );
   //#endregion
 
@@ -427,7 +446,12 @@ export const ConfigLoader: React.FC<ConfigLoaderProps> = (props) => {
     return null;
   }
   return (
-    <div id={styles.container}>
+    <div
+      id={styles.container}
+      tabIndex={0}
+      ref={containerRef}
+      onKeyDown={onKeyDown}
+    >
       <div id={styles.backdrop} onClick={closeLoader} />
       {Content}
     </div>
