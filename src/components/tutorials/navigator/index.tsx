@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { BiChevronDown } from "react-icons/bi";
-import { screenMap } from "src/constants/welcome_tutorial";
+import { screenMap } from "src/constants/tutorials";
 import {
   SetScreenCallback,
   SubScreen,
   TutorialScreen,
-} from "src/types/welcome_tutorial/screen";
+} from "src/types/tutorials/screen";
 import styles from "./styles.module.css";
 
 interface NavigatorProps {

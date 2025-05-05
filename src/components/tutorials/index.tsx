@@ -5,8 +5,8 @@ import {
   ScreenNameMap,
   SetScreenCallback,
   TutorialScreen,
-} from "src/types/welcome_tutorial/screen";
-import { screenMap } from "src/constants/welcome_tutorial";
+} from "src/types/tutorials/screen";
+import { screenMap } from "src/constants/tutorials";
 import { WelcomeScreen } from "./screens/welcome";
 import { Navigator } from "./navigator";
 import { BiChevronLeft, BiChevronRight } from "react-icons/bi";

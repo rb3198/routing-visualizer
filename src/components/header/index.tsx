@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./style.module.css";
 import { HeaderIcon } from "../icons/HeaderIcon";
-import { TutorialScreen } from "src/types/welcome_tutorial/screen";
+import { TutorialScreen } from "src/types/tutorials/screen";
 
 export interface HeaderProps {
   openTutorial: (

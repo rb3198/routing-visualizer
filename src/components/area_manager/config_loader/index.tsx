@@ -14,7 +14,7 @@ import { MdError, MdSource } from "react-icons/md";
 import { ConfigFile, ConfigFileJsonSchema } from "src/entities/config";
 import Ajv from "ajv/dist/2020";
 import { ConfigPreset } from "src/types/preset";
-import { italicBoldString } from "src/components/welcome_tutorial/screens/common";
+import { italicBoldString } from "src/components/tutorials/screens/common";
 import { AiOutlineQuestionCircle } from "react-icons/ai";
 import { BiChevronLeft } from "react-icons/bi";
 import { IoMdCheckmark } from "react-icons/io";

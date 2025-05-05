@@ -7,12 +7,9 @@ import { EventLog } from "./components/event_log";
 import { ModalManager as EventModalManager } from "./components/modals/manager";
 import styles from "./App.module.css";
 import { Footer } from "./components/footer";
-import WelcomeTutorial from "./components/welcome_tutorial";
+import WelcomeTutorial from "./components/tutorials";
 import { WELCOME_LAST_SCREEN_KEY } from "./constants/storage";
-import {
-  TutorialScreen,
-  TutorialScreenCache,
-} from "./types/welcome_tutorial/screen";
+import { TutorialScreen, TutorialScreenCache } from "./types/tutorials/screen";
 import { useCallback, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { AppRoutes } from "./constants/app_routes";

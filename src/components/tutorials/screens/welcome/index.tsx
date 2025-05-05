@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
-import { TutorialScreen } from "src/types/welcome_tutorial/screen";
+import { TutorialScreen } from "src/types/tutorials/screen";
 import styles from "./styles.module.css";
 import { Emoji } from "src/constants/emojis";
-import { getExpertiseCards } from "src/constants/welcome_tutorial";
-import { ExpertiseCard } from "src/types/welcome_tutorial/expertise_card";
+import { getExpertiseCards } from "src/constants/tutorials";
+import { ExpertiseCard } from "src/types/tutorials/expertise_card";
 import { BiChevronRight } from "react-icons/bi";
 
 type Props = {

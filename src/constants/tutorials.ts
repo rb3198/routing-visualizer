@@ -1,15 +1,15 @@
-import { ExpertiseCard } from "src/types/welcome_tutorial/expertise_card";
+import { ExpertiseCard } from "src/types/tutorials/expertise_card";
 import {
   ITutorialScreen as IScreen,
   TutorialScreen as Screen,
   TutorialScreen,
-} from "src/types/welcome_tutorial/screen";
+} from "src/types/tutorials/screen";
 import { Emoji } from "./emojis";
-import { CourierLocal } from "src/components/welcome_tutorial/screens/internet/courier_local";
-import { NetworkDefinition } from "src/components/welcome_tutorial/screens/internet/network_definition";
-import { ScalingUp } from "src/components/welcome_tutorial/screens/internet/scaling_up_courier";
-import { CoreDistEdge } from "src/components/welcome_tutorial/screens/internet/core_dist_edge";
-import { NetworkOfAs } from "src/components/welcome_tutorial/screens/internet/network_of_as";
+import { CourierLocal } from "src/components/tutorials/screens/internet/courier_local";
+import { NetworkDefinition } from "src/components/tutorials/screens/internet/network_definition";
+import { ScalingUp } from "src/components/tutorials/screens/internet/scaling_up_courier";
+import { CoreDistEdge } from "src/components/tutorials/screens/internet/core_dist_edge";
+import { NetworkOfAs } from "src/components/tutorials/screens/internet/network_of_as";
 
 export const screenMap: Record<Screen, IScreen> = {
   [Screen.Welcome]: {
