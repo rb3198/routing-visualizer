@@ -1,0 +1,263 @@
+#container {
+    z-index: 100;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+#backdrop {
+    background-color: #000000aa;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    cursor: pointer;
+}
+
+#content {
+    z-index: 2;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 6px;
+    padding: 1rem;
+    width: 22vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: initial;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#content[data-screen="presets"] {
+    width: 30vw;
+}
+
+#content[data-screen="preset_detail"] {
+    width: 50vw;
+    align-items: flex-start;
+    max-height: 70vh;
+}
+#header {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+#header h2 {
+    display: flex;
+    align-items: center;
+}
+
+#header h2 svg {
+    margin-right: 4px;
+    margin-top: 2px;
+    color: #eab807;
+}
+
+#close {
+    cursor: pointer;
+}
+
+#warning {
+    border: 2px solid #eab807;
+    border-radius: 6px;
+    background-color: #eab80711;
+    color: #eab807;
+    padding: 0.309rem;
+    display: flex;
+    font-size: .764rem;
+    margin-bottom: .764rem;
+}
+
+#warning p span {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+#warning_icon {
+    display: flex;
+    align-items: center;
+    font-size: 1.309rem;
+    margin-right: .764rem;
+}
+
+.option {
+    font-size: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 12.5rem;
+    margin-bottom: .764rem;
+    background-color: #324ca8;
+    color: white;
+    padding: .618rem 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    position: relative;
+}
+
+.option[data-preset="true"] {
+    width: 80%;
+    margin-bottom: 0;
+}
+
+.option:hover {
+    background-color: #324ca8cc;
+}
+
+.preset_option_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: .764rem;
+}
+
+.question {
+    margin-left: 4px;
+    color: #324ca8;
+    font-weight: bold;
+    font-size: 1.309rem;
+    cursor: pointer;
+}
+
+#file_input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+#error {
+    display: flex;
+    align-items: center;
+    color: #a83232;
+    font-size: .764rem;
+    font-weight: 600;
+    list-style-position: inside;
+}
+
+#error ol li span {
+    background-color: #ccc;
+    font-family: "Courier New";
+    font-weight: normal;
+    word-break: break-word;
+}
+
+#error svg {
+    font-size: 1.309rem;
+    width: 3rem;
+    margin-right: 4px;
+}
+#preset_desc_container {
+    width: 100%;
+}
+#preset_desc_container ul, #preset_desc_container ol {
+    list-style-position: inside;
+}
+
+.preset_desc_section {
+    margin-bottom: .764rem;
+}
+
+.preset_desc_section ul {
+    list-style-type: circle;
+}
+
+#preset_desc_button_container {
+    display: flex;
+}
+
+#preset_desc_img {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2rem;
+    font-style: italic;
+}
+
+#preset_desc_img img {
+    width: 50%;
+}
+
+.nav_button {
+    padding: .618rem;
+    font-size: .764rem;
+    border-radius: 6px;
+    margin-right: 1rem;
+    border: none;
+    background-color: #324ca8;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.nav_button:hover {
+    background-color: #324ca8cc;
+}
+
+.nav_button svg {
+    margin-right: 4px;
+}
+
+.detail_heading {
+    font-size: 1.309rem;
+    margin-bottom: .764rem;
+}
+
+@media screen and (max-width: 1200px) {
+    #header {
+        font-size: 0.918rem;
+    }
+    .option {
+        font-size: .764rem;
+    }
+}
+@media screen and (max-width: 1000px) {
+    #header {
+        font-size: 0.764rem;
+    }
+    .option {
+        font-size: .764rem;
+        padding: .309rem 0;
+    }
+}
+
+@media screen and (max-width: 900px) {
+    #content {
+        width: 35vw;
+    }
+    #content[data-screen="presets"] {
+        width: 40vw;
+    }
+    #content[data-screen="preset_detail"] {
+        width: 80vw;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    #content {
+        width: 50vw;
+    }
+    #content[data-screen="presets"] {
+        width: 60vw;
+    }
+    #content[data-screen="preset_detail"] {
+        width: 90vw;
+    }
+}

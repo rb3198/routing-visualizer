@@ -1,5 +1,8 @@
+import { MutableRefObject } from "react";
 import { AreaTree } from "src/entities/area_tree";
+import { ConfigFile } from "src/entities/config";
 import { GridCell } from "src/entities/geometry/grid_cell";
+import { IPLinkInterface } from "src/entities/ip/link_interface";
 import { Router } from "src/entities/router";
 import { Point2D } from "src/types/geometry";
 
@@ -14,7 +17,7 @@ export type ComponentPickerState = PickerState & {
 export type RouterMenuState = PickerState & {
   connectionOptions: {
     name: string;
-    connectionOptions: [string, Router][];
+    connectionOptions: [number[], Router][];
   }[];
 };
 
@@ -29,8 +32,9 @@ export type DefaultRouterMenuState = {
 
 export type InteractiveState = {
   gridRect: GridCell[][];
-  cursor: "initial" | "pointer";
+  cursor: "initial" | "pointer" | "grabbing";
   cell: Point2D;
+  warnConfigLoad: boolean;
 } & (
   | {
       simulationStatus: "playing" | "paused" | "stopped";
@@ -73,6 +77,11 @@ export type InteractiveAction =
       type: "pause" | "stop";
     }
   | {
+      type: "zoomed" | "panned";
+      areaTree: AreaTree;
+      linkInterfaceMap: Map<string, IPLinkInterface>;
+    }
+  | {
       type: "play";
       areaTree: AreaTree;
       compLayer?: HTMLCanvasElement | null;
@@ -89,6 +98,7 @@ export type InteractiveAction =
   | {
       type: "router_interaction_completed";
       cell?: Point2D;
+      warnConfigLoad?: boolean;
     }
   | {
       type: "send_packet";
@@ -116,4 +126,21 @@ export type InteractiveAction =
       iconLayer: HTMLCanvasElement;
       overlayLayer: HTMLCanvasElement;
       areaTree: AreaTree;
+    }
+  | {
+      type: "config_changed";
+    }
+  | {
+      type: "config_saved";
+    }
+  | {
+      type: "load_config";
+      config: ConfigFile;
+      areaTreeRef: MutableRefObject<AreaTree>;
+      linkInterfaceMapRef: MutableRefObject<Map<string, IPLinkInterface>>;
+    }
+  | {
+      type: "clear_grid";
+      areaTreeRef: MutableRefObject<AreaTree>;
+      linkInterfaceMapRef: MutableRefObject<Map<string, IPLinkInterface>>;
     };

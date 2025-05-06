@@ -1,0 +1,10 @@
+#components_list {
+    margin-top: .618rem;
+}
+
+#routing_example_container {
+    display: flex;
+    text-align: center;
+    font-style: italic;
+    font-size: .927rem;
+}

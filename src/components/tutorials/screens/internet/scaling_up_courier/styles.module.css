@@ -1,0 +1,44 @@
+.canvas_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-style: italic;
+}
+
+#container {
+    display: flex;
+    flex-direction: column;
+}
+
+#advantages {
+    list-style: none;
+}
+#advantages li::before{
+    content: '✓';
+    color: forestgreen;
+    margin-right: .618rem;
+    font-weight: bold;
+}
+
+.routing_table {
+    border-radius: 6px;
+    width: max-content;
+    max-width: 100%;
+}
+
+.routing_table tbody {
+    width: max-content;
+}
+
+.routing_table td, .routing_table th {
+    padding: .618rem;
+}
+
+.routing_table th {
+    background-color: #E7EBE7;
+}
+
+.routing_table td {
+    background-color: #F7FBF7;
+}

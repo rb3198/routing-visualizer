@@ -3,13 +3,13 @@
     font-weight: 600;
     position: absolute;
     overflow: hidden;
-    bottom: 40px;
+    bottom: 7vh;
     right: 2.5%;
     cursor: pointer;
     z-index: 10;
     box-shadow: 0px 0px 10px 2px #aaa;
     border-radius: .75vmax;
-    padding: .75vmax;
+    padding: 0 .75vmax;
     font-size: 1vmax;
 }
 
@@ -17,6 +17,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 5vh;
 }
 
 #main p, #main svg {
@@ -41,12 +42,14 @@
     width: max-content;
     right: 0; 
     z-index: 0;
-    transition: opacity .25s ease-in, transform .25s ease-in;
+    transition: opacity .25s ease-in, transform .25s ease-in, visibility 0s .25s;    
+    visibility: hidden;
 }
 
 #list.opened {
     transform: translateY(0%);
     opacity: 1;
+    visibility: visible;
 }
 
 #list li {
@@ -74,4 +77,10 @@
 
 .expand.opened {
     transform: rotate(180deg);
+}
+
+@media screen and (max-width: 600px) {
+    #main {
+        height: 4vh;
+    }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect } from "react";
 import { GridCell } from "src/entities/geometry/grid_cell";
 import { Point2D } from "src/types/geometry";
+import { getCellSize } from "src/utils/drawing";
 
 /**
  * Duration of the appear / disappear animation in milliseconds
@@ -43,6 +44,11 @@ const DEFAULT_POSITION = {
   top: -200,
 };
 
+const getCoord = (coord: number, offset: number) => {
+  const { zoom = 1 } = window;
+  return (coord + offset) / zoom;
+};
+
 const getPosition = (
   column: number,
   row: number,
@@ -53,28 +59,38 @@ const getPosition = (
   if (!canvas || !tooltipElement || !gridRect[row] || !gridRect[row][column]) {
     return { left: -200, top: -200 };
   }
+  const { canvasOffset = [0, 0] } = window;
   const { height, width } = tooltipElement.getBoundingClientRect();
   const cell = gridRect[row][column];
-  const { x, y } = cell;
-  const canvasY = canvas.getBoundingClientRect().y;
+  const cellSize = getCellSize();
+  const x = getCoord(cell.x, canvasOffset[0]);
+  const y = getCoord(cell.y, canvasOffset[1]);
+  const { y: canvasY, height: canvasHeight } = canvas.getBoundingClientRect();
   const horizontalPosition = x + width > canvas.clientWidth ? "left" : "right";
   const verticalPosition =
-    canvas.getBoundingClientRect().y + y + height > canvas.clientHeight
-      ? "top"
-      : "bottom";
+    canvasY + y + height > canvasY + canvasHeight ? "top" : "bottom";
   if (horizontalPosition === "right") {
     if (verticalPosition === "bottom") {
-      const { x, y } = gridRect[row + 1][column + 1];
-      return { left: x, top: y + canvasY };
+      return {
+        left: getCoord(cell.x + cellSize, canvasOffset[0]),
+        top: getCoord(cell.y + cellSize, canvasOffset[1]) + canvasY,
+      };
     }
-    const { x } = gridRect[row - 1][column + 1];
-    return { left: x, top: y - height + canvasY };
+    return {
+      left: getCoord(cell.x + cellSize, canvasOffset[0]),
+      top: y - height + canvasY,
+    };
   }
   if (verticalPosition === "bottom") {
-    const { y } = gridRect[row + 1][column - 1];
-    return { left: x - width, top: y + canvasY };
+    return {
+      left: x - width,
+      top: canvasY + getCoord(cell.y + cellSize, canvasOffset[1]),
+    };
   }
-  return { left: x - width, top: y - height + canvasY };
+  return {
+    left: x - width,
+    top: getCoord(cell.y, canvasOffset[1]) - height + canvasY,
+  };
 };
 
 /**

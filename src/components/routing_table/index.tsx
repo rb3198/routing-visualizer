@@ -46,6 +46,8 @@ const getValue = (
     case "linkStateOrigin":
       const { linkStateOrigin } = row;
       return linkStateOrigin ? renderLSAHeader(linkStateOrigin?.header) : "";
+    case "cost":
+      return row.cost.toFixed(2);
     default:
       return typeof row[key] === "undefined" ? "Not Set" : `${row[key]}`;
   }
@@ -96,7 +98,7 @@ export const RoutingTableVisual: React.FC<RoutingTableProps> = (props) => {
         let className = "";
         const onMouseOver = () => setActiveRow(rowIdx);
         const onMouseOut = () => setActiveRow(-1);
-        const { destinationId } = route;
+        const { destinationId, area } = route;
         const destIp = new IPv4Address(...destinationId.bytes);
         if (!activeTable[rowIdx] && table[rowIdx]) {
           className = styles.added;
@@ -106,7 +108,7 @@ export const RoutingTableVisual: React.FC<RoutingTableProps> = (props) => {
         }
         return (
           <tr
-            key={`routing_table_tr_${destIp}`}
+            key={`routing_table_tr_${destIp}_${area}`}
             className={className}
             onMouseOver={onMouseOver}
             onMouseOut={onMouseOut}

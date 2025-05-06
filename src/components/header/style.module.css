@@ -1,5 +1,5 @@
 #header {
-    height: 7.5vh;
+    height: 6vh;
     background-color: #324ca8;
     display: flex;
     justify-content: space-between;
@@ -10,16 +10,15 @@
     z-index: 100;
 }
 
-#header-title {
+#header_title {
     color: white;
     display: flex;
     align-items: center;
-    font-size: 1.75vmin;
+    cursor: pointer;
 }
 
-#header-title svg {
+#header_title svg {
     margin-right: 12px;
-    width: 3vmax;
 }
 
 nav {
@@ -35,7 +34,7 @@ nav ul li {
     font-weight: bold;
     height: 100%;
     padding: 0 1.5vmax;
-    font-size: .8vmax;
+    font-size: .764rem;
     cursor: pointer;
     display: flex;
     align-items: center;

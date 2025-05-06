@@ -1,0 +1,44 @@
+.table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+}
+
+.table th {
+    text-wrap: nowrap;
+    text-align: center;
+    vertical-align: middle;
+    background-color: #ddd;
+}
+
+.table td {
+    background-color: #f5f5fc;
+    width: max-content;
+}
+
+.table td, .table th {
+    padding: .618rem;
+    font-size: .764rem;
+}
+
+.design {
+    width: 15vw;
+    min-width: 15vw;
+}
+
+.ex_container {
+    display: flex;
+    aspect-ratio: 16 / 9;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.ex_container p {
+    font-style: italic;
+    text-align: middle;
+}
+
+.conclusion {
+    float: left;
+}

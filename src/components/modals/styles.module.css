@@ -22,6 +22,11 @@
     opacity: 0;
     transition: opacity 0.5s;
     box-sizing: border-box;
+    overflow-y: auto;
+}
+
+#container:focus {
+    outline: none;
 }
 
 #container.visible, #backdrop.visible {
@@ -50,6 +55,7 @@
     flex-grow: 1;
     min-height: 0;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 @media screen and (max-width: 1367px) {

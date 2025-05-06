@@ -18,12 +18,21 @@ import { PacketSentEventBuilder } from "../network_event/event_builders/packets/
 import { PacketDroppedEventBuilder } from "../network_event/event_builders/packets/dropped";
 import { InterfaceEventBuilder } from "../network_event/event_builders/interfaces";
 import { RouterPowerState as PowerState } from "./enum/RouterPowerState";
-import { GridCell } from "../geometry/grid_cell";
+import { Rect2D } from "../geometry/Rect2D";
+import {
+  beforeDraw,
+  drawRouterAntennas,
+  drawRouterBox,
+  drawRouterButtons,
+  getCellSize,
+  postDraw,
+} from "src/utils/drawing";
 
 export class Router {
-  key: string;
   /**
-   * Location of the router on the grid.
+   * Location of the router on the grid, in absolute values.
+   *
+   * Signifies the low point of the bounding box of the rect representing this router.
    */
   location: Point2D;
   /**
@@ -46,14 +55,12 @@ export class Router {
   gracefulShutdown: boolean;
 
   constructor(
-    key: string,
     location: Point2D,
     id: IPv4Address,
     ospfConfig: OSPFConfig,
     power?: PowerState,
     gracefulShutdown?: boolean
   ) {
-    this.key = key;
     this.location = location;
     this.id = id;
     this.ipInterfaces = new Map();
@@ -62,14 +69,22 @@ export class Router {
     this.gracefulShutdown = gracefulShutdown ?? true;
   }
 
+  get boundingBox(): Rect2D {
+    const cellSize = getCellSize();
+    const high = this.location.map((x) => x + cellSize) as Point2D;
+    return new Rect2D(this.location, high);
+  }
+
   addInterface = (ipInterface: IPLinkInterface) => {
     const { config } = this.ospf;
     const { helloInterval } = config;
     let helloTimer: NodeJS.Timeout | undefined;
     const selfAddress = ipInterface.getSelfIpAddress(this) ?? "";
-    store.dispatch(
-      emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
-    );
+    setTimeout(() => {
+      store.dispatch(
+        emitEvent(InterfaceEventBuilder(this, "added", selfAddress))
+      );
+    }, 500);
     if (this.power === PowerState.On) {
       // IF power is on send hello packet immediately on the new interface.
       this.ospf.sendHelloPacket(ipInterface);
@@ -255,18 +270,14 @@ export class Router {
     color: string = Colors.accent
   ) => {
     const context = window.elementLayer?.getContext("2d");
-    const { cellSize } = store.getState();
     if (reason) {
       const event = PacketDroppedEventBuilder(this, packet, reason);
       store.dispatch(emitEvent(event));
     }
-    context && packetAnimations.packetDrop(context, cellSize, this, 500, color);
+    context && packetAnimations.packetDrop(context, this, 500, color);
   };
 
-  turnOn = (
-    gridRect: GridCell[][],
-    context?: CanvasRenderingContext2D | null
-  ) => {
+  turnOn = (context?: CanvasRenderingContext2D | null) => {
     const { config, lsDb } = this.ospf;
     const { helloInterval } = config;
     if (this.power === PowerState.On) {
@@ -283,16 +294,11 @@ export class Router {
         helloTimer,
       });
     }
-    const [x, y] = this.location;
-    context &&
-      gridRect[y][x]?.drawRouter(context, this.id.toString(), this.power);
+    context && this.draw(context);
     lsDb.startTimers();
   };
 
-  turnOff = async (
-    gridRect: GridCell[][],
-    context?: CanvasRenderingContext2D | null
-  ) => {
+  turnOff = async (context?: CanvasRenderingContext2D | null) => {
     this.power = PowerState.ShuttingDown;
     this.ospf.lsDb.clearTimers();
     await this.ospf.lsDb.clearDb(this.gracefulShutdown);
@@ -314,8 +320,41 @@ export class Router {
       clearInterval(helloTimer);
     });
     this.power = PowerState.Shutdown;
+    context && this.draw(context);
+  };
+
+  draw = (ctx: CanvasRenderingContext2D) => {
     const [x, y] = this.location;
-    context &&
-      gridRect[y][x]?.drawRouter(context, this.id.toString(), this.power);
+    const routerIp = this.id.toString();
+    const size = getCellSize();
+    beforeDraw(ctx);
+    ctx.clearRect(x, y, size, size);
+    ctx.beginPath();
+    ctx.fillStyle =
+      this.power === PowerState.Shutdown
+        ? Colors.disabled
+        : Colors.complementary;
+    ctx.rect(x, y, size, size);
+    ctx.fill();
+    ctx.closePath();
+    ctx.beginPath();
+    drawRouterBox.call(this, ctx);
+    drawRouterAntennas.call(this, ctx);
+    drawRouterButtons.call(this, ctx);
+    ctx.moveTo(x + 0.55 * size, y + 0.7 * size);
+    ctx.lineTo(x + 0.825 * size, y + 0.7 * size);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.closePath();
+    ctx.fillStyle = "white";
+    ctx.font = `${size / 4.5}px sans-serif`;
+    const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
+      ctx.measureText(routerIp);
+    const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
+    ctx.fillText(routerIp, x, y + fontHeight, size);
+    ctx.strokeStyle = "";
+    ctx.closePath();
+    postDraw(ctx);
   };
 }

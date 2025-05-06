@@ -7,16 +7,16 @@ import { EventLog } from "./components/event_log";
 import { ModalManager as EventModalManager } from "./components/modals/manager";
 import styles from "./App.module.css";
 import { Footer } from "./components/footer";
-import WelcomeTutorial from "./components/welcome_tutorial";
-import { WELCOME_LAST_SCREEN_KEY } from "./constants/storage";
-import {
-  TutorialScreen,
-  TutorialScreenCache,
-} from "./types/welcome_tutorial/screen";
+import NetworkTutorial from "./components/tutorials";
+import { LAST_TUTORIAL_KEY } from "./constants/storage";
+import { TutorialScreen, TutorialScreenCache } from "./types/tutorials/screen";
 import { useCallback, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router";
+import { AppRoutes } from "./constants/app_routes";
+import { WelcomeScreen } from "./components/tutorials/screens/welcome";
 
 const readTutScreenFromStorage = (): TutorialScreenCache => {
-  const cache = localStorage.getItem(WELCOME_LAST_SCREEN_KEY);
+  const cache = localStorage.getItem(LAST_TUTORIAL_KEY);
   if (!cache) {
     return {
       screen: TutorialScreen.Welcome,
@@ -27,66 +27,64 @@ const readTutScreenFromStorage = (): TutorialScreenCache => {
 };
 
 const writeTutScreenToStorage = (config: TutorialScreenCache) => {
-  localStorage.setItem(WELCOME_LAST_SCREEN_KEY, JSON.stringify(config));
+  localStorage.setItem(LAST_TUTORIAL_KEY, JSON.stringify(config));
 };
 
 const initialScreenConfig = readTutScreenFromStorage();
-const { screen: initScreen, subScreenIdx: initSubScreenIdx } =
-  initialScreenConfig;
+const { screen: initScreen } = initialScreenConfig;
 
 function App() {
   const [tutScreen, setTutScreen] = useState(initScreen);
-  const [subScreenIdx, setSubScreenIdx] = useState(initSubScreenIdx);
-  const [writeToStorage, setWriteToStorage] = useState(true);
-
-  const setTutorialConfig = useCallback(
-    (
-      nextScreen: TutorialScreen,
-      nextSubScreenIdx: number,
-      writeToStorage?: boolean
-    ) => {
-      if (nextScreen !== tutScreen) {
-        setTutScreen(nextScreen);
-        setSubScreenIdx(0);
-      } else {
-        setSubScreenIdx(nextSubScreenIdx);
-      }
+  const openTutScreen = useCallback(
+    (screen: TutorialScreen, nextSubScreenIdx?: number) => {
+      setTutScreen(screen);
+      const configInStore = readTutScreenFromStorage();
+      const writeToStorage = configInStore.screen < screen;
       writeToStorage &&
         writeTutScreenToStorage({
-          screen: nextScreen,
-          subScreenIdx: nextSubScreenIdx,
+          screen,
+          subScreenIdx: nextSubScreenIdx ?? 0,
         });
-    },
-    [tutScreen]
-  );
-
-  const openTutScreen = useCallback(
-    (tutScreen: TutorialScreen, writeToStorage?: boolean) => {
-      setTutScreen(tutScreen);
-      setWriteToStorage(writeToStorage ?? false);
     },
     []
   );
+
+  const showWelcomeScreen =
+    tutScreen === TutorialScreen.Welcome &&
+    process.env.NODE_ENV === "development";
+  // TODO: Use when implementing simulator tutorial
+  // const showSimTutorial =
+  //   !showWelcomeScreen && tutScreen <= TutorialScreen.VisualizerTutorial;
   return (
     <div className={styles.App}>
-      <WelcomeTutorial
-        screen={tutScreen}
-        subScreenIdx={subScreenIdx}
-        setScreen={setTutorialConfig}
-        writeToStorage={writeToStorage}
-      />
       <Provider store={store}>
-        <Header openTutorial={openTutScreen} />
-        <div id="grid_container">
-          <GridManager />
-          <EventLog
-            showControlPanel
-            classes={styles.event_log}
-            showExpandToggle
-          />
-          <NotificationTooltip />
-          <EventModalManager />
-        </div>
+        <BrowserRouter>
+          <Header setTutorialScreen={openTutScreen} />
+          <Routes>
+            <Route
+              path={AppRoutes.Index}
+              element={
+                <div id="grid_container">
+                  {showWelcomeScreen && (
+                    <WelcomeScreen setScreen={openTutScreen} />
+                  )}
+                  <GridManager />
+                  <EventLog
+                    showControlPanel
+                    classes={styles.event_log}
+                    showExpandToggle
+                  />
+                  <NotificationTooltip />
+                  <EventModalManager />
+                </div>
+              }
+            />
+            <Route
+              path={AppRoutes.Tutorials}
+              element={<NetworkTutorial setScreen={openTutScreen} />}
+            />
+          </Routes>
+        </BrowserRouter>
         <Footer />
       </Provider>
     </div>

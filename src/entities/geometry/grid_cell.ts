@@ -1,10 +1,5 @@
+import { beforeDraw, postDraw } from "src/utils/drawing";
 import { Colors } from "../../constants/theme";
-import {
-  drawRouterAntennas,
-  drawRouterBox,
-  drawRouterButtons,
-} from "../../utils/grid_cell";
-import { RouterPowerState } from "../router/enum/RouterPowerState";
 
 /**
  * Class representing a single cell in the grid.
@@ -29,15 +24,10 @@ export class GridCell {
     this.size = size;
   }
 
-  private beforeDraw = (context: CanvasRenderingContext2D, stroke?: string) => {
-    const prevStrokeStyle = context.strokeStyle;
+  private beforeDraw = (context: CanvasRenderingContext2D) => {
+    beforeDraw(context);
     context.clearRect(this.x, this.y, this.size, this.size);
     context.beginPath();
-    context.rect(this.x, this.y, this.size, this.size);
-    context.strokeStyle = stroke || this.cellStrokeColor;
-    context.stroke();
-    context.closePath();
-    context.strokeStyle = prevStrokeStyle;
   };
 
   /**
@@ -55,7 +45,7 @@ export class GridCell {
       console.error("Cannot draw on a cell that contains a router or a path.");
       return;
     }
-    context.save();
+    beforeDraw(context);
     context.strokeStyle = plusColor;
     context.beginPath();
     context.arc(
@@ -88,57 +78,27 @@ export class GridCell {
     context.stroke();
     context.fill();
     context.closePath();
-    context.restore();
-  };
-
-  drawRouter = (
-    context: CanvasRenderingContext2D,
-    routerIp: string,
-    power = RouterPowerState.Shutdown
-  ) => {
-    const { x, y, size } = this;
-    context.clearRect(x, y, size, size);
-    context.beginPath();
-    context.fillStyle =
-      power === RouterPowerState.Shutdown
-        ? Colors.disabled
-        : Colors.complementary;
-    context.rect(x, y, size, size);
-    context.fill();
-    context.closePath();
-    context.beginPath();
-    drawRouterBox.call(this, context);
-    drawRouterAntennas.call(this, context);
-    drawRouterButtons.call(this, context);
-    context.moveTo(x + 0.55 * size, y + 0.7 * size);
-    context.lineTo(x + 0.825 * size, y + 0.7 * size);
-    context.strokeStyle = "white";
-    context.lineWidth = 1.25;
-    context.stroke();
-    context.closePath();
-    context.fillStyle = "white";
-    context.font = `${size / 4.5}px sans-serif`;
-    const { fontBoundingBoxAscent, fontBoundingBoxDescent } =
-      context.measureText(routerIp);
-    const fontHeight = fontBoundingBoxAscent + fontBoundingBoxDescent;
-    context.fillText(routerIp, x, y + fontHeight);
-    context.strokeStyle = "";
-    this.type = "router";
+    postDraw(context);
   };
 
   drawEmpty = (context: CanvasRenderingContext2D, stroke?: string) => {
-    this.beforeDraw(context, stroke);
+    this.beforeDraw(context);
+    context.rect(this.x, this.y, this.size, this.size);
+    context.strokeStyle = stroke || this.cellStrokeColor;
+    context.stroke();
     this.type = "none";
+    context.closePath();
+    postDraw(context);
   };
 
   drawOverlay(context: CanvasRenderingContext2D) {
     const { x, y, size } = this;
-    context.save();
+    beforeDraw(context);
     context.fillStyle = "#00000088";
     context.beginPath();
     context.rect(x, y, size, size);
     context.fill();
     context.closePath();
-    context.restore();
+    postDraw(context);
   }
 }

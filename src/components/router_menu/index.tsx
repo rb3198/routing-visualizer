@@ -6,7 +6,6 @@ import { PiPathFill, PiPowerDuotone } from "react-icons/pi";
 import { GoDatabase } from "react-icons/go";
 import { LsDb } from "src/entities/router/ospf_interface/ls_db";
 import { AreaTree } from "src/entities/area_tree";
-import { BACKBONE_AREA_ID } from "src/entities/ospf/constants";
 import { Point2D } from "src/types/geometry";
 import { GridCell } from "src/entities/geometry/grid_cell";
 import { usePickerPosition } from "../hooks/usePickerPosition";
@@ -83,12 +82,12 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       const { turnOff, turnOn } = selectedRouter;
       switch (routerPower) {
         case RouterPowerState.Shutdown:
-          turnOn(gridRect, context);
+          turnOn(context);
           setRouterPower(RouterPowerState.On);
           break;
         case RouterPowerState.On:
           setRouterPower(RouterPowerState.ShuttingDown);
-          await turnOff(gridRect, context);
+          await turnOff(context);
           setRouterPower(RouterPowerState.Shutdown);
           break;
         default:
@@ -135,7 +134,6 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
       </div>
     );
   }, [
-    gridRect,
     selectedRouter,
     gracefulShutdown,
     routerPower,
@@ -205,38 +203,30 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
     if (!areaTree || !selectedRouter || !areaTree.root) {
       return [];
     }
-    const { ipInterfaces, key: selectedRouterKey } = selectedRouter;
+    const { ipInterfaces, id: selectedRouterId } = selectedRouter;
     const selectedRouterIpInterfaces = Array.from(new Set(ipInterfaces.keys()));
     const areas = areaTree.inOrderTraversal(areaTree.root);
     return areas
-      .filter(([, area]) => {
-        const { ospf } = selectedRouter;
-        const { config: selectedRouterConfig } = ospf;
-        const { connectedToBackbone, areaId: routerArea } =
-          selectedRouterConfig;
-        if (routerArea === BACKBONE_AREA_ID) {
-          return !area.ospfConfig.connectedToBackbone;
-        }
-        if (connectedToBackbone) {
-          return area.id !== BACKBONE_AREA_ID && area.routerLocations.size > 0;
-        }
-        return area.routerLocations.size > 0;
-      })
+      .filter(([, area]) => !!area.routerLocations.root)
       .map(([, area]) => {
         const { routerLocations, id, name } = area;
         return {
           id,
           name,
-          connectionOptions: [...routerLocations].filter(([loc, router]) => {
-            // If the same interfaces exist on the router, it means that they're connected already.
-            const isConnectedToRouter = selectedRouterIpInterfaces.some(
-              (interfaceId) =>
-                selectedRouter.ipInterfaces
-                  .get(interfaceId)!
-                  .ipInterface.getOppositeRouter(selectedRouter) === router
-            );
-            return loc !== selectedRouterKey && !isConnectedToRouter;
-          }),
+          connectionOptions: routerLocations
+            .inOrderTraversal(routerLocations.root)
+            .filter(([loc, router]) => {
+              // If the same interfaces exist on the router, it means that they're connected already.
+              const isConnectedToRouter = selectedRouterIpInterfaces.some(
+                (interfaceId) =>
+                  selectedRouter.ipInterfaces
+                    .get(interfaceId)!
+                    .ipInterface.getOppositeRouter(selectedRouter) === router
+              );
+              return (
+                !router.id.equals(selectedRouterId) && !isConnectedToRouter
+              );
+            }),
         };
       })
       .filter(({ connectionOptions }) => connectionOptions.length > 0)
@@ -272,7 +262,7 @@ export const RouterMenu: React.FC<RouterMenuProps> = memo((props) => {
                 <ul>
                   {connectionOptions.map(([loc, router]) => (
                     <Connection
-                      loc={loc}
+                      loc={loc.join("_")}
                       router={router}
                       key={`r_picker_${loc}`}
                       rootRouter={selectedRouter}

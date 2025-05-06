@@ -1,5 +1,5 @@
 #container {
-    height: 7.5vh;
+    height: 6vh;
     background-color: #324ca8;
     display: flex;
     justify-content: space-between;
@@ -24,6 +24,7 @@
 
 a {
     color: white;
+    font-size: 1vmax;
 }
 
 #copyright {

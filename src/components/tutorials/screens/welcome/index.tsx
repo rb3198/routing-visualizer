@@ -1,21 +1,20 @@
 import React, { useMemo } from "react";
-import { TutorialScreen } from "src/types/welcome_tutorial/screen";
+import { TutorialScreen } from "src/types/tutorials/screen";
 import styles from "./styles.module.css";
 import { Emoji } from "src/constants/emojis";
-import { getExpertiseCards } from "src/constants/welcome_tutorial";
-import { ExpertiseCard } from "src/types/welcome_tutorial/expertise_card";
+import { getExpertiseCards, screenMap } from "src/constants/tutorials";
+import { ExpertiseCard } from "src/types/tutorials/expertise_card";
+import { BiChevronRight } from "react-icons/bi";
+import { Modal } from "src/components/modals";
+import { Link } from "react-router";
+import { AppRoutes } from "src/constants/app_routes";
 
 type Props = {
-  setScreen: (
-    screen: TutorialScreen,
-    subScreenIdx: number,
-    writeToStorage?: boolean
-  ) => unknown;
-  writeToStorage?: boolean;
+  setScreen: (screen: TutorialScreen, subScreenIdx?: number) => unknown;
 };
 
 export const WelcomeScreen: React.FC<Props> = (props) => {
-  const { setScreen, writeToStorage } = props;
+  const { setScreen } = props;
   const Intro = useMemo(() => {
     return (
       <div id={styles.intro}>
@@ -58,7 +57,9 @@ export const WelcomeScreen: React.FC<Props> = (props) => {
     );
   }, []);
 
-  const cards = getExpertiseCards(setScreen, writeToStorage);
+  const close = () => setScreen(TutorialScreen.Complete);
+
+  const cards = getExpertiseCards(setScreen);
 
   const renderCards = () => {
     return (
@@ -70,10 +71,17 @@ export const WelcomeScreen: React.FC<Props> = (props) => {
     );
   };
   return (
-    <div id={styles.body}>
-      {Intro}
-      {renderCards()}
-    </div>
+    <Modal
+      title={screenMap[TutorialScreen.Welcome].title}
+      close={close}
+      visible
+      classes={styles.modal}
+    >
+      <div id={styles.body}>
+        {Intro}
+        {renderCards()}
+      </div>
+    </Modal>
   );
 };
 
@@ -82,6 +90,7 @@ const Card: React.FC<ExpertiseCard> = ({
   prefix,
   buttonLabel,
   description,
+  screen,
   onClick,
 }) => {
   return (
@@ -95,9 +104,14 @@ const Card: React.FC<ExpertiseCard> = ({
           </li>
         ))}
       </ul>
-      <button className={styles.navigator} onClick={onClick}>
+      <Link
+        to={`${AppRoutes.Tutorials}/?screen=${screen}&subScreenIdx=0`}
+        className={styles.navigator}
+        onClick={onClick}
+      >
         {buttonLabel}
-      </button>
+        <BiChevronRight />
+      </Link>
     </div>
   );
 };
