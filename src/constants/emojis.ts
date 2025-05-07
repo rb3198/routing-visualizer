@@ -11,13 +11,30 @@ export enum Emoji {
   SmilingHalo = "\u{1F607}",
   SmilingHorns = "\u{1F608}",
   Winking = "\u{1F609}",
+  OldWoman = "\u{1F475}",
   //#endregion
 
-  //#region Games & Sports
+  //#region Hand Gestures
+  HandPointingUp = "\u{261D}",
+  HandRaised = "\u{270B}",
+  Handshake = "\u{1F91D}",
+  //#endregion
+
+  //#region Navigation
   Bullseye = "\u{1F3AF}",
-  // #endregion
+  Compass = "\u{1F9ED}",
+  MagnifyingGlass = "\u{1F50D}",
+  //#endregion
 
   //#region Misc
+  ComputerMouse = "\u{1F5B1}",
+  Link = "\u{1F517}",
+  FileCabin = "\u{1F5C4}",
+  Clipboard = "\u{1F4CB}",
+  Scroll = "\u{1F4DC}",
+  Rotate = "\u{1F504}",
+  Recycle = "\u{267B}\u{FE0F}",
+  NoEntry = "\u{26D4}",
   Seedling = "\u{1F331}",
   Rocket = "\u{1f680}",
   Toolbox = "\u{1f528}",
@@ -25,5 +42,7 @@ export enum Emoji {
   Electricity = "\u{26a1}",
   Bulb = "\u{1f4a1}",
   Wrench = "\u{1F527}",
+  Package = "\u{1F4E6}",
+  Turtle = "\u{1F422}",
   //#endregion
 }
