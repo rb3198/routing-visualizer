@@ -129,7 +129,7 @@ export const getExpertiseCards = (
   setScreen: (screen: TutorialScreen, subScreenIdx?: number) => unknown
 ): ExpertiseCard[] => [
   {
-    title: `${Emoji.Seedling} The Absolute Beginner`,
+    title: `${Emoji.Seedling} The Beginner`,
     prefix: "You are:",
     screen: TutorialScreen.InternetIntro,
     description: [
@@ -146,7 +146,7 @@ export const getExpertiseCards = (
     onClick: setScreen.bind(null, TutorialScreen.InternetIntro, 0),
   },
   {
-    title: `${Emoji.Toolbox} The Network Amateur`,
+    title: `${Emoji.Toolbox} The Amateur`,
     prefix: "You:",
     screen: TutorialScreen.IPAddressing,
     description: [
@@ -165,7 +165,7 @@ export const getExpertiseCards = (
         text: "Interested in learning or refreshing your knowledge of the OSI Model.",
       },
       {
-        text: `Know barely anything about the OSPF Protocol but would love to learn it. ${Emoji.Rocket}`,
+        text: `You'd love to learn the OSPF Protocol. ${Emoji.Rocket}`,
       },
     ],
     buttonLabel: `Explore IP Addressing`,

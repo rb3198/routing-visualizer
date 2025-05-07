@@ -1,5 +1,5 @@
 .modal {
-    height: 90vh;
+    height: 95vh;
 }
 
 #body {
@@ -79,7 +79,7 @@
     flex-direction: column;
     flex-grow: 1;
     margin-top: 1vmax;
-    font-size: .9rem;
+    font-size: .764rem;
 }
 .list_bullet {
     position: relative;
@@ -107,10 +107,11 @@
 @media (max-width: 1367px) {
     .card {
         width: 35vw;
+        aspect-ratio: 4 / 3;
     }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
     .card {
         width: 42.5vw;
     }
@@ -119,5 +120,11 @@
 @media (max-width: 600px) {
     .card {
         width: 47.5vw;
+    }
+}
+
+@media (max-width: 500px) {
+    .card {
+        width: 95vw;
     }
 }
