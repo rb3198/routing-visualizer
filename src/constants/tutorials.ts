@@ -217,6 +217,9 @@ export const getExpertiseCards = (
       },
     ],
     buttonLabel: `Start Visualizing OSPF`,
-    onClick: setScreen.bind(null, TutorialScreen.VisualizerTutorial, 0),
+    onClick: (e) => {
+      e.preventDefault();
+      setScreen(TutorialScreen.VisualizerTutorial, 0);
+    },
   },
 ];
