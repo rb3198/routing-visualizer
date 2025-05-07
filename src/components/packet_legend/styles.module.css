@@ -3,7 +3,7 @@
     font-weight: 600;
     position: absolute;
     overflow: hidden;
-    bottom: 7vh;
+    bottom: 7dvh;
     right: 2.5%;
     cursor: pointer;
     z-index: 10;
@@ -17,7 +17,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 5vh;
+    height: 5dvh;
 }
 
 #main p, #main svg {
@@ -36,8 +36,8 @@
     list-style: none;
     list-style-position: inside;
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: .618rem;
+    left: .618rem;
     opacity: 0;
     width: max-content;
     right: 0; 
@@ -81,6 +81,15 @@
 
 @media screen and (max-width: 600px) {
     #main {
-        height: 4vh;
+        height: 4dvh;
+    }
+
+    #container {
+        right: 1%;
+    }
+
+    #list {
+        top: .309rem;
+        left: .309rem;
     }
 }

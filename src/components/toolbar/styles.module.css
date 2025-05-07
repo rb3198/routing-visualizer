@@ -2,7 +2,7 @@
     align-items: center;
     background-color: white;
     position: absolute;
-    bottom: 7vh;
+    bottom: 7dvh;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
@@ -68,7 +68,7 @@
     justify-content: space-between;
     cursor: pointer;
     z-index: 2;
-    height: 5vh;
+    height: 5dvh;
 }
 
 .control {
@@ -114,7 +114,16 @@
 }
 
 @media screen and (max-width: 600px) {
+    #container {
+        left: 1%;
+    }
     #controls_container {
-        height: 4vh;
+        height: 4dvh;
+    }
+    #config_buttons_container {
+        font-size: .618rem;
+    }
+    #expand_collapse_container > p {
+        width: 1.5rem;
     }
 }

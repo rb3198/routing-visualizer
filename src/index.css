@@ -43,9 +43,9 @@ code {
 }
 
 #root {
-  height: 100vh;
+  height: 100dvh;
 }
 
 #grid_container{
-  height: 88vh;
+  height: 88dvh;
 }
