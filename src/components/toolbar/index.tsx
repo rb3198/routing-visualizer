@@ -251,7 +251,7 @@ const ToolbarComponent: React.FC<ToolbarProps> = (props) => {
         Clear
       </p>
     );
-  }, [playing, showClear, onClear]);
+  }, [playing, showClear, showTooltip, onClear]);
 
   const ConfigButtons = useMemo(() => {
     return (

@@ -43,37 +43,39 @@ export const SimulatorTutorial: React.FC<SimulatorTutorialProps> = ({
         </ul>
       )) || <></>}
       {footer && <p dangerouslySetInnerHTML={{ __html: footer }} />}
-      <div id={styles.video_container}>
-        {videoSrc && (
-          <video
-            src={videoSrc}
-            loop
-            id={styles.video}
-            autoPlay
-            muted
-            title={title}
-          />
-        )}
-      </div>
-      <div id={styles.button_container}>
-        <button
-          className={styles.button}
-          data-skip="true"
-          onClick={closeTutorial}
-        >
-          Skip Tutorial
-        </button>
-        <div>
-          {activeSubScreen > 0 && (
-            <button onClick={onPrevClick} className={styles.button}>
-              Previous
-            </button>
+      <div id={styles.video_and_nav}>
+        <div id={styles.video_container}>
+          {videoSrc && (
+            <video
+              src={videoSrc}
+              loop
+              id={styles.video}
+              autoPlay
+              muted
+              title={title}
+            />
           )}
-          {
-            <button onClick={onNextClick} className={styles.button} data-next>
-              {isLastScreen ? "Go to the Visualizer!" : "Next"}
-            </button>
-          }
+        </div>
+        <div id={styles.nav}>
+          <button
+            className={styles.button}
+            data-skip="true"
+            onClick={closeTutorial}
+          >
+            Skip Tutorial
+          </button>
+          <div>
+            {activeSubScreen > 0 && (
+              <button onClick={onPrevClick} className={styles.button}>
+                Previous
+              </button>
+            )}
+            {
+              <button onClick={onNextClick} className={styles.button} data-next>
+                {isLastScreen ? "Go to the Visualizer!" : "Next"}
+              </button>
+            }
+          </div>
         </div>
       </div>
     </Modal>
