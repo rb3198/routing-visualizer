@@ -27,10 +27,10 @@ export const getAreaPosition = (
   if (row + areaSize > gridSizeY) {
     vertical = "top";
   }
-  const lowCol = horizontal === "right" ? column : column - areaSize + 1;
-  const lowRow = vertical === "bottom" ? row : row - areaSize + 1;
-  const lowCell = gridRect[lowRow][lowCol];
-  const low = [lowCell.x, lowCell.y] as Point2D;
+  let { x, y } = gridRect[row][column];
+  x = horizontal === "right" ? x : x - (areaSize - 1) * cellSize;
+  y = vertical === "bottom" ? y : y - (areaSize - 1) * cellSize;
+  const low = [x, y] as Point2D;
   const high = low.map((x) => x + areaSize * cellSize) as Point2D;
   return { low, high };
 };
