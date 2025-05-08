@@ -5,7 +5,7 @@
     position: absolute;
     overflow-y: auto;
     transition: opacity .25s ease; /* Change Animation duration in component def when changing this */
-    max-height: 45vh;
+    max-height: 45dvh;
 }
 
 #container ul {

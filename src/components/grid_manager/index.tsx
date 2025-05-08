@@ -173,8 +173,8 @@ export const GridManager: React.FC = () => {
   //#endregion
 
   const zoomHandler = useCallback(
-    (evt: WheelEvent, callback?: () => unknown) => {
-      const { deltaY, ctrlKey } = evt;
+    (evt: WheelEvent & { isMobile?: boolean }, callback?: () => unknown) => {
+      const { deltaY, ctrlKey, isMobile } = evt;
       if (ctrlKey) {
         // control key causes the entire page to zoom in / out.
         evt.preventDefault();
@@ -182,7 +182,14 @@ export const GridManager: React.FC = () => {
       const zoom = zoomRef.current;
       const dir = Math.sign(deltaY);
       const delta = 0.1;
-      setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom + dir * delta)), grid);
+      if (isMobile) {
+        setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom + deltaY)), grid);
+      } else {
+        setZoom(
+          Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom + dir * delta)),
+          grid
+        );
+      }
       callback && callback();
     },
     [grid, setZoom]
@@ -211,6 +218,66 @@ export const GridManager: React.FC = () => {
     },
     [setDrag]
   );
+
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent, cb: () => any) => {
+      const { target, targetTouches } = e;
+      console.log("Triggered", targetTouches.length);
+      if (targetTouches.length !== 3) {
+        return;
+      }
+      const { x, y } = (target as HTMLCanvasElement).getBoundingClientRect();
+      const offsetX = targetTouches[0].clientX - x;
+      const offsetY = targetTouches[0].clientY - y;
+      const zoom = zoomRef.current;
+      const canvasOffset = canvasOffsetRef.current;
+      const offset = [offsetX * zoom, offsetY * zoom] as Point2D;
+      setDrag({
+        start: offset,
+        end: offset,
+        offset: [0, 0],
+        canvasStart: canvasOffset,
+      });
+      cb && cb();
+    },
+    [setDrag]
+  );
+
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent, cb: () => any) => {
+      const { target, targetTouches } = e;
+      if (targetTouches.length !== 3) {
+        return;
+      }
+      const { x, y } = (target as HTMLCanvasElement).getBoundingClientRect();
+      const offsetX = targetTouches[0].clientX - x;
+      const offsetY = targetTouches[0].clientY - y;
+      if (!dragRef.current) {
+        return false;
+      }
+      const zoom = zoomRef.current;
+      const offset = [offsetX * zoom, offsetY * zoom] as Point2D;
+      const { start, canvasStart } = dragRef.current;
+      setDrag({
+        end: offset,
+        start,
+        offset: subtractVectors(start, offset),
+        canvasStart,
+      });
+      cb && cb();
+      return true;
+    },
+    [setDrag]
+  );
+
+  const onTouchEnd = useCallback((e: React.TouchEvent, cb: () => any) => {
+    if (e.targetTouches.length < 3) {
+      dragRef.current = undefined;
+      cb && cb();
+      return true;
+    }
+    return false;
+  }, []);
 
   const onMouseRightMove: MouseRightEventHandler = useCallback(
     (e, callback) => {
@@ -272,6 +339,9 @@ export const GridManager: React.FC = () => {
         onMouseRightDown={onMouseRightDown}
         onMouseRightMove={onMouseRightMove}
         onMouseRightUp={onMouseRightUp}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         onConfigLoad={onConfigLoad}
       />
     </>

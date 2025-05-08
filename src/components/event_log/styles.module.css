@@ -40,7 +40,7 @@
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    height: 88vh;
+    height: 88dvh;
     border-left: 1px solid #ccc;
 }
 

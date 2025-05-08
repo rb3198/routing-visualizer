@@ -38,6 +38,7 @@ import { DestinationSelector } from "../destination_selector";
 import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
 import { ConfigLoader } from "./config_loader";
 import { ConfigFile } from "src/entities/config";
+import { usePinch } from "@use-gesture/react";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -50,6 +51,9 @@ interface AreaManagerProps {
   onMouseRightDown: MouseRightEventHandler;
   onMouseRightMove: MouseRightEventHandler;
   onMouseRightUp: MouseRightEventHandler;
+  onTouchStart: (e: React.TouchEvent, cb: () => any) => any;
+  onTouchMove: (e: React.TouchEvent, cb: () => any) => any;
+  onTouchEnd: (e: React.TouchEvent, cb: () => any) => any;
   onConfigLoad: (config: ConfigFile) => unknown;
 }
 
@@ -73,6 +77,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onMouseRightUp,
     setSimulationConfig,
     onConfigLoad,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -85,6 +92,31 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
   const elementsLayerRef = useRef<HTMLCanvasElement>(null);
   const componentPickerRef = useRef<HTMLDivElement>(null);
   const routerMenuRef = useRef<HTMLDivElement>(null);
+  usePinch(
+    ({ event, delta: [dDistance], touches }) => {
+      if (touches < 2) {
+        return;
+      }
+      interactionLayerRef.current &&
+        zoomHandler.call(
+          interactionLayerRef.current,
+          {
+            ...(event as WheelEvent),
+            isMobile: true,
+            deltaY: Math.max(-0.01, Math.min(0.01, -dDistance / 2)),
+          },
+          onZoom
+        );
+      return;
+    },
+    {
+      target: interactionLayerRef,
+      pinchOnWheel: false,
+      eventOptions: {
+        passive: false,
+      },
+    }
+  );
   const [loadPopupOpen, setLoadPopupOpen] = useState(false);
   const [interactiveState, dispatch] = useReducer(
     interactiveStateReducer,
@@ -604,6 +636,9 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onContextMenu={(e) => e.preventDefault()}
+        onTouchStart={(e) => onTouchStart(e, pan)}
+        onTouchMove={(e) => onTouchMove(e, pan)}
+        onTouchEnd={(e) => onTouchEnd(e, pan)}
       />
       {(cell && (
         <ComponentPicker

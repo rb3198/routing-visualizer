@@ -22,6 +22,12 @@ code {
     font-size: 14px;
   }
 }
+
+@media screen and (max-width: 400px) {
+  :root {
+    font-size: 12px;
+  }
+}
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -37,9 +43,9 @@ code {
 }
 
 #root {
-  height: 100vh;
+  height: 100dvh;
 }
 
 #grid_container{
-  height: 88vh;
+  height: 88dvh;
 }

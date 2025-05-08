@@ -15,8 +15,8 @@
     background-color: white;
     width: 75vw;
     left: 50vw;
-    top: 50vh;
-    max-height: 90vh;
+    top: 50dvh;
+    max-height: 95dvh;
     transform: translate(-50%, -50%);
     padding: 1vmax;
     opacity: 0;
@@ -40,7 +40,7 @@
     text-align: left;
     justify-content: space-between;
     align-items: center;
-    font-size: 1vmax;
+    font-size: 1.309rem;
     padding-bottom: 1vmax;
 }
 
@@ -64,9 +64,11 @@
     }
 }
 
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 900px) {
     #container {
         min-width: 90vw;
+        height: 95dvh;
+        max-height: 95dvh;
     }
 }
 
@@ -74,7 +76,11 @@
     #container {
         width: 100vw;
         max-width: 100vw;
-        height: 100vh;
-        max-height: 100vh;
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+
+    #title {
+        font-size: 1rem;
     }
 }
