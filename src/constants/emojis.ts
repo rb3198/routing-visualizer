@@ -27,6 +27,7 @@ export enum Emoji {
   //#endregion
 
   //#region Misc
+  KeyCapThree = "\u{33}\u{FE0F}\u{20E3}",
   ComputerMouse = "\u{1F5B1}",
   Link = "\u{1F517}",
   FileCabin = "\u{1F5C4}",
