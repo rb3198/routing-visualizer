@@ -3,10 +3,7 @@
 }
 
 #screen_indicator {
-    position: fixed;
-    top: 3vh;
     font-size: .764rem;
-    right: 3vw;
     font-style: italic;
     font-weight: 600;
 }
@@ -23,6 +20,7 @@
 #nav {
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
 #video_container {

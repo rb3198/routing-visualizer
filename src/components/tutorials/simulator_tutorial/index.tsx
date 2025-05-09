@@ -31,9 +31,6 @@ export const SimulatorTutorial: React.FC<SimulatorTutorialProps> = ({
   };
   return (
     <Modal visible close={closeTutorial} title={title} classes={styles.modal}>
-      <p id={styles.screen_indicator}>
-        Screen {activeSubScreen + 1} / {totalScreens}
-      </p>
       <p dangerouslySetInnerHTML={{ __html: description }} />
       {(bullets.length && (
         <ul id={styles.list}>
@@ -64,6 +61,9 @@ export const SimulatorTutorial: React.FC<SimulatorTutorialProps> = ({
           >
             Skip Tutorial
           </button>
+          <p id={styles.screen_indicator}>
+            Screen {activeSubScreen + 1} / {totalScreens}
+          </p>
           <div>
             {activeSubScreen > 0 && (
               <button onClick={onPrevClick} className={styles.button}>
