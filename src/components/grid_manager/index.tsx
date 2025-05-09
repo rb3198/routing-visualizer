@@ -16,6 +16,19 @@ export type Drag = {
   canvasStart: Point2D;
 };
 
+const getConfigOffset = (
+  offset: Point2D,
+  canvas?: HTMLCanvasElement | null,
+  area0Centroid?: Point2D
+): Point2D => {
+  if (!area0Centroid || !canvas) {
+    return offset;
+  }
+  const { width, height } = canvas.getBoundingClientRect();
+  const [x, y] = area0Centroid;
+  return [width / 2 - x, height / 2 - y];
+};
+
 export const GridManager: React.FC = () => {
   const [grid, setGrid] = useState<GridCell[][]>([]);
   const zoomRef = useRef(1);
@@ -30,8 +43,8 @@ export const GridManager: React.FC = () => {
     }
     const cellSize = getCellSize();
     const { width, height } = canvas.getBoundingClientRect();
-    const cols = Math.round(width / cellSize);
-    const rows = Math.round(height / cellSize);
+    const cols = Math.ceil(width / cellSize);
+    const rows = Math.ceil(height / cellSize);
     const context = canvas.getContext("2d");
     let x = 0,
       y = 0;
@@ -105,15 +118,20 @@ export const GridManager: React.FC = () => {
       pushNewRow(gridMaxY);
       gridMaxY += cellSize;
     }
-    if (startY < gridMinY) {
-      newGrid.unshift(
-        new Array(firstRow.length)
-          .fill("")
-          .map(
-            (_, idx) =>
-              new GridCell(firstRow[idx].x, firstRow[0].y - cellSize, cellSize)
-          )
-      );
+    while (startY < gridMinY) {
+      // Add row to the top
+      const unshiftRow = (gridMinY: number) => {
+        newGrid.unshift(
+          new Array(firstRow.length)
+            .fill("")
+            .map(
+              (_, idx) =>
+                new GridCell(firstRow[idx].x, gridMinY - cellSize, cellSize)
+            )
+        );
+      };
+      unshiftRow(gridMinY);
+      gridMinY -= cellSize;
     }
     return newGrid;
   }, []);
@@ -159,16 +177,20 @@ export const GridManager: React.FC = () => {
     [drawGrid]
   );
 
+  const setCanvasOffset = useCallback((offset: Point2D) => {
+    window.canvasOffset = offset;
+    canvasOffsetRef.current = offset;
+  }, []);
+
   const setDrag = useCallback(
     (drag: Drag) => {
       dragRef.current = drag;
-      const { canvasStart } = drag;
-      const newOffset = addVectors(canvasStart, dragRef.current.offset);
-      window.canvasOffset = newOffset;
-      canvasOffsetRef.current = newOffset;
+      const { canvasStart, offset } = drag;
+      const newOffset = addVectors(canvasStart, offset);
+      setCanvasOffset(newOffset);
       drawGrid(grid);
     },
-    [grid, drawGrid]
+    [grid, setCanvasOffset, drawGrid]
   );
   //#endregion
 
@@ -222,7 +244,6 @@ export const GridManager: React.FC = () => {
   const onTouchStart = useCallback(
     (e: React.TouchEvent, cb: () => any) => {
       const { target, targetTouches } = e;
-      console.log("Triggered", targetTouches.length);
       if (targetTouches.length !== 3) {
         return;
       }
@@ -315,15 +336,16 @@ export const GridManager: React.FC = () => {
 
   const onConfigLoad = useCallback(
     (config: ConfigFile) => {
-      const { zoom, canvasOffset, cellSize } = config;
-      const prevCellSize = getCellSize();
+      const { zoom, canvasOffset, cellSize, area0Centroid } = config;
+      setCanvasOffset([0, 0]);
       window.cellSize = cellSize;
       const newGrid = constructGrid();
-      window.canvasOffset = canvasOffset;
-      canvasOffsetRef.current = canvasOffset;
-      setZoom((cellSize * zoom) / prevCellSize, newGrid);
+      setCanvasOffset(
+        getConfigOffset(canvasOffset, gridCanvasRef.current, area0Centroid)
+      );
+      setZoom(zoom, newGrid);
     },
-    [setZoom, constructGrid]
+    [setZoom, setCanvasOffset, constructGrid]
   );
   if (!document) {
     return null;
