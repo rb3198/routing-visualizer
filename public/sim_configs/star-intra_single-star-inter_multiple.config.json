@@ -9,6 +9,7 @@
     "rxmtInterval": 4000
   },
   "cellSize": 48,
+  "area0Centroid": [984, 456],
   "areas": [
     {
       "low": [816, 288],

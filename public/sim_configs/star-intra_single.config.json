@@ -1,241 +1,134 @@
 {
-   "simConfig": {
-      "helloInterval": 10000,
-      "deadInterval": 40000,
-      "gracefulShutdown": false,
-      "LsRefreshTime": 1800,
-      "MaxAge": 3600,
-      "propagationDelay": 1500,
-      "rxmtInterval": 4000
-   },
-   "cellSize": 48,
-   "areas": [
-      {
-         "low": [
-            816,
-            288
-         ],
-         "high": [
-            1152,
-            624
-         ],
-         "id": 0,
-         "ipBytes": [
-            192,
-            1,
-            0,
-            0,
-            16
-         ],
-         "routers": [
-            {
-               "ipBytes": [
-                  2,
-                  2,
-                  2,
-                  2,
-                  32
-               ],
-               "low": [
-                  816,
-                  336
-               ],
-               "gracefulShutdown": false,
-               "power": 0,
-               "ospfConfig": {
-                  "helloInterval": 10000,
-                  "deadInterval": 40000,
-                  "areaId": 0,
-                  "rxmtInterval": 4000,
-                  "MaxAge": 3600,
-                  "LsRefreshTime": 1800,
-                  "connectedToBackbone": false
-               }
-            },
-            {
-               "ipBytes": [
-                  5,
-                  5,
-                  5,
-                  5,
-                  32
-               ],
-               "low": [
-                  816,
-                  576
-               ],
-               "gracefulShutdown": false,
-               "power": 0,
-               "ospfConfig": {
-                  "helloInterval": 10000,
-                  "deadInterval": 40000,
-                  "areaId": 0,
-                  "rxmtInterval": 4000,
-                  "MaxAge": 3600,
-                  "LsRefreshTime": 1800,
-                  "connectedToBackbone": false
-               }
-            },
-            {
-               "ipBytes": [
-                  1,
-                  1,
-                  1,
-                  1,
-                  32
-               ],
-               "low": [
-                  960,
-                  432
-               ],
-               "gracefulShutdown": false,
-               "power": 0,
-               "ospfConfig": {
-                  "helloInterval": 10000,
-                  "deadInterval": 40000,
-                  "areaId": 0,
-                  "rxmtInterval": 4000,
-                  "MaxAge": 3600,
-                  "LsRefreshTime": 1800,
-                  "connectedToBackbone": false
-               }
-            },
-            {
-               "ipBytes": [
-                  3,
-                  3,
-                  3,
-                  3,
-                  32
-               ],
-               "low": [
-                  1104,
-                  288
-               ],
-               "gracefulShutdown": false,
-               "power": 0,
-               "ospfConfig": {
-                  "helloInterval": 10000,
-                  "deadInterval": 40000,
-                  "areaId": 0,
-                  "rxmtInterval": 4000,
-                  "MaxAge": 3600,
-                  "LsRefreshTime": 1800,
-                  "connectedToBackbone": false
-               }
-            },
-            {
-               "ipBytes": [
-                  4,
-                  4,
-                  4,
-                  4,
-                  32
-               ],
-               "low": [
-                  1104,
-                  576
-               ],
-               "gracefulShutdown": false,
-               "power": 0,
-               "ospfConfig": {
-                  "helloInterval": 10000,
-                  "deadInterval": 40000,
-                  "areaId": 0,
-                  "rxmtInterval": 4000,
-                  "MaxAge": 3600,
-                  "LsRefreshTime": 1800,
-                  "connectedToBackbone": false
-               }
-            }
-         ]
-      }
-   ],
-   "links": [
-      {
-         "id": "li_1",
-         "ipBytes": [
-            192,
-            1,
-            1,
-            0,
-            24
-         ],
-         "routers": [
-            [
-               816,
-               336
-            ],
-            [
-               960,
-               432
-            ]
-         ]
-      },
-      {
-         "id": "li_2",
-         "ipBytes": [
-            192,
-            1,
-            2,
-            0,
-            24
-         ],
-         "routers": [
-            [
-               960,
-               432
-            ],
-            [
-               1104,
-               288
-            ]
-         ]
-      },
-      {
-         "id": "li_3",
-         "ipBytes": [
-            192,
-            1,
-            3,
-            0,
-            24
-         ],
-         "routers": [
-            [
-               960,
-               432
-            ],
-            [
-               1104,
-               576
-            ]
-         ]
-      },
-      {
-         "id": "li_4",
-         "ipBytes": [
-            192,
-            1,
-            4,
-            0,
-            24
-         ],
-         "routers": [
-            [
-               960,
-               432
-            ],
-            [
-               816,
-               576
-            ]
-         ]
-      }
-   ],
-   "zoom": 1,
-   "canvasOffset": [
-      0,
-      0
-   ]
+  "simConfig": {
+    "helloInterval": 10000,
+    "deadInterval": 40000,
+    "gracefulShutdown": false,
+    "LsRefreshTime": 1800,
+    "MaxAge": 3600,
+    "propagationDelay": 1500,
+    "rxmtInterval": 4000
+  },
+  "cellSize": 48,
+  "area0Centroid": [984, 456],
+  "areas": [
+    {
+      "low": [816, 288],
+      "high": [1152, 624],
+      "id": 0,
+      "ipBytes": [192, 1, 0, 0, 16],
+      "routers": [
+        {
+          "ipBytes": [2, 2, 2, 2, 32],
+          "low": [816, 336],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        },
+        {
+          "ipBytes": [5, 5, 5, 5, 32],
+          "low": [816, 576],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        },
+        {
+          "ipBytes": [1, 1, 1, 1, 32],
+          "low": [960, 432],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        },
+        {
+          "ipBytes": [3, 3, 3, 3, 32],
+          "low": [1104, 288],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        },
+        {
+          "ipBytes": [4, 4, 4, 4, 32],
+          "low": [1104, 576],
+          "gracefulShutdown": false,
+          "power": 0,
+          "ospfConfig": {
+            "helloInterval": 10000,
+            "deadInterval": 40000,
+            "areaId": 0,
+            "rxmtInterval": 4000,
+            "MaxAge": 3600,
+            "LsRefreshTime": 1800,
+            "connectedToBackbone": false
+          }
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "li_1",
+      "ipBytes": [192, 1, 1, 0, 24],
+      "routers": [
+        [816, 336],
+        [960, 432]
+      ]
+    },
+    {
+      "id": "li_2",
+      "ipBytes": [192, 1, 2, 0, 24],
+      "routers": [
+        [960, 432],
+        [1104, 288]
+      ]
+    },
+    {
+      "id": "li_3",
+      "ipBytes": [192, 1, 3, 0, 24],
+      "routers": [
+        [960, 432],
+        [1104, 576]
+      ]
+    },
+    {
+      "id": "li_4",
+      "ipBytes": [192, 1, 4, 0, 24],
+      "routers": [
+        [960, 432],
+        [816, 576]
+      ]
+    }
+  ],
+  "zoom": 1,
+  "canvasOffset": [0, 0]
 }
