@@ -36,6 +36,7 @@ export class ConfigFile {
   links: LinkConstructor[];
   zoom: number;
   canvasOffset: Point2D;
+  area0Centroid?: Point2D;
   constructor(
     cellSize: number,
     simConfig: OSPFGlobals,
@@ -45,6 +46,9 @@ export class ConfigFile {
     this.simConfig = simConfig;
     this.cellSize = cellSize;
     this.areas = this.getAreasFromTree(areaTree);
+    if (areaTree.root) {
+      this.area0Centroid = areaTree.root.data?.boundingBox?.centroid;
+    }
     this.links = this.getLinks(linkMap);
     this.zoom = window.zoom ?? 1;
     this.canvasOffset = window.canvasOffset ?? [0, 0];

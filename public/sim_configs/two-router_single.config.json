@@ -8,6 +8,7 @@
     "propagationDelay": 1500,
     "rxmtInterval": 4000
   },
+  "area0Centroid": [936, 456],
   "cellSize": 48,
   "areas": [
     {

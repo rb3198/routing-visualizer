@@ -30,7 +30,7 @@ export const tutorialSteps: TutorialStep[] = [
     ],
     videoSrc: videoSrc("placing_an_area.mp4"),
     footer:
-      "<b><i>Areas must be created before routers can be added inside them.</i></b>",
+      "<b><i>Areas must be created before routers can be added inside them.</i></b><br/><b>Note</b>: You cannot place overlapping areas.",
   },
   {
     title: "Building a Network – Placing a Router",
