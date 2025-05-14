@@ -55,9 +55,7 @@ export const VirtualList = <T extends Object>(props: VirtualListProps<T>) => {
     renderItem,
   } = props;
   const [scrollTop, setScrollTop] = useState(0);
-  const [heightMap, setHeightMap] = useState(
-    new Map<string | number, number>()
-  );
+  const heightMap = useRef(new Map<string | number, number>());
   const propItems = useRef(items);
   const [curItems, setCurItems] = useState<T[]>(items);
   propItems.current = items;
@@ -68,7 +66,7 @@ export const VirtualList = <T extends Object>(props: VirtualListProps<T>) => {
       } else {
         setCurItems(propItems.current);
       }
-    }, 100);
+    }, 1000);
     return () => {
       clearInterval(timeout);
     };
@@ -88,14 +86,10 @@ export const VirtualList = <T extends Object>(props: VirtualListProps<T>) => {
         return;
       }
       const { height } = node.getBoundingClientRect();
-      setHeightMap((prev) => {
-        if (prev.get(key) === height) {
-          return prev;
-        }
-        const newMap = new Map(prev);
-        newMap.set(key, height);
-        return newMap;
-      });
+      if (heightMap.current.get(key) === height) {
+        return;
+      }
+      heightMap.current.set(key, height);
     },
     []
   );
@@ -115,10 +109,10 @@ export const VirtualList = <T extends Object>(props: VirtualListProps<T>) => {
     return curItems.map((item) => {
       const key = keyExtractor(item);
       const prevCumulativeHeight = cumulativeHeight;
-      cumulativeHeight += heightMap.get(key) ?? estimatedHeight;
+      cumulativeHeight += heightMap.current.get(key) ?? estimatedHeight;
       return prevCumulativeHeight;
     });
-  }, [curItems, keyExtractor, estimatedHeight, heightMap]);
+  }, [curItems, keyExtractor, estimatedHeight]);
 
   /**
    * Given the window size and the offsets, selects the indices to be rendered.
@@ -146,7 +140,8 @@ export const VirtualList = <T extends Object>(props: VirtualListProps<T>) => {
   const scrollableHeight =
     (offsets[offsets.length - 1] ?? 0) +
     ((curItems.length
-      ? heightMap.get(keyExtractor(curItems[curItems.length - 1]))
+      ? heightMap.current.get(keyExtractor(curItems[curItems.length - 1])) ||
+        estimatedHeight
       : 0) || estimatedHeight);
   return (
     <div className={classes} onScroll={onScroll}>
