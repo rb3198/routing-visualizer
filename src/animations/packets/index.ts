@@ -9,7 +9,6 @@ import {
 import {
   getAllRectPointsFromCentroid,
   getEuclideanDistance,
-  getTravelDirection,
 } from "../../utils/geometry";
 import { packetAnimationUtils } from "./utils";
 
@@ -51,66 +50,67 @@ export const packetAnimations = {
     if (fromX === toX && fromY === toY) {
       return;
     }
-    const totalDistance = getEuclideanDistance(from, to);
-    const [cp1x, cp1y] = cp1;
-    const [cp2x, cp2y] = cp2;
+    const totalDistance =
+      getEuclideanDistance(from, cp1) +
+      getEuclideanDistance(cp1, cp2) +
+      getEuclideanDistance(cp2, to);
     let position: Point2D = [...from];
     const startTime = Date.now();
     let cpStartTime = startTime;
     while (status !== "end") {
+      let distance = getEuclideanDistance(from, cp1);
       let p1: Point2D, p2: Point2D;
-      let cpx: number, cpy: number;
       switch (status) {
         case "start":
           p1 = from;
           p2 = cp1;
-          cpx = cp1x;
-          cpy = cp1y;
           break;
         case "cp1":
           p1 = cp1;
           p2 = cp2;
-          cpx = cp2x;
-          cpy = cp2y;
+          distance += getEuclideanDistance(cp1, cp2);
           break;
         case "cp2":
         default:
           p1 = cp2;
           p2 = to;
-          cpx = toX;
-          cpy = toY;
+          distance += getEuclideanDistance(cp2, to);
           break;
       }
-      const distance = getEuclideanDistance(p1, p2);
       const { p1: low } = getAllRectPointsFromCentroid(position, rectW, rectH);
-      position = await new Promise<Point2D>((resolve) => {
-        window.requestAnimationFrame(() => {
-          beforeDraw(context);
-          context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
-          postDraw(context);
-          resolve(
-            drawPacket(
-              context,
-              p1,
-              p2,
-              cpStartTime,
-              (distance * duration) / totalDistance,
-              packetRect,
-              color
-            )
-          );
+      const updatePosition = async (cpStartTime: number, distance: number) => {
+        return await new Promise<Point2D>((resolve) => {
+          window.requestAnimationFrame(() => {
+            beforeDraw(context);
+            context.clearRect(low[0] - 1, low[1] - 1, rectW + 2, rectH + 2);
+            postDraw(context);
+            resolve(
+              drawPacket(
+                context,
+                p1,
+                p2,
+                cpStartTime,
+                (distance * duration) / totalDistance,
+                packetRect,
+                color
+              )
+            );
+          });
         });
-      });
+      };
+      position = await updatePosition(cpStartTime, distance);
       const [px, py] = position;
-      const { directionX, directionY } = getTravelDirection(p1, p2);
-      const isPastCp =
-        directionX === "none"
-          ? directionY === "top"
-            ? py <= cpy
-            : py >= cpy
-          : directionX === "right"
-          ? px >= cpx
-          : px <= cpx;
+      // Vector from p1 to p2
+      const dx = p2[0] - p1[0];
+      const dy = p2[1] - p1[1];
+      // Vector from p1 to current position
+      const dpx = px - p1[0];
+      const dpy = py - p1[1];
+      // Dot product of the two vectors
+      const dot = dx * dpx + dy * dpy;
+      // If dot > squared distance between p1 and p2, we’ve passed the checkpoint
+      const segmentLengthSquared = dx * dx + dy * dy;
+      const isPastCp = dot >= segmentLengthSquared;
       if (isPastCp) {
         status = nextPacketStatus.get(status) || "start";
         cpStartTime = Date.now();
@@ -150,42 +150,45 @@ export const packetAnimations = {
     const v = totalDistance / duration;
     const startY = position[1];
     while (position[1] <= destY) {
-      await new Promise<void>((resolve) =>
-        window.requestAnimationFrame(() => {
-          const { p1: prevLow } = getAllRectPointsFromCentroid(
-            position,
-            rectW,
-            rectH
-          );
-          beforeDraw(context);
-          context.clearRect(
-            prevLow[0] - 1,
-            prevLow[1] - 1,
-            rectW + 2,
-            rectH + 2
-          );
-          const time = Date.now() - startTime;
-          const distance = v * time;
-          const y = startY + distance;
-          position = [position[0], y];
-          const { p1: low } = getAllRectPointsFromCentroid(
-            position,
-            rectW,
-            rectH
-          );
-          const [, lowY] = low;
-          context.fillStyle = color;
-          if (lowY > cp1y) {
-            context.globalAlpha = (destY - y) / (destY - cp1y);
-          }
-          context.beginPath();
-          context.rect(...low, rectW, rectH);
-          context.fill();
-          context.closePath();
-          postDraw(context);
-          resolve();
-        })
-      );
+      const updatePosition = (position: Point2D) => {
+        return new Promise<Point2D>((resolve) => {
+          window.requestAnimationFrame(() => {
+            const { p1: prevLow } = getAllRectPointsFromCentroid(
+              position,
+              rectW,
+              rectH
+            );
+            beforeDraw(context);
+            context.clearRect(
+              prevLow[0] - 1,
+              prevLow[1] - 1,
+              rectW + 2,
+              rectH + 2
+            );
+            const time = Date.now() - startTime;
+            const distance = v * time;
+            const y = startY + distance;
+            position = [position[0], y];
+            const { p1: low } = getAllRectPointsFromCentroid(
+              position,
+              rectW,
+              rectH
+            );
+            const [, lowY] = low;
+            context.fillStyle = color;
+            if (lowY > cp1y) {
+              context.globalAlpha = (destY - y) / (destY - cp1y);
+            }
+            context.beginPath();
+            context.rect(...low, rectW, rectH);
+            context.fill();
+            context.closePath();
+            postDraw(context);
+            resolve(position);
+          });
+        });
+      };
+      position = await updatePosition(position);
     }
     const { p1: low } = getAllRectPointsFromCentroid(position, rectW, rectH);
     beforeDraw(context);
