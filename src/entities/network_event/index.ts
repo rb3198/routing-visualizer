@@ -5,7 +5,8 @@ let i = 0;
 export class NetworkEvent {
   timestamp: number;
   router: string;
-  title: string;
+  title: string | "stop" | "start";
+  global?: boolean;
   questions: string[];
   actionLine?: string;
   actions: string[];
@@ -19,6 +20,7 @@ export class NetworkEvent {
     actionLine,
     actions,
     links,
+    global,
   }: Omit<NetworkEvent, "id">) {
     this.id = `${timestamp}_${i++}`;
     this.timestamp = timestamp;
@@ -28,5 +30,6 @@ export class NetworkEvent {
     this.actionLine = actionLine;
     this.actions = actions;
     this.links = links;
+    this.global = global;
   }
 }
