@@ -14,7 +14,8 @@ import { IPAddresses } from "src/constants/ip_addresses";
 
 export function PacketSentEventBuilder(
   routerId: IPv4Address,
-  packet: IPPacket
+  packet: IPPacket,
+  questions?: string[]
 ) {
   function getTitle(packet: IPPacket) {
     const { header } = packet;
@@ -83,7 +84,7 @@ export function PacketSentEventBuilder(
     timestamp: Date.now(),
     router: routerId.toString(),
     title: getTitle(packet),
-    questions: [],
+    questions: questions || [],
     actions: [],
     links: getLinks(packet),
   });

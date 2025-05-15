@@ -53,7 +53,13 @@ export class LsAckPacketHandler extends PacketHandlerBase<LSAckPacket> {
     } else {
       newTimer =
         prevTimer ??
-        setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval);
+        setTimeout(
+          () =>
+            sendLSUpdatePacket(neighborId, [
+              "Since the retransmission timer was triggered.",
+            ]),
+          rxmtInterval
+        );
     }
     setNeighbor({
       ...neighbor,

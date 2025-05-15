@@ -184,7 +184,8 @@ export class Router {
     destination: IPv4Address,
     ipProtocol: IPProtocolNumber,
     body: IPacket,
-    ipInterfaceId?: string
+    ipInterfaceId?: string,
+    questions?: string[]
   ) => {
     if (this.power === PowerState.Shutdown) {
       return;
@@ -199,7 +200,11 @@ export class Router {
       );
       const ipPacket = new IPPacket(ipHeader, body);
       ipInterface?.sendMessage(this, ipPacket);
-      const packetSentEvent = PacketSentEventBuilder(this.id, ipPacket);
+      const packetSentEvent = PacketSentEventBuilder(
+        this.id,
+        ipPacket,
+        questions
+      );
       store.dispatch(emitEvent(packetSentEvent));
       return;
     }

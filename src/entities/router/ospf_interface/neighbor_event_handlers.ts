@@ -100,7 +100,7 @@ const twoWayReceived: NeighborEventHandler = function (neighbor) {
         rxmtInterval
       ),
     });
-    this.sendDDPacket(neighborId);
+    setTimeout(() => this.sendDDPacket(neighborId));
     return `
     <i>TwoWayReceived</i> event triggered since the Router found itself in <b>${neighborId}</b>'s hello packet.
     <ul>
@@ -133,7 +133,8 @@ const negotiationDone: NeighborEventHandler = function (neighbor) {
   ${neighbor.routerId} is now promoted to the <code>Exchange</code> state. ${
     this.router.id
   } is the <b>${master ? "Master" : "Slave"}</b>
-  in this relation.`;
+  in this relation.<br/>
+  The router will send a new DD packet immediately reflecting the new relationship of the two routers.`;
 };
 
 /**

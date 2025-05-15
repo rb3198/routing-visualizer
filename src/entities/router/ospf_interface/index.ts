@@ -312,7 +312,7 @@ export class OSPFInterface {
     }
   };
 
-  sendLSUpdatePacket = (neighborId: IPv4Address) => {
+  sendLSUpdatePacket = (neighborId: IPv4Address, questions: string[]) => {
     const neighbor = this.neighborTable[neighborId.toString()];
     const { id: routerId } = this.router;
     const { rxmtInterval } = this.config;
@@ -333,12 +333,16 @@ export class OSPFInterface {
       address,
       IPProtocolNumber.ospf,
       new LSUpdatePacket(routerId, areaId, linkStateRetransmissionList),
-      interfaceId
+      interfaceId,
+      questions
     );
     this.setNeighbor({
       ...neighbor,
       lsRetransmissionRxmtTimer: setTimeout(
-        () => this.sendLSUpdatePacket(neighborId),
+        () =>
+          this.sendLSUpdatePacket(neighborId, [
+            "This LSU was sent since the Retransmission Timer was Triggered",
+          ]),
         rxmtInterval
       ),
     });
