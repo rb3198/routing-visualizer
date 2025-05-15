@@ -238,7 +238,16 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
   props
 ) => {
   const { event, hideLinks } = props;
-  const { id, title, questions, actionLine, actions, global, links } = event;
+  const {
+    id,
+    title,
+    questions,
+    actionLine,
+    actions,
+    global,
+    links,
+    timestamp,
+  } = event;
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     setVisible(true);
@@ -260,10 +269,22 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
     );
   }, []);
 
+  const getFormattedTime = (date: Date) => {
+    var d = date || new Date();
+    var z = (n: number) => ("0" + n).slice(-2);
+    var zz = (n: number) => ("00" + n).slice(-3);
+    return `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}.${zz(
+      d.getMilliseconds()
+    )}`;
+  };
+
   const renderRouterEvent = () => {
     return (
       <>
         <p dangerouslySetInnerHTML={{ __html: title }}></p>
+        <p>
+          <b>Time:</b> {getFormattedTime(new Date(timestamp))}{" "}
+        </p>
         {renderQas("q", questions)}
         {(actionLine && <b>{actionLine}</b>) || <></>}
         {renderQas("a", actions)}

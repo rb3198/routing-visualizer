@@ -56,18 +56,22 @@ const oneWayReceived: NeighborEventHandler = function (neighbor) {
     routerId: neighborId,
     areaId,
     linkStateRetransmissionList,
+    lsTransmission,
   } = neighbor;
   if (state >= State.TwoWay) {
+    clearTimeout(lsTransmission?.delayTimer);
+    clearTimeout(lsTransmission?.rxmtTimer);
     this.setNeighbor({
       ...neighbor,
       state: State.Init,
       linkStateRequestList: [],
-      linkStateRetransmissionList: [],
+      linkStateRetransmissionList: new Map(),
       dbSummaryList: [],
     });
-    this.lsDb.postprocessLsRetransmissionListClearout(areaId, [
-      ...linkStateRetransmissionList,
-    ]);
+    this.lsDb.postprocessLsRetransmissionListClearout(
+      areaId,
+      Array.from(linkStateRetransmissionList.values()).map((x) => x.lsa)
+    );
   }
   if (state === State.Full) {
     this.lsDb.originateRouterLsa(areaId, true);
@@ -215,30 +219,35 @@ const seqNumberMismatch: NeighborEventHandler = function (
   const {
     state,
     lsRequestRxmtTimer,
-    lsRetransmissionRxmtTimer,
+    lsTransmission,
     areaId,
     linkStateRetransmissionList,
   } = neighbor;
   clearInterval(lsRequestRxmtTimer);
-  clearTimeout(lsRetransmissionRxmtTimer);
+  if (lsTransmission) {
+    const { rxmtTimer, delayTimer } = lsTransmission;
+    clearTimeout(rxmtTimer);
+    clearTimeout(delayTimer);
+  }
   if (state >= State.Exchange) {
     this.setNeighbor({
       ...neighbor,
       state: State.ExStart,
       linkStateRequestList: [],
       dbSummaryList: [],
-      linkStateRetransmissionList: [],
+      linkStateRetransmissionList: new Map(),
       ddRxmtTimer: setInterval(
         this.sendDDPacket.bind(this, neighbor.routerId),
         rxmtInterval
       ),
       lastReceivedDdPacket: undefined,
       lsRequestRxmtTimer: undefined,
-      lsRetransmissionRxmtTimer: undefined,
+      lsTransmission: undefined,
     });
-    lsDb.postprocessLsRetransmissionListClearout(areaId, [
-      ...linkStateRetransmissionList,
-    ]);
+    lsDb.postprocessLsRetransmissionListClearout(
+      areaId,
+      Array.from(linkStateRetransmissionList.values()).map((x) => x.lsa)
+    );
     this.lsDb.originateRouterLsa(areaId, true);
     return (
       (desc || "") +
@@ -292,14 +301,15 @@ const killNeighbor: NeighborEventHandler = function (this, neighbor) {
     ...neighbor,
     state: State.Down,
     linkStateRequestList: [],
-    linkStateRetransmissionList: [],
+    linkStateRetransmissionList: new Map(),
     dbSummaryList: [],
     deadTimer: undefined,
     lastReceivedDdPacket: undefined,
   });
-  this.lsDb.postprocessLsRetransmissionListClearout(areaId, [
-    ...linkStateRetransmissionList,
-  ]);
+  this.lsDb.postprocessLsRetransmissionListClearout(
+    areaId,
+    Array.from(linkStateRetransmissionList.values()).map((x) => x.lsa)
+  );
   this.lsDb.originateRouterLsa(areaId, true);
   return `
   Dead timer of ${neighborId} triggered. The neighbor is being set to the <code>DOWN</code> state.

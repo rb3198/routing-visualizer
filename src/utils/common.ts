@@ -47,7 +47,9 @@ export const copyNeighborTable = (table: Record<string, NeighborTableRow>) => {
     newTable[key] = {
       ...table[key],
       linkStateRequestList: [...table[key].linkStateRequestList],
-      linkStateRetransmissionList: [...table[key].linkStateRetransmissionList],
+      linkStateRetransmissionList: new Map(
+        table[key].linkStateRetransmissionList
+      ),
     };
   });
   return newTable;

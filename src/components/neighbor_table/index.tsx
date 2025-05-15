@@ -52,19 +52,19 @@ const getValue = (
       `;
     case "linkStateRetransmissionList":
       const { linkStateRetransmissionList } = row;
-      return !linkStateRetransmissionList.length
+      return !linkStateRetransmissionList.size
         ? "[ ]"
         : `
         <div>
-          ${linkStateRetransmissionList
-            .map((lsa) => renderLSAHeader(lsa.header))
+          ${Array.from(linkStateRetransmissionList.values())
+            .map(({ lsa }) => renderLSAHeader(lsa.header))
             .join("")}
         </div>
       `;
     case "deadTimer":
     case "ddRxmtTimer":
     case "lsRequestRxmtTimer":
-    case "lsRetransmissionRxmtTimer":
+    case "lsTransmission":
       return typeof row[key] === "undefined" ? "Not Set" : "Timer Set";
     case "lastReceivedDdPacket":
       const lastDdPacket = row[key];

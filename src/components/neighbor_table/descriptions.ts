@@ -37,7 +37,7 @@ export const columnNames: Record<keyof NeighborTableRow, string> = {
   deadTimer: "Inactivity Timer",
   ddRxmtTimer: "",
   lsRequestRxmtTimer: "",
-  lsRetransmissionRxmtTimer: "",
+  lsTransmission: "",
   linkStateRequestList: "Link State Request List",
   dbSummaryList: "Database Summary List",
   linkStateRetransmissionList: "LS Retransmission List",
@@ -94,7 +94,7 @@ export const descriptions: Record<keyof NeighborTableRow | "none", string> = {
       </ul>`,
   ddRxmtTimer: "",
   lsRequestRxmtTimer: "",
-  lsRetransmissionRxmtTimer: "",
+  lsTransmission: "",
   linkStateRetransmissionList: `
       <p>The list of LSAs that have been <b>flooded but not acknowledged on</b> by this neighbor.</p>
       <p> These will be retransmitted at intervals until:</p>

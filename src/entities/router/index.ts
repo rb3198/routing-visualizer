@@ -308,16 +308,14 @@ export class Router {
     this.ospf.lsDb.clearTimers();
     await this.ospf.lsDb.clearDb(this.gracefulShutdown);
     Object.values(this.ospf.neighborTable).forEach(
-      ({
-        deadTimer,
-        ddRxmtTimer,
-        lsRequestRxmtTimer,
-        lsRetransmissionRxmtTimer,
-      }) => {
+      ({ deadTimer, ddRxmtTimer, lsRequestRxmtTimer, lsTransmission }) => {
         clearTimeout(deadTimer);
         clearInterval(ddRxmtTimer);
         clearInterval(lsRequestRxmtTimer);
-        clearTimeout(lsRetransmissionRxmtTimer);
+        if (lsTransmission) {
+          const { rxmtTimer, delayTimer } = lsTransmission;
+          [rxmtTimer, delayTimer].forEach((x) => clearTimeout(x));
+        }
       }
     );
     this.ospf.neighborTable = {};

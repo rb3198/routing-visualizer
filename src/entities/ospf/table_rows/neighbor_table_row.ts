@@ -52,10 +52,17 @@ export class NeighborTableRow {
   lsRequestRxmtTimer?: NodeJS.Timeout;
 
   /**
-   * Once the router sends LSAs in LSU Packets (either during the `LOADING` or `FULL` states), it waits for `rxmtInterval` seconds
-   * for an acknowledgement of the reception of these packets. If received, the timer is cleared.
+   * Contains all the data related to LS Transmission.
    */
-  lsRetransmissionRxmtTimer?: NodeJS.Timeout;
+  lsTransmission?: {
+    /**
+     * Once the router sends LSAs in LSU Packets (either during the `LOADING` or `FULL` states), it waits for `rxmtInterval` seconds
+     * for an acknowledgement of the reception of these packets. If received, the timer is cleared.
+     */
+    rxmtTimer?: NodeJS.Timeout;
+    /** Used for adding a small delay before sending an LSU packet to prevent a flood of consecutive LSU packets */
+    delayTimer?: NodeJS.Timeout;
+  };
 
   /**
    * The list of LSAs that need to be received from this neighbor in order to synchronize the two neighbors' link-state databases.
@@ -76,7 +83,14 @@ export class NeighborTableRow {
    * The list of LSAs that have been flooded but not acknowledged on this adjacency.
    * These will be retransmitted at intervals until they are acknowledged, or until the adjacency is destroyed.
    */
-  linkStateRetransmissionList: LSA[];
+  linkStateRetransmissionList: Map<
+    string,
+    {
+      sentOn: number;
+      lsa: LSA;
+      reason: string;
+    }
+  >;
 
   lastReceivedDdPacket?: DDPacketSummary;
 
@@ -96,6 +110,6 @@ export class NeighborTableRow {
     this.master = master ?? true;
     this.linkStateRequestList = [];
     this.dbSummaryList = [];
-    this.linkStateRetransmissionList = [];
+    this.linkStateRetransmissionList = new Map();
   }
 }

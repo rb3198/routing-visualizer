@@ -88,7 +88,14 @@ export class LsDb {
         if (newLsAge === MaxAge) {
           // Flood this LSA out. When receiving ACKs, check if no retransmission list contains this LSA.
           // If not, delete the LSA from the DB.
-          this.floodLsa(areaId, [lsa], []);
+          this.floodLsa(areaId, [
+            {
+              lsa,
+              receivedFrom: undefined,
+              reason:
+                "Flushing the <code>MaxAge</code> LSA out of the network.",
+            },
+          ]);
         }
       });
     });
@@ -195,12 +202,15 @@ export class LsDb {
       if (neighborAreaId !== areaId) {
         return;
       }
-      const newRetransmissionList = linkStateRetransmissionList.filter(
-        (lsa) => !lsa.isInstanceOf(oldCopy)
-      );
+      for (const [key, d] of linkStateRetransmissionList) {
+        const { lsa } = d;
+        if (lsa.isInstanceOf(oldCopy)) {
+          linkStateRetransmissionList.delete(key);
+        }
+      }
       setNeighbor({
         ...neighbor,
-        linkStateRetransmissionList: newRetransmissionList,
+        linkStateRetransmissionList,
       });
       affectedNeighbors.push(neighborId);
     });
@@ -264,20 +274,15 @@ export class LsDb {
    */
   floodLsa = (
     areaId: number,
-    lsas: LSA[],
-    receivedFrom: (IPv4Address | undefined)[]
+    lsas: {
+      lsa: LSA;
+      receivedFrom: IPv4Address | undefined;
+      reason: string;
+    }[]
   ) => {
-    const { neighborTable, config, setNeighbor, sendLSUpdatePacket } =
+    const { neighborTable, config, setNeighbor, scheduleLsuTransmission } =
       this.ospfInterface;
-    const { rxmtInterval } = config;
-    console.log(
-      `Router ID ${this.ospfInterface.router.id}, setting LSAs: [${lsas
-        .map(
-          (lsa) =>
-            `adv Router: ${lsa.header.advertisingRouter}, type: ${lsa.header.lsType}`
-        )
-        .join(",")}`
-    );
+    const { MaxAge } = config;
     let sendingLsas = false;
     for (const neighbor of Object.values(neighborTable)) {
       const {
@@ -285,44 +290,40 @@ export class LsDb {
         areaId: neighborAreaId,
         linkStateRetransmissionList,
         routerId: neighborId,
-        lsRetransmissionRxmtTimer,
       } = neighbor;
       if (state < State.Exchange || areaId !== neighborAreaId) {
         continue;
       }
-      const lsasToAdvertise = lsas.filter((lsa, idx) => {
-        const receivedFromIp = receivedFrom[idx];
+      const lsasToAdvertise = lsas.filter(({ lsa, receivedFrom }, idx) => {
         return (
           !this.updateNeighborLsRequestList(neighbor, lsa) &&
-          (!receivedFromIp || !neighborId.equals(receivedFromIp))
+          (!receivedFrom || !neighborId.equals(receivedFrom))
         );
       });
       if (!lsasToAdvertise.length) {
         continue;
       }
-      linkStateRetransmissionList.push(
-        ...lsasToAdvertise.map((lsa) => copyLsa(lsa))
-      );
+      lsasToAdvertise.forEach(({ lsa, reason }) => {
+        const { header } = lsa;
+        const key = LsDb.getLsDbKey(header);
+        const instanceOnList = linkStateRetransmissionList.get(key);
+        if (
+          !instanceOnList ||
+          instanceOnList.lsa.header.compareAge(header, MaxAge) > 0
+        ) {
+          linkStateRetransmissionList.set(key, {
+            lsa: copyLsa(lsa),
+            sentOn: 0,
+            reason,
+          });
+        }
+      });
       sendingLsas = true;
       setNeighbor({
         ...neighbor,
-        lsRetransmissionRxmtTimer:
-          lsRetransmissionRxmtTimer ??
-          setTimeout(() => sendLSUpdatePacket(neighborId), rxmtInterval),
         linkStateRetransmissionList,
       });
-      lsasToAdvertise.forEach((lsa) =>
-        console.log(
-          `LSA ${lsa.header.advertisingRouter} of type ${
-            lsa.header.lsType
-          } seq # ${
-            lsa.header.lsSeqNumber
-          } added to neighbor ${neighborId}'s retransmission list in state ${
-            Object.keys(State)[Object.values(State).indexOf(state)]
-          }`
-        )
-      );
-      !lsRetransmissionRxmtTimer && sendLSUpdatePacket(neighborId);
+      setTimeout(() => scheduleLsuTransmission(neighborId));
     }
     return sendingLsas;
   };
@@ -338,6 +339,7 @@ export class LsDb {
   installLsa = (
     areaId: number,
     lsa: LSA,
+    reason: string,
     receivedFrom?: IPv4Address,
     flood?: boolean,
     skipCalc?: boolean
@@ -376,7 +378,7 @@ export class LsDb {
       action
     );
     if (flood) {
-      this.floodLsa(areaId, [lsa], [receivedFrom]);
+      this.floodLsa(areaId, [{ lsa, receivedFrom, reason }]);
       action = this.appendToAction(
         `<li>Flooded the LSA in Area ${areaId}.</li>\n`,
         action
@@ -424,8 +426,8 @@ export class LsDb {
       const { advertisingRouter, lsType } = header;
       for (let neighbor of areaNeighbors) {
         const { linkStateRetransmissionList } = neighbor;
-        for (let lsRetransmit of linkStateRetransmissionList) {
-          if (lsRetransmit.equals(maxAgeLsa, MaxAge)) {
+        for (let [, lsRetransmit] of linkStateRetransmissionList) {
+          if (lsRetransmit.lsa.equals(maxAgeLsa, MaxAge)) {
             toDelete = false;
             break;
           }
@@ -483,6 +485,7 @@ export class LsDb {
     if (power !== RouterPowerState.On) {
       return;
     }
+    const floodReason = "Since the Router originated a new Router LSA";
     const areaExists = !!this.db[areaId];
     if (!areaExists) {
       this.db[areaId] = {};
@@ -494,6 +497,7 @@ export class LsDb {
         this.installLsa(
           oAreaId,
           routerLsa,
+          floodReason,
           undefined,
           flood || oAreaId !== areaId
         );
@@ -506,7 +510,7 @@ export class LsDb {
       });
       const originateLsa = () => {
         const routerLsa = this.createRouterLsa(areaId);
-        this.installLsa(areaId, routerLsa, undefined, flood);
+        this.installLsa(areaId, routerLsa, floodReason, undefined, flood);
       };
       const timeSinceInception =
         existingRouterLsa && Date.now() - existingRouterLsa.createdOn;
@@ -684,9 +688,17 @@ export class LsDb {
       }
       const lsasToAdvertise = [...routesToFlush, ...routesToAdvertise];
       lsasToAdvertise.forEach((lsa) =>
-        this.installLsa(destArea, lsa, undefined, false, true)
+        this.installLsa(destArea, lsa, "", undefined, false, true)
       );
-      lsasToAdvertise.length && this.floodLsa(destArea, lsasToAdvertise, []);
+      lsasToAdvertise.length &&
+        this.floodLsa(
+          destArea,
+          lsasToAdvertise.map((lsa) => ({
+            lsa,
+            reason: "New Summary LSAs are being transmitted",
+            receivedFrom: undefined,
+          }))
+        );
     }
   };
 
@@ -727,8 +739,12 @@ export class LsDb {
         }
         const isFlooded = this.floodLsa(
           parseInt(areaId),
-          toFlushLsaMap[areaId],
-          []
+          toFlushLsaMap[areaId].map((lsa) => ({
+            lsa,
+            receivedFrom: undefined,
+            reason:
+              "Gracefully shutting down the router by flushing all of its LSAs.",
+          }))
         );
         if (!isFlooded) {
           delete toFlushLsaMap[areaId];
