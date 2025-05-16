@@ -221,6 +221,31 @@ ul ul, ul ol {
     color: #aaa;
     margin-right: .618rem;
 }
+
+.global_event {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    margin: .764rem 0;
+    border-radius: 12px;
+}
+
+.global_event > svg {
+    margin-right: .618rem;
+}
+
+.global_event[data-type="start"] {
+    color: #528739;
+    background-color: #57a83255;
+    border: 2px solid #57a832;
+}
+
+.global_event[data-type="stop"] {
+    color: #E13A1E;
+    background-color: #E13A1E55;
+    border: 2px solid #E13A1E;
+}
+
 :global(.ls_req_container) {
     display: flex;
     border: 1px solid #ccc;

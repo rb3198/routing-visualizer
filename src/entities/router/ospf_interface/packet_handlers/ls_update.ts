@@ -20,6 +20,7 @@ import { IPv4Address } from "src/entities/ip/ipv4_address";
 import { copyLsa } from "src/utils/common";
 import { lsTypeToString } from "src/entities/ospf/enum/ls_type";
 import { printLsaHtml } from "src/utils/ui";
+import { LsDb } from "../ls_db";
 
 export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
   validPacket = (ipPacket: IPPacket, packet: LSUpdatePacket) => {
@@ -82,26 +83,30 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         return destinationIp.fromSameSubnet(prevAdvertisedNetworkIp);
       });
     if (!advertisedNetworkReachable) {
+      const reason =
+        "Router took a <b>special action</b>, flushing out the LSA it received which contained an unreachable route.";
       // flush the received LSA
       if (dbCopy) {
         dbCopy.header.lsAge = MaxAge;
         dbCopy.header.lsSeqNumber = receivedLsa.header.lsSeqNumber;
-        lsDb.installLsa(areaId, dbCopy, undefined, true);
+        lsDb.installLsa(areaId, dbCopy, reason, undefined, true);
       } else {
         const copy = copyLsa(receivedLsa);
         copy.header.lsAge = MaxAge;
-        lsDb.floodLsa(areaId, [copy], []);
+        lsDb.floodLsa(areaId, [{ lsa: copy, reason, receivedFrom: undefined }]);
       }
       return;
     }
+    const reason =
+      "Router took a <b>special action</b>, incrementing the Seq. number of an existing LSA since the route was still visible.";
     if (dbCopy) {
       dbCopy.header.lsSeqNumber = receivedLsa.header.lsSeqNumber + 1;
       // Network is still reachable, increment the LS Sequence Number
-      lsDb.installLsa(areaId, dbCopy, undefined, true, true);
+      lsDb.installLsa(areaId, dbCopy, reason, undefined, true, true);
     } else {
       const copy = copyLsa(receivedLsa);
       copy.header.lsSeqNumber++;
-      lsDb.installLsa(areaId, copy, undefined, true);
+      lsDb.installLsa(areaId, copy, reason, undefined, true);
     }
   };
   /**
@@ -137,7 +142,13 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     // Else the following code:
     const setRouterLsa = () => {
       const newLsa = RouterLSA.fromRouter(router, areaId, lsSeqNumber + 1);
-      lsDb.installLsa(areaId, newLsa, undefined, true);
+      lsDb.installLsa(
+        areaId,
+        newLsa,
+        "The Router took a <b>special action</b> because it saw a newer Router LSA belonging to itself in the network.",
+        undefined,
+        true
+      );
     };
     switch (lsType) {
       case LSType.RouterLSA:
@@ -195,6 +206,10 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
     this.packetProcessedEventBuilder?.addQuestion(qDesc);
     let idx = 0,
       action = "";
+    const neighbor = neighborTable[neighborId.toString()];
+    const { linkStateRequestList, linkStateRetransmissionList, address } =
+      neighbor;
+    const sendImmediate: LSA[] = [];
     for (const lsa of lsaList) {
       action = "";
       const { header } = lsa;
@@ -251,6 +266,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         action += lsDb.installLsa(
           areaId,
           lsa,
+          "New LSAs were installed and hence are being flooded out.",
           neighborId,
           true,
           skipRoutingTableCalc
@@ -260,9 +276,6 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
         this.packetProcessedEventBuilder?.addAction(action);
         continue;
       }
-      const neighbor = neighborTable[neighborId.toString()];
-      const { linkStateRequestList, linkStateRetransmissionList, address } =
-        neighbor;
       if (
         linkStateRequestList.some((lsaHeader) => lsaHeader.isInstanceOf(lsa))
       ) {
@@ -282,29 +295,18 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       }
       if (dbCopy.equals(lsa, MaxAge)) {
         // Received LSA is the same instance as the database copy.
-        if (
-          linkStateRetransmissionList.some((neighborLsa) =>
-            neighborLsa.equals(lsa, MaxAge)
-          )
-        ) {
+        const key = LsDb.getLsDbKey(lsa.header);
+        const { lsa: lsInList } = linkStateRetransmissionList.get(key) || {};
+        if (lsInList && lsInList.equals(lsa, MaxAge)) {
           const { header } = lsa;
           const { lsAge } = header;
-          const { lsRetransmissionRxmtTimer } = neighbor;
-          let newTimer = lsRetransmissionRxmtTimer;
           // Implied Acknowledgement.
           action += `The received LSA from ${neighborId} is the same instance as the one requested by it. Hence, 
           treating the receipt as an <i>implied acknowledgement</i> from ${neighborId}. No ACK will be sent back to it.`;
-          const newRetransmissionList = linkStateRetransmissionList.filter(
-            (neighborLsa) => !neighborLsa.equals(lsa, MaxAge)
-          );
-          if (!newRetransmissionList.length) {
-            clearTimeout(lsRetransmissionRxmtTimer);
-            newTimer = undefined;
-          }
+          linkStateRetransmissionList.delete(key);
           this.ospfInterface.setNeighbor({
             ...neighbor,
-            linkStateRetransmissionList: newRetransmissionList,
-            lsRetransmissionRxmtTimer: newTimer,
+            linkStateRetransmissionList: new Map(linkStateRetransmissionList),
           });
           if (lsAge === MaxAge) {
             action += `The received LSA is of age <code>MaxAge</code>. 
@@ -319,7 +321,7 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
           continue;
         }
         action += `LSA pushed to Acknowledgements to be sent back to ${neighborId}<br>
-        <b>No actions taken</b> since an exact instance of the LSA was already present in the LS DB.`;
+        <b>The LSA was not installed</b> since an exact instance of the LSA was already present in the LS DB.`;
         acknowledgements.push(header);
         this.packetProcessedEventBuilder?.addAction(action);
         continue;
@@ -337,13 +339,18 @@ export class LsUpdatePacketHandler extends PacketHandlerBase<LSUpdatePacket> {
       action += `This LSA is older than the one presently stored in ${routerId}'s database.
       <br>Hence, sending the newer copy back to the neighbor.`;
       this.packetProcessedEventBuilder?.addAction(action);
+      sendImmediate.push(dbCopy);
+    }
+    sendImmediate.length &&
       router.originateIpPacket(
         address,
         IPProtocolNumber.ospf,
-        new LSUpdatePacket(routerId, areaId, [dbCopy]),
-        interfaceId
+        new LSUpdatePacket(routerId, areaId, sendImmediate),
+        interfaceId,
+        [
+          "The router received LSA(s) that were older than the one present in the router's database, so it sent the LSAs immediately.",
+        ]
       );
-    }
     acknowledgements.length &&
       setTimeout(() => sendLSAckPacket(neighborId, acknowledgements));
   };

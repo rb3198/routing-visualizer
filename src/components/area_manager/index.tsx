@@ -25,6 +25,7 @@ import { connect, ConnectedProps } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
 import {
   clearEventLog,
+  emitEvent,
   openLsDbModal,
   openNotificationTooltip,
   openRoutingTable,
@@ -39,6 +40,7 @@ import { MouseButton, MouseRightEventHandler } from "src/types/common/mouse";
 import { ConfigLoader } from "./config_loader";
 import { ConfigFile } from "src/entities/config";
 import { usePinch } from "@use-gesture/react";
+import { NetworkEvent } from "src/entities/network_event";
 
 interface AreaManagerProps {
   gridRect: GridCell[][];
@@ -80,6 +82,7 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    emitEvent,
   } = props;
   const areaTree = useRef<AreaTree>(new AreaTree());
   const linkInterfaceMap = useRef<Map<string, IPLinkInterface>>(new Map());
@@ -364,8 +367,18 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
       areaTree: areaTree.current,
       compLayer: componentLayerRef.current,
     });
+    emitEvent({
+      title: "start",
+      router: "",
+      actions: [],
+      id: "",
+      timestamp: Date.now(),
+      links: [],
+      questions: [],
+      global: true,
+    });
     return true;
-  }, [openNotificationTooltip]);
+  }, [openNotificationTooltip, emitEvent]);
 
   const pauseSimulation = useCallback(() => {
     dispatch({
@@ -394,8 +407,19 @@ export const AreaManagerComponent: React.FC<AreaManagerProps & ReduxProps> = (
     dispatch({
       type: "stop",
     });
-    clearEventLog();
-  }, [openNotificationTooltip, clearEventLog]);
+    emitEvent(
+      new NetworkEvent({
+        timestamp: Date.now(),
+        title: "stop",
+        global: true,
+        actions: [],
+        questions: [],
+        links: [],
+        router: "",
+        actionLine: "",
+      })
+    );
+  }, [openNotificationTooltip, emitEvent]);
 
   //#region Router Menu Methods
   const connectRouters = useCallback((routerA: Router, routerB: Router) => {
@@ -706,6 +730,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       openNotificationTooltip,
       dispatch
     ),
+    emitEvent: bindActionCreators(emitEvent, dispatch),
     clearEventLog: bindActionCreators(clearEventLog, dispatch),
     setSimulationConfig: bindActionCreators(setSimulationConfig, dispatch),
   };

@@ -16,7 +16,7 @@ import { store } from "../../../store";
 import { setLiveNeighborTable } from "src/action_creators";
 import { getIpPacketDropReason } from "./utils";
 import { IPPacket } from "src/entities/ip/packets";
-import { LSAHeader } from "src/entities/ospf/lsa";
+import { LSA, LSAHeader } from "src/entities/ospf/lsa";
 import { LSRequest } from "src/entities/ospf/packets/ls_request";
 import { LSRequestPacket } from "src/entities/ospf/packets";
 import { LsDb } from "./ls_db";
@@ -312,7 +312,7 @@ export class OSPFInterface {
     }
   };
 
-  sendLSUpdatePacket = (neighborId: IPv4Address) => {
+  private sendLsUpdatePacket = (neighborId: IPv4Address) => {
     const neighbor = this.neighborTable[neighborId.toString()];
     const { id: routerId } = this.router;
     const { rxmtInterval } = this.config;
@@ -320,31 +320,84 @@ export class OSPFInterface {
       console.warn("sendLSUpdate called for a neighbor which doesn't exist!");
       return;
     }
-    const { interfaceId, address, areaId, linkStateRetransmissionList } =
-      neighbor;
-    if (!linkStateRetransmissionList.length) {
+    const {
+      areaId,
+      interfaceId,
+      linkStateRetransmissionList,
+      lsTransmission,
+      address,
+    } = neighbor;
+    clearTimeout(lsTransmission?.delayTimer);
+    clearTimeout(lsTransmission?.rxmtTimer);
+    const toSend: LSA[] = [];
+    const reasons = new Set<string>();
+    for (const d of linkStateRetransmissionList.values()) {
+      const { lsa, reason, sentOn } = d;
+      if (Date.now() - sentOn >= rxmtInterval) {
+        toSend.push(lsa);
+        reasons.add(reason);
+        d.sentOn = Date.now();
+        d.reason =
+          "Some LSA(s) retransmitted since <code>RxmtInterval</code> seconds passed.";
+      }
+    }
+    if (!toSend.length) {
       this.setNeighbor({
         ...neighbor,
-        lsRetransmissionRxmtTimer: undefined,
+        lsTransmission: undefined,
       });
       return;
     }
     this.router.originateIpPacket(
       address,
       IPProtocolNumber.ospf,
-      new LSUpdatePacket(routerId, areaId, linkStateRetransmissionList),
-      interfaceId
+      new LSUpdatePacket(routerId, areaId, toSend),
+      interfaceId,
+      Array.from(reasons)
     );
     this.setNeighbor({
       ...neighbor,
-      lsRetransmissionRxmtTimer: setTimeout(
-        () => this.sendLSUpdatePacket(neighborId),
-        rxmtInterval
-      ),
+      lsTransmission: {
+        delayTimer: undefined,
+        rxmtTimer: setTimeout(
+          () => this.sendLsUpdatePacket(neighborId),
+          rxmtInterval
+        ),
+      },
     });
-    console.warn(
-      `Timer set to trigger retransmission of Update packets to neighbor ${neighborId}`
+  };
+
+  private getReleaseDelay = () => {
+    const { simulationConfig } = store.getState();
+    const { propagationDelay } = simulationConfig;
+    return (propagationDelay * 2) / 3;
+  };
+
+  scheduleLsuTransmission = (neighborId: IPv4Address) => {
+    const neighbor = this.neighborTable[neighborId.toString()];
+    if (!neighbor) {
+      console.warn("sendLSUpdate called for a neighbor which doesn't exist!");
+      return;
+    }
+    const { lsTransmission } = neighbor;
+    const releaseDelay = this.getReleaseDelay();
+    if (lsTransmission) {
+      // transmission is already scheduled.
+      const { rxmtTimer, delayTimer } = lsTransmission;
+      clearTimeout(delayTimer);
+      clearTimeout(rxmtTimer);
+    }
+    const delayTimer = setTimeout(
+      () => this.sendLsUpdatePacket(neighborId),
+      releaseDelay
     );
+    this.setNeighbor({
+      ...neighbor,
+      lsTransmission: {
+        delayTimer,
+        rxmtTimer: undefined,
+      },
+    });
   };
 
   sendLSRequestPacket = (neighborId: IPv4Address) => {

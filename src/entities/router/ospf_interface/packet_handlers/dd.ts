@@ -30,7 +30,6 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
       : packetSeqNumber === (ddSeqNumber ?? 0) + 1;
     if (!masterOk || !initOk || !seqOk) {
       return false;
-      // emitEvent({})(store.dispatch); TODO.
     }
     return true;
   };
@@ -223,10 +222,12 @@ export class DDPacketHandler extends PacketHandlerBase<DDPacket> {
       return;
     }
     if (!this.validateExchangeDDPacket(packet)) {
-      const action = neighborStateMachine(
-        neighborId.toString(),
-        NeighborSMEvent.SeqNumberMismatch
-      );
+      let action = "Validation of DD packet failed";
+      action +=
+        neighborStateMachine(
+          neighborId.toString(),
+          NeighborSMEvent.SeqNumberMismatch
+        ) || "";
       action && this.packetProcessedEventBuilder?.addAction(action);
       return;
     }

@@ -10,6 +10,7 @@ import { CiFilter } from "react-icons/ci";
 import { VscClearAll } from "react-icons/vsc";
 import { clearEventLog } from "src/action_creators";
 import { VirtualList } from "../virtual_list";
+import { FaPlay, FaStop } from "react-icons/fa";
 
 const MS_IN_DAY = 86400000;
 export type EventLogProps = {
@@ -237,7 +238,16 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
   props
 ) => {
   const { event, hideLinks } = props;
-  const { id, title, questions, actionLine, actions, links } = event;
+  const {
+    id,
+    title,
+    questions,
+    actionLine,
+    actions,
+    global,
+    links,
+    timestamp,
+  } = event;
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     setVisible(true);
@@ -258,23 +268,58 @@ const Event: React.FC<{ event: NetworkEvent; hideLinks?: boolean }> = (
       </ul>
     );
   }, []);
+
+  const getFormattedTime = (date: Date) => {
+    var d = date || new Date();
+    var z = (n: number) => ("0" + n).slice(-2);
+    var zz = (n: number) => ("00" + n).slice(-3);
+    return `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}.${zz(
+      d.getMilliseconds()
+    )}`;
+  };
+
+  const renderRouterEvent = () => {
+    return (
+      <>
+        <p dangerouslySetInnerHTML={{ __html: title }}></p>
+        <p>
+          <b>Time:</b> {getFormattedTime(new Date(timestamp))}{" "}
+        </p>
+        {renderQas("q", questions)}
+        {(actionLine && <b>{actionLine}</b>) || <></>}
+        {renderQas("a", actions)}
+        {links.length > 0 &&
+          !hideLinks &&
+          links.map((link, idx) => (
+            <span
+              key={`event_${id}_l${idx}`}
+              onClick={link.onClick}
+              className={styles.link}
+            >
+              {link.label}
+            </span>
+          ))}
+      </>
+    );
+  };
+
+  const renderGlobalEvent = () => {
+    if (title !== "start" && title !== "stop") {
+      return null;
+    }
+    const Icon = title === "start" ? FaPlay : FaStop;
+    return (
+      <div className={styles.global_event} data-type={title}>
+        <Icon />
+        <h2>
+          {title === "start" ? "Simulation Started" : "Simulation Stopped"}
+        </h2>
+      </div>
+    );
+  };
   return (
     <li className={`${styles.event} ${(visible && styles.visible) || ""}`}>
-      <p dangerouslySetInnerHTML={{ __html: title }}></p>
-      {renderQas("q", questions)}
-      {(actionLine && <b>{actionLine}</b>) || <></>}
-      {renderQas("a", actions)}
-      {links.length > 0 &&
-        !hideLinks &&
-        links.map((link, idx) => (
-          <span
-            key={`event_${id}_l${idx}`}
-            onClick={link.onClick}
-            className={styles.link}
-          >
-            {link.label}
-          </span>
-        ))}
+      {global ? renderGlobalEvent() : renderRouterEvent()}
     </li>
   );
 };
